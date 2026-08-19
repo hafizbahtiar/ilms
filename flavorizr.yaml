@@ -1,0 +1,31 @@
+flavors:
+  dev:
+    app:
+      name: "ILMS Dev"
+      icon: assets/logo.png
+    android:
+      applicationId: "com.example.ilms.dev"
+    ios:
+      bundleId: "com.example.ilms.dev"
+    macos:
+      bundleId: "com.example.ilms.dev"
+  stg:
+    app:
+      name: "ILMS Stg"
+      icon: assets/logo.png
+    android:
+      applicationId: "com.example.ilms.stg"
+    ios:
+      bundleId: "com.example.ilms.stg"
+    macos:
+      bundleId: "com.example.ilms.stg"
+  prod:
+    app:
+      name: "ILMS"
+      icon: assets/logo.png
+    android:
+      applicationId: "com.example.ilms"
+    ios:
+      bundleId: "com.example.ilms"
+    macos:
+      bundleId: "com.example.ilms"

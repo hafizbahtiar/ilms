@@ -1,0 +1,74 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "ILMS Dev",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "toolArgs": ["--flavor", "dev"]
+        },
+        {
+            "name": "ILMS Stg",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "toolArgs": ["--flavor", "stg"]
+        },
+        {
+            "name": "ILMS Prod",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "toolArgs": ["--flavor", "prod"]
+        },
+        {
+            "name": "ILMS Dev (profile)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "program": "lib/main.dart",
+            "toolArgs": ["--flavor", "dev"]
+        },
+        {
+            "name": "ILMS Stg (profile)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "program": "lib/main.dart",
+            "toolArgs": ["--flavor", "stg"]
+        },
+        {
+            "name": "ILMS Prod (profile)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "program": "lib/main.dart",
+            "toolArgs": ["--flavor", "prod"]
+        },
+        {
+            "name": "ILMS Dev (release)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "program": "lib/main.dart",
+            "toolArgs": ["--flavor", "dev"]
+        },
+        {
+            "name": "ILMS Stg (release)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "program": "lib/main.dart",
+            "toolArgs": ["--flavor", "stg"]
+        },
+        {
+            "name": "ILMS Prod (release)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "program": "lib/main.dart",
+            "toolArgs": ["--flavor", "prod"]
+        }
+    ]
+}
