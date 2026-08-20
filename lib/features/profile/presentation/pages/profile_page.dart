@@ -6,6 +6,7 @@ import 'package:ilms/app/theme/theme_mode_controller.dart';
 import 'package:ilms/features/auth/domain/entities/auth_user.dart';
 import 'package:ilms/features/auth/presentation/providers/auth_providers.dart';
 import 'package:ilms/features/profile/domain/entities/profile_user.dart';
+import 'package:ilms/features/profile/presentation/controllers/profile_state.dart';
 import 'package:ilms/features/profile/presentation/providers/profile_providers.dart';
 import 'package:ilms/features/profile/presentation/widgets/profile_widgets.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
@@ -31,36 +32,43 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final authUser = ref.watch(authControllerProvider).user;
     final profileState = ref.watch(profileControllerProvider);
 
+    return Scaffold(
+      appBar: AppBar(title: const Text('Profile'), centerTitle: false),
+      body: _ProfileBody(authUser: authUser, profileState: profileState),
+    );
+  }
+}
+
+class _ProfileBody extends ConsumerWidget {
+  const _ProfileBody({required this.authUser, required this.profileState});
+
+  final AuthUser? authUser;
+  final ProfileState profileState;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     if (authUser == null) {
-      return const Scaffold(body: Center(child: Text('No profile data available.')));
+      return const Center(child: Text('No profile data available.'));
     }
 
     if (profileState.isLoading && profileState.profile == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Profile')),
-        body: const Center(child: CircularProgressIndicator.adaptive()),
-      );
+      return const Center(child: CircularProgressIndicator.adaptive());
     }
 
     if (profileState.errorMessage != null && profileState.profile == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Profile')),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(profileState.errorMessage!, textAlign: TextAlign.center),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: () {
-                    ref.read(profileControllerProvider.notifier).fetchProfile();
-                  },
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(profileState.errorMessage!, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => ref.read(profileControllerProvider.notifier).fetchProfile(),
+                child: const Text('Retry'),
+              ),
+            ],
           ),
         ),
       );
@@ -68,10 +76,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     final profile = profileState.profile;
     if (profile == null) {
-      return const Scaffold(body: Center(child: Text('No profile data available.')));
+      return const Center(child: Text('No profile data available.'));
     }
 
-    return _ProfileContent(profile: profile, authUser: authUser);
+    return _ProfileContent(profile: profile, authUser: authUser!);
   }
 }
 
@@ -87,98 +95,93 @@ class _ProfileContent extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final displayName = profileDisplayNameFromProfile(profile);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profile'), centerTitle: false),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _ProfileHeader(displayName: displayName, email: profile.email, roles: authUser.roles),
-              const SizedBox(height: 24),
-              Text('Account', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      ProfileInfoRow(icon: Icons.person_outline, label: 'Name', value: displayName),
-                      Divider(color: cs.outlineVariant),
-                      ProfileInfoRow(
-                        icon: Icons.alternate_email,
-                        label: 'Email',
-                        value: profile.email.isNotEmpty ? profile.email : '-',
-                      ),
-                      if (profile.phone != null && profile.phone!.isNotEmpty) ...[
-                        Divider(color: cs.outlineVariant),
-                        ProfileInfoRow(icon: Icons.phone_outlined, label: 'Phone', value: profile.phone!),
-                      ],
-                      Divider(color: cs.outlineVariant),
-                      ProfileInfoRow(icon: Icons.badge_outlined, label: 'Role', value: profileRoleLabel(authUser)),
-                    ],
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _ProfileHeader(displayName: displayName, email: profile.email, roles: authUser.roles),
+          const SizedBox(height: 24),
+          Text('Account', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  ProfileInfoRow(icon: Icons.person_outline, label: 'Name', value: displayName),
+                  Divider(color: cs.outlineVariant),
+                  ProfileInfoRow(
+                    icon: Icons.alternate_email,
+                    label: 'Email',
+                    value: profile.email.isNotEmpty ? profile.email : '-',
                   ),
-                ),
+                  if (profile.phone != null && profile.phone!.isNotEmpty) ...[
+                    Divider(color: cs.outlineVariant),
+                    ProfileInfoRow(icon: Icons.phone_outlined, label: 'Phone', value: profile.phone!),
+                  ],
+                  Divider(color: cs.outlineVariant),
+                  ProfileInfoRow(icon: Icons.badge_outlined, label: 'Role', value: profileRoleLabel(authUser)),
+                ],
               ),
-              const SizedBox(height: 24),
-              Text('Access', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: authUser.permissions.isEmpty
-                      ? Text(
-                          'No module permissions assigned.',
-                          style: textTheme.bodyMedium?.copyWith(color: cs.onSurface.withValues(alpha: 0.6)),
-                        )
-                      : Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final permission in authUser.permissions)
-                              ProfilePermissionChip(label: profilePermissionLabel(permission)),
-                          ],
-                        ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text('Settings', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      ProfileSettingTile(
-                        icon: Icons.lock_outline,
-                        title: 'Change Password',
-                        subtitle: 'Update your account password',
-                        onTap: () => context.push(AppRoutes.changePassword),
-                      ),
-                      Divider(color: cs.outlineVariant),
-                      ProfileSettingTile(
-                        icon: Icons.dark_mode_outlined,
-                        title: 'Theme',
-                        subtitle: 'Choose how the app looks',
-                        trailing: themeModeLabel(ref.watch(themeModeControllerProvider)),
-                        onTap: () => _showThemeBottomSheet(context, ref),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-              TextButton(
-                onPressed: () => _showLogoutBottomSheet(context, ref),
-                child: Text(
-                  'Log out',
-                  style: TextStyle(color: cs.error, fontSize: 16, fontWeight: FontWeight.w700),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(height: 24),
+          Text('Access', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: authUser.permissions.isEmpty
+                  ? Text(
+                      'No module permissions assigned.',
+                      style: textTheme.bodyMedium?.copyWith(color: cs.onSurface.withValues(alpha: 0.6)),
+                    )
+                  : Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final permission in authUser.permissions)
+                          ProfilePermissionChip(label: profilePermissionLabel(permission)),
+                      ],
+                    ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text('Settings', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  ProfileSettingTile(
+                    icon: Icons.lock_outline,
+                    title: 'Change Password',
+                    subtitle: 'Update your account password',
+                    onTap: () => context.push(AppRoutes.changePassword),
+                  ),
+                  Divider(color: cs.outlineVariant),
+                  ProfileSettingTile(
+                    icon: Icons.dark_mode_outlined,
+                    title: 'Theme',
+                    subtitle: 'Choose how the app looks',
+                    trailing: themeModeLabel(ref.watch(themeModeControllerProvider)),
+                    onTap: () => _showThemeBottomSheet(context, ref),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+          TextButton(
+            onPressed: () => _showLogoutBottomSheet(context, ref),
+            child: Text(
+              'Log out',
+              style: TextStyle(color: cs.error, fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -250,14 +253,11 @@ class _ProfileContent extends ConsumerWidget {
   }
 
   IconData _themeModeIcon(ThemeMode mode) {
-    switch (mode) {
-      case ThemeMode.light:
-        return Icons.light_mode_outlined;
-      case ThemeMode.dark:
-        return Icons.dark_mode_outlined;
-      case ThemeMode.system:
-        return Icons.brightness_auto_outlined;
-    }
+    return switch (mode) {
+      ThemeMode.light => Icons.light_mode_outlined,
+      ThemeMode.dark => Icons.dark_mode_outlined,
+      ThemeMode.system => Icons.brightness_auto_outlined,
+    };
   }
 }
 

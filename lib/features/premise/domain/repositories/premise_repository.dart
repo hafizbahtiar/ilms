@@ -7,5 +7,9 @@ abstract class PremiseRepository {
   Future<PremiseSubmitResult> submitUpdate(PremiseForm form);
 
   /// Uploads locally captured images after the main form submit succeeds.
-  Future<int> uploadPendingImages({required String visitNo, required PremiseForm form});
+  Future<int> uploadPendingImages({
+    required String visitNo,
+    required PremiseForm form,
+    String process = 'create',
+  });
 }

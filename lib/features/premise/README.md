@@ -2,7 +2,7 @@
 
 Premise Census module for ILMS — business premise field visits: search, create, edit, duplicate, offline draft, and submit.
 
-This feature is being rebuilt in `ilms` using clean architecture (domain / data / presentation), Riverpod, GoRouter, and Drift. Behaviour and data contracts are inherited from the legacy app in `ilms_flutter/lib/modules/premis`.
+This feature uses clean architecture (domain / data / presentation), Riverpod, GoRouter, and Drift. Behaviour and data contracts are inherited from the legacy app in `ilms_flutter/lib/modules/premis`.
 
 ---
 
@@ -10,10 +10,17 @@ This feature is being rebuilt in `ilms` using clean architecture (domain / data 
 
 | Area | Status |
 |------|--------|
-| Home entry | Wired via dynamic home groups (`View All` → `/module/premise`) |
+| Home entry | `PremiseHomeSection` — View All, New Entry, Drafts, **Duplicate** |
+| Form UI | Tab bar + scroll-sync sections (7 tabs), explicit draft save |
+| Local drafts | Drift `premise_draft_entries`, list page, duplicate/delete actions |
+| Duplicate search | `/premise/duplicate-search` — filter, paginated **API** search, open as draft |
+| Duplicate payload | Company/contact/details only — **no images, no remarks** |
 | `PremisePage` | Placeholder — mock census list only |
-| Local DB | Shared `AppDatabase` exists (`KeyValueEntries` only); premise tables not yet added |
-| Domain / data / form | Not implemented |
+| Main search | Not implemented yet |
+| API submit | `ApiPremiseDataSource` — create, update, photo upload |
+| Lookups | `ApiGeneralLookupDataSource` — cached in Drift (`lookup:*` keys) |
+
+**Auth required:** All premise API calls use `DioClient` with bearer token (login first).
 
 ---
 
@@ -25,29 +32,16 @@ Full behaviour lives in **`ilms_flutter`**. Read the docs below before implement
 |-----|----------|
 | [docs/form-ui-design.md](docs/form-ui-design.md) | **Form first** — tab bar + scroll-sync sections (food-menu UX) |
 | [docs/form-flow-and-states.md](docs/form-flow-and-states.md) | Form states, validation, persistence (legacy vs new UI) |
+| [docs/duplicate-search.md](docs/duplicate-search.md) | **Duplicate search** — filter, searchPrevPhase, draft rules |
 | [docs/legacy-overview.md](docs/legacy-overview.md) | Legacy module layout, controllers, screens, navigation |
 | [docs/local-persistence.md](docs/local-persistence.md) | SQLite schema, drafts, edit sessions, retry queue, photo upload |
-| [docs/general-module-integration.md](docs/general-module-integration.md) | Shared lookup data (`GeneralController`), offline master cache |
+| [docs/general-module-integration.md](docs/general-module-integration.md) | Shared lookup data, API + Drift cache |
 | [docs/migration-plan.md](docs/migration-plan.md) | Mapping legacy → `ilms` target structure |
 
-Legacy source README: `ilms_flutter/lib/modules/premis/README.md`
+Legacy source README: `ilms_flutter/lib/modules/premis/README.md`  
+Legacy duplicate reference: `ilms_flutter/lib/modules/premis/premis_duplicate_search_view.dart`
 
----
-
-## Current Focus — Form First
-
-Premise work starts with the **census form UI**, not search or local DB.
-
-Design: **single scroll page + sticky tab bar** (same pattern as ecommerce / food delivery category menus):
-
-1. Horizontal **tab bar** — one tab per section (7 tabs)
-2. **Scroll → tab** — active tab follows the section in view
-3. **Tab tap → scroll** — jumps to that section
-4. **One file per section** — fields live in `presentation/sections/`, not in the page shell
-
-Full spec: [docs/form-ui-design.md](docs/form-ui-design.md)
-
-Legacy used a 7-page wizard (`PageController` + Next/Back). Same 7 sections and data — new presentation only.
+Session log (2026-08-20): [`docs/sessions/2026-08-20-premise-api-and-duplicate.md`](../../../docs/sessions/2026-08-20-premise-api-and-duplicate.md)
 
 ---
 
@@ -59,63 +53,80 @@ lib/features/premise/
 ├── docs/
 ├── domain/
 │   ├── entities/
-│   ├── repositories/
-│   └── exceptions/
+│   └── repositories/
 ├── data/
 │   ├── datasources/
+│   │   ├── api_premise_data_source.dart
+│   │   ├── api_premise_duplicate_remote_data_source.dart
+│   │   ├── mock_* (tests only)
+│   │   └── local/premise_draft_local_data_source.dart
+│   ├── mappers/
+│   │   ├── premise_draft_mapper.dart
+│   │   ├── premise_detail_mapper.dart
+│   │   └── premise_form_mapper.dart
 │   ├── models/
 │   └── repositories/
 └── presentation/
     ├── pages/
-    │   └── premise_form_page.dart       # shell: tab bar + scroll + submit (no fields)
-    ├── sections/                        # one file per form section
-    │   ├── premise_form_sections.dart   # section registry (tabs, ids, order)
-    │   ├── company_contact_section.dart
-    │   ├── premise_details_section.dart
-    │   ├── premise_address_section.dart
-    │   ├── license_section.dart
-    │   ├── business_activity_section.dart
-    │   ├── remarks_section.dart
-    │   └── census_images_section.dart
+    │   ├── premise_form_page.dart
+    │   ├── premise_drafts_page.dart
+    │   └── premise_duplicate_page.dart
     ├── widgets/
-    │   ├── premise_form_tab_bar.dart
-    │   └── premise_section_header.dart
+    │   ├── premise_home_section.dart
+    │   ├── premise_duplicate_filter_sheet.dart
+    │   ├── premise_duplicate_record_tile.dart
+    │   └── premise_form_exit_sheet.dart
     ├── controllers/
-    │   └── premise_form_controller.dart
+    │   ├── premise_duplicate_controller.dart
+    │   └── premise_form_state.dart
+    ├── sections/
     └── providers/
 ```
 
+Shared network helpers used by premise API:
+
+- `lib/core/network/form_data_builder.dart` — nested FormData for create/update/photo
+- `lib/core/network/api_response_helper.dart` — status/message parsing
+
 Principles carried forward from legacy:
 
-- **Offline-first drafts** — every "Next" in create/draft/duplicate persists the current page to SQLite.
-- **Edit sessions** — editing a submitted record uses a scratch local row (`isEditSession`), separate from new-premise drafts.
-- **Retry queue** — failed create/update payloads stored in `pending_submissions` for manual retry.
-- **Deferred photo upload** — census images can outlive the main submit; retried separately.
-- **General lookups** — dropdown values from API with SQLite master-data fallback when offline.
+- **Offline-first drafts** — explicit Save / Save & exit (no silent auto-save on back).
+- **Duplicate from previous phase** — address filter → search → eligibility → detail → local draft.
+- **Duplicate omits photos & remarks** — user re-captures images and enters remarks fresh.
+- **General lookups** — dropdown values from API with Drift cache for offline reuse.
 
 ---
 
 ## Key User Flows
 
 ```
-Home → Premise group → View All
-  └── Search (paginated API + filters)
-        ├── Draft counter / Draft sheet
-        ├── Pending submission banner (retry)
-        ├── Pending photos banner (retry upload)
-        └── Document tile → Form (tab bar + scroll sections) → Submit sheet
-              ├── create / draft / duplicate / edit / view
-              └── Save & Exit / background autosave
+Home → Premise group
+  ├── View All → /module/premise (placeholder list)
+  ├── New Entry → /premise/form?mode=create
+  ├── Drafts → /premise/drafts
+  └── Duplicate → /premise/duplicate-search
+        └── Filter → search → pick record → confirm
+              └── checkDuplicatePhase → detail → Drift draft → form
 ```
 
-Entry actions (aligned with home mock config):
-
-| Action | Legacy screen | Route (target) |
-|--------|---------------|----------------|
-| View All | `PremisSearchView` | `/module/premise` or `/premise/search` |
+| Action | Legacy screen | Route |
+|--------|---------------|-------|
+| View All | `PremisSearchView` | `/module/premise` |
 | New Entry | `PremisFormView` (create) | `/premise/form?mode=create` |
 | Drafts | `PremisDraftSheet` | `/premise/drafts` |
-| History | `PremisHistoryView` | `/premise/history` |
+| Duplicate | `PremisDuplicateSearchView` | `/premise/duplicate-search` |
+
+---
+
+## API Layer (production)
+
+| Concern | Class | Provider |
+|---------|-------|----------|
+| Duplicate search / detail | `ApiPremiseDuplicateRemoteDataSource` | `premiseDuplicateRemoteDataSourceProvider` |
+| Create / update / photo | `ApiPremiseDataSource` | `premiseDataSourceProvider` |
+| Lookups | `ApiGeneralLookupDataSource` | `generalLookupDataSourceProvider` |
+
+Mock implementations (`MockPremiseDataSource`, `MockPremiseDuplicateRemoteDataSource`, `MockGeneralLookupDataSource`) are **not** wired in production — tests only.
 
 ---
 
@@ -123,39 +134,42 @@ Entry actions (aligned with home mock config):
 
 | File | Role |
 |------|------|
-| `lib/features/home/data/datasources/mock_home_menu_data_source.dart` | Premise home group items |
-| `lib/app/router/app_router.dart` | `/module/premise` → `PremisePage` |
-| `lib/core/local/database/app_database.dart` | Shared Drift DB (premise tables TBD) |
-| `lib/shared/models/general_model.dart` | Lookup item shape (same as legacy) |
+| `lib/features/premise/presentation/widgets/premise_home_section.dart` | Premise home buttons + last draft card |
+| `lib/app/router/app_router.dart` | Premise routes |
+| `lib/core/local/database/app_database.dart` | Drift DB incl. `premise_draft_entries` |
+| `lib/shared/lookups/` | Shared lookup repository + API data source |
+| `lib/shared/ui/app_bars/app_search_app_bar.dart` | Duplicate search app bar |
+| `lib/shared/ui/lists/app_list_view.dart` | Paginated / empty / error list scaffold |
 
 ---
 
 ## Implementation Order
 
-### Now — Form UI (Phase 1)
+### Done
 
-1. Section registry + `premise_form_page.dart` shell (tab bar, scroll sync).
-2. Section files one by one (company → details → address → …).
-3. Form controller + submit-time validation (required sections 1–3).
-4. Route `/premise/form?mode=create` from home **New Entry**.
+1. Form UI shell + section files
+2. Drift drafts + draft list page
+3. Exit bottom sheet (Save & exit / Delete draft / Exit without saving)
+4. Duplicate search page + session-scoped controller
+5. Wire real API — duplicate search, check, detail, create/update, photo upload
+6. Shared lookups via API + Drift cache
+7. Duplicate detail excludes census images and remarks
 
-See [docs/form-ui-design.md](docs/form-ui-design.md).
+### Next
 
-### Later
-
-5. Domain entities + `PremiseInputModel` port.
-6. Drift tables + offline save triggers ([local-persistence.md](docs/local-persistence.md)).
-7. Search page, draft sheet, retry/photo pipeline.
-8. History + remaining home routes.
+8. Main premise search page (`PremisSearchView`)
+9. View / edit modes with full detail load
+10. Edit session + pending submission retry pipeline
+11. Wire license, address, business activity, remarks sections (beyond placeholders)
 
 ---
 
-## Tests (legacy reference)
+## Tests
 
-Legacy has extensive premise tests under `ilms_flutter/test/premis/`. Port critical cases when implementing local persistence and form submit:
+- `test/features/premise/data/premise_draft_repository_impl_test.dart`
+- `test/features/premise/data/premise_draft_mapper_test.dart`
+- `test/features/premise/data/premise_detail_mapper_test.dart`
+- `test/features/premise/data/mock_premise_duplicate_remote_data_source_test.dart`
+- `test/features/premise/presentation/premise_duplicate_controller_test.dart`
 
-- Draft save/resume
-- Edit session row lifecycle
-- Pending submission retry (`create` vs `update` payload parsing)
-- License ↔ business activity linking
-- Photo upload seq numbering
+Legacy has extensive premise tests under `ilms_flutter/test/premis/` — port critical cases when wiring edit sessions and full submit payloads.

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:ilms/features/home/presentation/home_modules.dart';
+import 'package:ilms/shared/constants/home_modules.dart';
 import 'package:ilms/shared/models/census_entry.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
+import 'package:ilms/shared/ui/home/home_module_summary_card.dart';
 import 'package:ilms/shared/ui/tiles/census_entry_tile.dart';
-import 'package:ilms/features/home/presentation/widgets/module_summary_card.dart';
 
 class BillboardPage extends StatelessWidget {
   const BillboardPage({super.key, required this.module});
@@ -34,7 +34,7 @@ class BillboardPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
           children: [
-            ModuleSummaryCard(module: module, total: _entries.length, verified: verified),
+            HomeModuleSummaryCard(module: module, total: _entries.length, verified: verified),
             const SizedBox(height: 24),
             Text('Recent Entries', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 12),

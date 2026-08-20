@@ -29,7 +29,13 @@ class MockPremiseDataSource implements PremiseDataSource {
   }
 
   @override
-  Future<void> uploadImage({required String visitNo, required String localPath, String? typeCode, int? seq}) async {
+  Future<void> uploadImage({
+    required String visitNo,
+    required String localPath,
+    String? typeCode,
+    int? seq,
+    String process = 'create',
+  }) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
   }
 }

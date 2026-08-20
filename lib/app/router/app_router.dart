@@ -5,11 +5,13 @@ import 'package:ilms/features/auth/presentation/pages/login_page.dart';
 import 'package:ilms/features/auth/presentation/providers/auth_providers.dart';
 import 'package:ilms/features/billboard/presentation/pages/billboard_page.dart';
 import 'package:ilms/features/change_password/presentation/pages/change_password_page.dart';
-import 'package:ilms/features/home/presentation/home_modules.dart';
+import 'package:ilms/shared/constants/home_modules.dart';
 import 'package:ilms/features/home/presentation/pages/home_page.dart';
 import 'package:ilms/features/home/presentation/pages/module_placeholder_page.dart';
 import 'package:ilms/features/investigation/presentation/pages/investigation_page.dart';
 import 'package:ilms/features/premise/presentation/controllers/premise_form_state.dart';
+import 'package:ilms/features/premise/presentation/pages/premise_duplicate_page.dart';
+import 'package:ilms/features/premise/presentation/pages/premise_drafts_page.dart';
 import 'package:ilms/features/premise/presentation/pages/premise_form_page.dart';
 import 'package:ilms/features/premise/presentation/pages/premise_page.dart';
 import 'package:ilms/features/profile/presentation/pages/profile_page.dart';
@@ -61,9 +63,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.premiseForm,
         builder: (context, state) {
           final mode = PremiseFormModeX.fromQuery(state.uri.queryParameters['mode']);
-          return PremiseFormPage(mode: mode);
+          final localId = int.tryParse(state.uri.queryParameters['localId'] ?? '');
+          final instanceKey = state.uri.queryParameters['i'];
+          final session = PremiseFormSession(mode: mode, localDraftId: localId, instanceKey: instanceKey);
+          return PremiseFormPage(session: session);
         },
       ),
+      GoRoute(path: AppRoutes.premiseDrafts, builder: (context, state) => const PremiseDraftsPage()),
+      GoRoute(path: AppRoutes.premiseDuplicate, builder: (context, state) => const PremiseDuplicatePage()),
       GoRoute(
         path: '/module/:moduleId',
         builder: (context, state) {

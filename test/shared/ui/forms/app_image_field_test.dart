@@ -158,5 +158,37 @@ void main() {
       await tester.tap(find.byIcon(Icons.close).first);
       expect(removedIndex, 0);
     });
+
+    testWidgets('hides add tile at maxImages limit', (tester) async {
+      final images = List.generate(30, _item);
+
+      await _pumpField(
+        tester,
+        AppImageField(
+          images: images,
+          maxImages: 30,
+          onAdd: () {},
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.byIcon(Icons.photo_camera_outlined), findsNothing);
+      expect(find.byType(ExtendedImage), findsNWidgets(30));
+    });
+
+    testWidgets('shows image count in label', (tester) async {
+      await _pumpField(
+        tester,
+        AppImageField(
+          label: 'Photos',
+          images: [_item(), _item(1)],
+          maxImages: 30,
+        ),
+      );
+
+      expect(find.text('Photos (2/30)'), findsOneWidget);
+    });
   });
 }

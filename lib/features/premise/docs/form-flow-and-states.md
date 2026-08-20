@@ -77,13 +77,12 @@ Create flow: first local row created via `saveLocalPremise()` → `PremisDataLoc
 
 ## Submit Flow (high level)
 
-1. Build `PremiseInputModel` from all section controllers.
-2. Call `PremisRepo.createPremises` or `updatePremises`.
-3. On network failure → enqueue full JSON payload to `pending_submissions`.
-4. On success → mark local row `isSync: true`; kick off photo upload for new bytes.
-5. Show success dialog; navigate back (duplicate flow has special pop target).
+1. Build domain `PremiseForm` from section state via `PremiseFormMapper`.
+2. Call `ApiPremiseDataSource.create` or `update` (FormData via `FormDataBuilder`).
+3. On success → `visit_no` returned; upload pending local photos via `/create-photo` (`process: create|update`).
+4. Mark local draft synced when applicable.
 
-Edit submit requires `updatedAt` from server (optimistic concurrency) — stored on edit-session scratch row.
+Pending submission retry queue — **not implemented yet** (legacy `pending_submissions`).
 
 ---
 
@@ -91,10 +90,17 @@ Edit submit requires `updatedAt` from server (optimistic concurrency) — stored
 
 ### Duplicate
 
-1. User picks existing record from `PremisDuplicateSearchView`.
-2. Form opens in `duplicate` state with all sections pre-filled from server.
-3. `_persistAllSections()` runs post-frame so kill-safe.
-4. `linkLicenseToBusiness()` syncs license ↔ business activity links after local IDs assigned.
+1. User picks existing record from `PremiseDuplicatePage` ([duplicate-search.md](duplicate-search.md)).
+2. App calls `PremiseDuplicateRepository.createDraftFromRecord`:
+   - `checkCanDuplicate(visitNo)` — blocked if source is current phase.
+   - `loadDetail(visitNo)` — API detail mapped via `PremiseDetailMapper.fromApiDetailForDuplicate`.
+   - Saves Drift draft; **no census images or remarks** in payload.
+3. Form opens on `/premise/form?mode=draft&localId=…` with text fields pre-filled.
+4. User edits and submits as a new visit (`ApiPremiseDataSource.create`).
+
+Legacy reference: `PremisDuplicateSearchView` + `duplicateFromSearch()` in `PremisFormController`.
+
+**Legacy difference:** Legacy duplicates remarks (with server ids stripped). `ilms` intentionally starts with an empty remarks tab. Legacy also skips census images in duplicate mode — `ilms` matches that for images.
 
 ### Edit (submitted record)
 
@@ -118,7 +124,7 @@ Flag `_isQrCreate` — license data can be prefilled from QR scan (`LicenseQrRes
 
 | Scenario | UI |
 |----------|-----|
-| Back with transient draft | `premis_unsave_draft_dialog.dart` — Save & Exit / Discard |
+| Back with transient draft | `premise_form_exit_sheet.dart` — Save & Exit / Delete draft / Exit without saving |
 | Search screen back with active draft | Exit Anyway / Clear Draft |
 | Edit session abandon | `discardEditSession()` |
 

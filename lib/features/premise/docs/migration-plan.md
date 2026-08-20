@@ -35,14 +35,16 @@ Practical mapping from `ilms_flutter` premise module to this codebase.
 | `modules/premis/sections/premis_census_image_section.dart` | `presentation/sections/census_images_section.dart` |
 | — | `presentation/sections/premise_form_sections.dart` (registry) |
 | — | `presentation/widgets/premise_form_tab_bar.dart` |
-| `modules/premis/premis_search_view.dart` | `presentation/pages/premise_search_page.dart` |
+| `modules/premis/premis_duplicate_search_view.dart` | `presentation/pages/premise_duplicate_search_page.dart` |
+| `modules/premis/premis_duplicate_filter_modal.dart` | `presentation/widgets/premise_duplicate_filter_sheet.dart` |
+| `modules/premis/controllers/premis_duplicate_search_controller.dart` | `presentation/providers/premise_duplicate_search_providers.dart` |
 | `modules/premis/premis_draft_sheet.dart` | `presentation/widgets/premise_draft_sheet.dart` |
 | `modules/premis/premis_history_view.dart` | `presentation/pages/premise_history_page.dart` |
 | `modules/premis/controllers/premis_form_controller.dart` | `presentation/controllers/premise_form_controller.dart` |
 | `modules/premis/models/premis_input_model.dart` | `data/models/` + `domain/entities/` |
 | `data/.../premis_data_local_datasource.dart` | `data/datasources/local/premise_local_datasource.dart` |
-| `data/network/repositories/premis_repo.dart` | `data/datasources/api/premise_api_data_source.dart` + `data/repositories/premise_repository_impl.dart` |
-| `modules/general/controller/general_controller.dart` | Shared `general` feature or lookup providers |
+| `data/network/repositories/premis_repo.dart` | `api_premise_data_source.dart` + `api_premise_duplicate_remote_data_source.dart` + repositories ✅ |
+| `modules/general/controller/general_controller.dart` | `lib/shared/lookups/` + `ApiGeneralLookupDataSource` ✅ |
 
 ---
 
@@ -51,21 +53,21 @@ Practical mapping from `ilms_flutter` premise module to this codebase.
 Current:
 
 ```
-/module/premise  →  PremisePage (placeholder)
+/module/premise              →  PremisePage (placeholder)
+/premise/form                →  PremiseFormPage (?mode, ?localId, ?i)
+/premise/drafts              →  PremiseDraftsPage
+/premise/duplicate-search    →  PremiseDuplicateSearchPage  ✅
 ```
 
-Proposed (form first):
+Still planned:
 
 ```
-/premise/form                # ?mode=create|draft|edit|view|duplicate  ← Phase 1
-/premise/form/:localId       # resume draft
-/premise/search              # Phase 2+
-/premise/drafts
+/premise/search              # main search (PremisSearchView)
 /premise/history
-/premise/duplicate-search
 ```
 
-Wire home **New Entry** → `/premise/form?mode=create` when form shell exists.
+Wire home **New Entry** → `/premise/form?mode=create` ✅  
+Wire home **Duplicate** → `/premise/duplicate-search` ✅
 
 ---
 
@@ -94,14 +96,16 @@ Wire home **New Entry** → `/premise/form?mode=create` when form shell exists.
 
 ### Phase 4 — Search & satellite flows
 
-- Search page replaces placeholder `PremisePage`
-- Draft sheet, duplicate search
-- View / edit / duplicate modes fully wired
+- Search page replaces placeholder `PremisePage` — **next**
+- Drafts list ✅
+- Duplicate search ✅ (API wired)
+- View / edit modes — **not yet**
+- API create/update/photo ✅
 
 ### Phase 5 — Offline resilience
 
-- Pending submissions queue + retry UI
-- Photo upload + photo retry banner
+- Pending submissions queue + retry UI — **not yet**
+- Photo upload ✅ (inline after submit; no retry banner yet)
 
 ### Phase 6 — Polish
 
@@ -133,8 +137,9 @@ Do **not**:
 
 ## Immediate Next Step
 
-1. [form-ui-design.md](form-ui-design.md) — tab bar + scroll spec
-2. [form-flow-and-states.md](form-flow-and-states.md) — states & validation
-3. Scaffold `premise_form_page.dart` + first section file
+1. Main premise search page (`PremisSearchView`)
+2. View / edit form modes with full detail load
+3. Pending submission retry pipeline
+4. Complete section UIs (license, address, business activity, remarks)
 
-Local DB and search come **after** form UI is approved.
+Session log: `docs/sessions/2026-08-20-premise-api-and-duplicate.md`

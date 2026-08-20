@@ -6,5 +6,11 @@ abstract class PremiseDataSource {
 
   Future<PremiseSubmitResult> update(PremiseForm form);
 
-  Future<void> uploadImage({required String visitNo, required String localPath, String? typeCode, int? seq});
+  Future<void> uploadImage({
+    required String visitNo,
+    required String localPath,
+    String? typeCode,
+    int? seq,
+    String process = 'create',
+  });
 }

@@ -8,9 +8,9 @@ class PremiseAddressSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mode = PremiseFormScope.of(context);
-    final fields = ref.watch(premiseFormFieldsProvider(mode));
-    final readOnly = ref.watch(premiseFormControllerProvider(mode).select((s) => s.isReadOnly));
+    final session = PremiseFormScope.of(context);
+    final fields = ref.watch(premiseFormFieldsProvider(session));
+    final readOnly = ref.watch(premiseFormControllerProvider(session).select((s) => s.isReadOnly));
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 

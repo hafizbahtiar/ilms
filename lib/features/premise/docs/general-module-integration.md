@@ -65,8 +65,9 @@ When porting to `ilms`:
 | Concern | Suggestion |
 |---------|------------|
 | API | `GeneralRepository` + `ApiGeneralDataSource` |
-| Cache | In-memory provider + optional Drift master tables |
-| UI | Reuse app bottom sheet / dialog patterns from `lib/shared/widgets/` |
+| Cache | Drift `KeyValueEntries` via `GeneralLookupRepositoryImpl` (`lookup:*` keys) + `ref.keepAlive()` providers |
+| Refresh | `refreshAllGeneralLookups(ref)` — clears cache, invalidates providers; refresh button on filter sheets |
+| UI | `AppSearchAppBar`, `AppBottomSheetActionBar`, `showAppBottomSheet(bottomBar: …)` |
 | Type safety | Replace stringly `GeneralDataType` enum with sealed class or codegen |
 
 Premise form sections should depend on **`GeneralRepository` abstraction**, not concrete API — same loose-coupling pattern as home menu mock → API swap.
@@ -93,17 +94,18 @@ Legacy `PremisHomeModal` actions map directly to home items:
 
 ---
 
-## Target (`ilms`)
+## Target (`ilms`) — current
 
 ```
-lib/features/general/          # or lib/shared/lookups/
-├── domain/
-│   └── repositories/general_repository.dart
+lib/shared/lookups/
+├── domain/general_lookup_repository.dart
 ├── data/
-│   ├── api_general_data_source.dart
-│   └── local_master_data_source.dart
-└── presentation/
-    └── providers/general_lookup_provider.dart
+│   ├── datasources/api_general_lookup_data_source.dart   ✅ production
+│   ├── datasources/mock_general_lookup_data_source.dart  tests only
+│   └── repositories/general_lookup_repository_impl.dart  Drift cache
+└── providers/general_lookup_providers.dart
 ```
 
-Premise sections inject lookup provider — never import API client directly.
+**Production:** `generalLookupDataSourceProvider` → `ApiGeneralLookupDataSource(DioClient.instance)`.
+
+Premise sections depend on lookup providers — never import API client directly.

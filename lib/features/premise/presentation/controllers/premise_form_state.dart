@@ -17,32 +17,78 @@ extension PremiseFormModeX on PremiseFormMode {
   }
 }
 
+@immutable
+class PremiseFormSession {
+  const PremiseFormSession({required this.mode, this.localDraftId, this.instanceKey});
+
+  final PremiseFormMode mode;
+  final int? localDraftId;
+
+  /// Distinguishes fresh "New Entry" opens so Riverpod does not reuse stale form state.
+  final String? instanceKey;
+
+  bool get isTransient =>
+      mode == PremiseFormMode.create || mode == PremiseFormMode.draft || mode == PremiseFormMode.duplicate;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PremiseFormSession &&
+          other.mode == mode &&
+          other.localDraftId == localDraftId &&
+          other.instanceKey == instanceKey;
+
+  @override
+  int get hashCode => Object.hash(mode, localDraftId, instanceKey);
+}
+
 class PremiseFormState {
   const PremiseFormState({
     required this.mode,
+    this.localDraftId,
     this.activeSectionIndex = 0,
     this.isSubmitting = false,
+    this.isDraftSaving = false,
+    this.isDraftLoading = false,
     this.censusImages = const [],
+    this.companyStateCode,
+    this.companyPostcode,
   });
 
   final PremiseFormMode mode;
+  final int? localDraftId;
   final int activeSectionIndex;
   final bool isSubmitting;
+  final bool isDraftSaving;
+  final bool isDraftLoading;
   final List<PremiseCensusImage> censusImages;
+  final String? companyStateCode;
+  final String? companyPostcode;
 
   bool get isReadOnly => mode.isReadOnly;
 
   PremiseFormState copyWith({
     PremiseFormMode? mode,
+    int? localDraftId,
     int? activeSectionIndex,
     bool? isSubmitting,
+    bool? isDraftSaving,
+    bool? isDraftLoading,
     List<PremiseCensusImage>? censusImages,
+    String? companyStateCode,
+    String? companyPostcode,
+    bool clearCompanyPostcode = false,
   }) {
     return PremiseFormState(
       mode: mode ?? this.mode,
+      localDraftId: localDraftId ?? this.localDraftId,
       activeSectionIndex: activeSectionIndex ?? this.activeSectionIndex,
       isSubmitting: isSubmitting ?? this.isSubmitting,
+      isDraftSaving: isDraftSaving ?? this.isDraftSaving,
+      isDraftLoading: isDraftLoading ?? this.isDraftLoading,
       censusImages: censusImages ?? this.censusImages,
+      companyStateCode: companyStateCode ?? this.companyStateCode,
+      companyPostcode: clearCompanyPostcode ? null : (companyPostcode ?? this.companyPostcode),
     );
   }
 }

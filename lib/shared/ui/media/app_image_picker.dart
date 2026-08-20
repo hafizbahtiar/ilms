@@ -7,7 +7,7 @@ import 'package:ilms/shared/ui/media/camera/app_camera_page.dart';
 
 /// Shows the camera/gallery chooser, then returns picked image files.
 ///
-/// Camera returns a single file. Gallery uses multi-select when supported.
+/// Pass [galleryLimit] to cap selections (e.g. remaining slots toward [AppImageLimits.defaultMaxImages]).
 Future<List<File>> pickAppImageFiles(
   BuildContext context, {
   String sheetTitle = 'Add Photo',
@@ -15,19 +15,12 @@ Future<List<File>> pickAppImageFiles(
   int imageQuality = 88,
   int? galleryLimit,
 }) async {
-  final source = await showAppImageSourceSheet(
-    context,
-    title: sheetTitle,
-    subtitle: sheetSubtitle,
-  );
+  final source = await showAppImageSourceSheet(context, title: sheetTitle, subtitle: sheetSubtitle);
   if (source == null || !context.mounted) return const [];
 
   return switch (source) {
-    AppImageSourceChoice.camera => _pickFromCamera(context),
-    AppImageSourceChoice.gallery => _pickFromGallery(
-        imageQuality: imageQuality,
-        limit: galleryLimit,
-      ),
+    AppImageSourceChoice.camera => _pickFromCamera(context, maxPhotos: galleryLimit),
+    AppImageSourceChoice.gallery => _pickFromGallery(imageQuality: imageQuality, limit: galleryLimit),
   };
 }
 
@@ -48,20 +41,13 @@ Future<File?> pickAppImageFile(
   return files.isEmpty ? null : files.first;
 }
 
-Future<List<File>> _pickFromCamera(BuildContext context) async {
-  final captured = await AppCameraPage.open(context);
-  if (captured == null) return const [];
-  return [captured];
+/// Camera returns one or more files after the review step.
+Future<List<File>> _pickFromCamera(BuildContext context, {int? maxPhotos}) async {
+  return AppCameraPage.open(context, maxPhotos: maxPhotos);
 }
 
-Future<List<File>> _pickFromGallery({
-  required int imageQuality,
-  int? limit,
-}) async {
-  final picked = await ImagePicker().pickMultiImage(
-    imageQuality: imageQuality,
-    limit: limit,
-  );
+Future<List<File>> _pickFromGallery({required int imageQuality, int? limit}) async {
+  final picked = await ImagePicker().pickMultiImage(imageQuality: imageQuality, limit: limit);
   if (picked.isEmpty) return const [];
   return picked.map((file) => File(file.path)).toList();
 }

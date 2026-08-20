@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ilms/features/home/presentation/home_modules.dart';
+import 'package:ilms/shared/constants/home_modules.dart';
 
 class ModulePlaceholderPage extends StatelessWidget {
   const ModulePlaceholderPage({super.key, required this.module});

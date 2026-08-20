@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ilms/features/premise/presentation/providers/premise_providers.dart';
 import 'package:ilms/features/premise/presentation/providers/premise_form_providers.dart';
+import 'package:ilms/shared/lookups/lookup_labels.dart';
 import 'package:ilms/shared/models/general_model.dart';
 import 'package:ilms/shared/ui/forms/app_text_field.dart';
 
@@ -11,11 +12,12 @@ class PremiseDetailsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mode = PremiseFormScope.of(context);
-    final fields = ref.watch(premiseFormFieldsProvider(mode));
-    final readOnly = ref.watch(premiseFormControllerProvider(mode).select((s) => s.isReadOnly));
+    final session = PremiseFormScope.of(context);
+    final fields = ref.watch(premiseFormFieldsProvider(session));
+    final readOnly = ref.watch(premiseFormControllerProvider(session).select((s) => s.isReadOnly));
     final businessTypes = ref.watch(premiseBusinessTypesProvider).value ?? const [];
     final premiseTypes = ref.watch(premisePremiseTypesProvider).value ?? const [];
+    final controller = ref.read(premiseFormControllerProvider(session).notifier);
 
     return Form(
       key: fields.detailsFormKey,
@@ -37,8 +39,9 @@ class PremiseDetailsSection extends ConsumerWidget {
             required: true,
             enabled: !readOnly,
             options: businessTypes,
-            optionLabel: _lookupLabel,
+            optionLabel: generalLookupLabel,
             sheetSubtitle: 'Select business type',
+            onOptionSelected: controller.selectBusinessType,
             validator: (v) => (v == null || v.trim().isEmpty) ? 'Business Type is required' : null,
           ),
           const SizedBox(height: 12),
@@ -48,8 +51,9 @@ class PremiseDetailsSection extends ConsumerWidget {
             required: true,
             enabled: !readOnly,
             options: premiseTypes,
-            optionLabel: _lookupLabel,
+            optionLabel: generalLookupLabel,
             sheetSubtitle: 'Select premise type',
+            onOptionSelected: controller.selectPremiseType,
             validator: (v) => (v == null || v.trim().isEmpty) ? 'Premise Type is required' : null,
           ),
           const SizedBox(height: 12),
@@ -81,5 +85,3 @@ class PremiseDetailsSection extends ConsumerWidget {
     );
   }
 }
-
-String _lookupLabel(GeneralModel option) => option.desc ?? option.code ?? '';

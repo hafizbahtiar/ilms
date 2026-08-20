@@ -7,10 +7,11 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'tables/key_value_entries.dart';
+import 'tables/premise_draft_entries.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [KeyValueEntries])
+@DriftDatabase(tables: [KeyValueEntries, PremiseDraftEntries])
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.executor);
 
@@ -37,7 +38,19 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) async {
+      await m.createAll();
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(premiseDraftEntries);
+      }
+    },
+  );
 
   Future<void> upsertKeyValue({required String key, required String value}) {
     return into(keyValueEntries).insertOnConflictUpdate(

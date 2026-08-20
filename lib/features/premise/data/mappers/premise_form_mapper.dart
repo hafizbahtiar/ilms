@@ -4,6 +4,7 @@ import 'package:ilms/features/premise/domain/entities/premise_company_contact.da
 import 'package:ilms/features/premise/domain/entities/premise_details.dart';
 import 'package:ilms/features/premise/domain/entities/premise_form.dart';
 import 'package:ilms/features/premise/presentation/controllers/premise_form_state.dart';
+import 'package:ilms/shared/lookups/lookup_labels.dart';
 import 'package:ilms/shared/models/general_model.dart';
 
 class PremiseFormMapper {
@@ -31,11 +32,11 @@ class PremiseFormMapper {
         building: _text(fields.building),
         street1: _text(fields.street1),
         street2: _text(fields.street2),
-        stateCode: _codeFromDisplay(_text(fields.state)),
-        stateDescription: _descFromDisplay(_text(fields.state)),
-        postcode: _text(fields.postcode),
-        areaCode: _codeFromDisplay(_text(fields.area)),
-        areaDescription: _descFromDisplay(_text(fields.area)),
+        stateCode: lookupCodeFromDisplay(_text(fields.state)),
+        stateDescription: lookupDescFromDisplay(_text(fields.state)),
+        postcode: lookupCodeFromDisplay(_text(fields.postcode)) ?? _text(fields.postcode),
+        areaCode: lookupCodeFromDisplay(_text(fields.area)),
+        areaDescription: lookupDescFromDisplay(_text(fields.area)),
         contactPersonName: _text(fields.contactPersonName),
         contactPersonPhone: _text(fields.contactPersonPhone),
         contactPersonEmail: _text(fields.contactPersonEmail),
@@ -43,10 +44,10 @@ class PremiseFormMapper {
       ),
       details: PremiseDetails(
         traderName: _text(fields.traderName),
-        businessTypeCode: _codeFromDisplay(_text(fields.businessType)),
-        businessTypeDescription: _descFromDisplay(_text(fields.businessType)),
-        premiseTypeCode: _codeFromDisplay(_text(fields.premiseType)),
-        premiseTypeDescription: _descFromDisplay(_text(fields.premiseType)),
+        businessTypeCode: lookupCodeFromDisplay(_text(fields.businessType)),
+        businessTypeDescription: lookupDescFromDisplay(_text(fields.businessType)),
+        premiseTypeCode: lookupCodeFromDisplay(_text(fields.premiseType)),
+        premiseTypeDescription: lookupDescFromDisplay(_text(fields.premiseType)),
         width: _text(fields.width),
         length: _text(fields.length),
       ),
@@ -59,24 +60,7 @@ class PremiseFormMapper {
     return value.isEmpty ? null : value;
   }
 
-  /// Parses `CODE : Description` picker labels back to code.
-  static String? _codeFromDisplay(String? display) {
-    if (display == null) return null;
-    final parts = display.split(':');
-    if (parts.isEmpty) return display;
-    final code = parts.first.trim();
-    return code.isEmpty ? display : code;
-  }
-
-  static String? _descFromDisplay(String? display) {
-    if (display == null) return null;
-    final parts = display.split(':');
-    if (parts.length < 2) return null;
-    final desc = parts.sublist(1).join(':').trim();
-    return desc.isEmpty ? null : desc;
-  }
-
   static void applyLookupSelection({required TextEditingController controller, required GeneralModel item}) {
-    controller.text = item.display;
+    applyGeneralLookupSelection(controller: controller, item: item);
   }
 }

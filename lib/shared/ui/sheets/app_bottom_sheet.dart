@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+export 'app_bottom_sheet_action_bar.dart';
+
 /// Preset sizing for [showAppBottomSheet].
 enum AppBottomSheetPreset {
   /// Short content — wraps height, capped around 50% of the screen.
@@ -22,6 +24,7 @@ Future<T?> showAppBottomSheet<T>({
   String? subtitle,
   Widget? leading,
   Widget? trailing,
+  Widget? bottomBar,
   AppBottomSheetPreset preset = AppBottomSheetPreset.auto,
   int itemCount = 0,
   bool isDismissible = true,
@@ -51,6 +54,7 @@ Future<T?> showAppBottomSheet<T>({
         subtitle: subtitle,
         leading: leading,
         trailing: trailing,
+        bottomBar: bottomBar,
         showDragHandle: showDragHandle,
         showCloseButton: showCloseButton,
         useSafeArea: useSafeArea,
@@ -69,6 +73,7 @@ class _AppBottomSheetShell extends StatelessWidget {
     this.subtitle,
     this.leading,
     this.trailing,
+    this.bottomBar,
     this.showDragHandle = true,
     this.showCloseButton = true,
     this.useSafeArea = true,
@@ -81,6 +86,7 @@ class _AppBottomSheetShell extends StatelessWidget {
   final String? subtitle;
   final Widget? leading;
   final Widget? trailing;
+  final Widget? bottomBar;
   final bool showDragHandle;
   final bool showCloseButton;
   final bool useSafeArea;
@@ -119,9 +125,13 @@ class _AppBottomSheetShell extends StatelessWidget {
         child: _BottomSheetSurface(
           borderRadius: _topRadius,
           showDragHandle: showDragHandle,
-          expandContent: false,
+          expandContent: bottomBar != null,
           header: _buildHeader(context),
-          child: Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 20), child: builder(context, null)),
+          bottomBar: bottomBar,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, bottomBar == null ? 20 : 0),
+            child: builder(context, null),
+          ),
         ),
       ),
     );
@@ -141,7 +151,11 @@ class _AppBottomSheetShell extends StatelessWidget {
           showDragHandle: showDragHandle,
           expandContent: true,
           header: _buildHeader(context),
-          child: Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 20), child: builder(context, scrollController)),
+          bottomBar: bottomBar,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, bottomBar == null ? 20 : 0),
+            child: builder(context, scrollController),
+          ),
         );
       },
     );
@@ -220,6 +234,7 @@ class _BottomSheetSurface extends StatelessWidget {
     required this.borderRadius,
     required this.child,
     this.header,
+    this.bottomBar,
     this.showDragHandle = true,
     this.expandContent = false,
   });
@@ -227,6 +242,7 @@ class _BottomSheetSurface extends StatelessWidget {
   final BorderRadius borderRadius;
   final Widget child;
   final Widget? header;
+  final Widget? bottomBar;
   final bool showDragHandle;
   final bool expandContent;
 
@@ -248,7 +264,11 @@ class _BottomSheetSurface extends StatelessWidget {
           if (showDragHandle) const _DragHandle(),
           if (header != null) ...[header!, Divider(height: 1, color: colorScheme.outlineVariant)],
           if (header == null && showDragHandle) const SizedBox(height: 4),
-          if (expandContent) Expanded(child: child) else child,
+          if (expandContent)
+            Expanded(child: child)
+          else
+            child,
+          ?bottomBar,
         ],
       ),
     );

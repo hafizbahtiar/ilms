@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ilms/shared/lookups/providers/general_lookup_providers.dart';
 import 'package:ilms/features/premise/presentation/providers/premise_providers.dart';
 import 'package:ilms/features/premise/presentation/providers/premise_form_providers.dart';
 import 'package:ilms/features/premise/presentation/widgets/premise_section_header.dart';
@@ -12,12 +13,16 @@ class CompanyContactSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mode = PremiseFormScope.of(context);
-    final fields = ref.watch(premiseFormFieldsProvider(mode));
-    final readOnly = ref.watch(premiseFormControllerProvider(mode).select((s) => s.isReadOnly));
+    final session = PremiseFormScope.of(context);
+    final fields = ref.watch(premiseFormFieldsProvider(session));
+    final formState = ref.watch(premiseFormControllerProvider(session));
+    final readOnly = formState.isReadOnly;
+    final controller = ref.read(premiseFormControllerProvider(session).notifier);
     final states = ref.watch(premiseStatesProvider).value ?? const [];
-    final postcodes = ref.watch(premisePostcodesProvider).value ?? const [];
-    final areas = ref.watch(premiseAreasProvider).value ?? const [];
+    final postcodes = ref.watch(premisePostcodesProvider(formState.companyStateCode)).value ?? const [];
+    final areas = ref.watch(
+      premiseAreasProvider(GeneralAreaFilter(stateCode: formState.companyStateCode, postcode: formState.companyPostcode)),
+    ).value ?? const [];
 
     return Form(
       key: fields.companyFormKey,
@@ -131,28 +136,31 @@ class CompanyContactSection extends ConsumerWidget {
               required: true,
               enabled: !readOnly,
               options: states,
-              optionLabel: _lookupLabel,
+              optionLabel: generalLookupLabel,
               sheetSubtitle: 'Select state',
+              onOptionSelected: controller.selectCompanyState,
               validator: _required('State is required'),
             ),
             AppPickerField<GeneralModel>(
               label: 'Postcode',
               controller: fields.postcode,
               required: true,
-              enabled: !readOnly,
+              enabled: !readOnly && formState.companyStateCode != null,
               options: postcodes,
-              optionLabel: _lookupLabel,
-              sheetSubtitle: 'Select postcode',
+              optionLabel: generalPostcodeLabel,
+              sheetSubtitle: formState.companyStateCode == null ? 'Select state first' : 'Select postcode',
+              onOptionSelected: controller.selectCompanyPostcode,
               validator: _required('Postcode is required'),
             ),
             AppPickerField<GeneralModel>(
               label: 'Area',
               controller: fields.area,
               required: true,
-              enabled: !readOnly,
+              enabled: !readOnly && formState.companyStateCode != null,
               options: areas,
-              optionLabel: _lookupLabel,
+              optionLabel: generalLookupLabel,
               sheetSubtitle: 'Select area',
+              onOptionSelected: controller.selectCompanyArea,
               validator: _required('Area is required'),
             ),
           ]),
@@ -199,8 +207,6 @@ class CompanyContactSection extends ConsumerWidget {
     );
   }
 }
-
-String _lookupLabel(GeneralModel option) => option.desc ?? option.code ?? '';
 
 String? Function(String?) _required(String message) {
   return (value) => (value == null || value.trim().isEmpty) ? message : null;

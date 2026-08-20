@@ -8,8 +8,8 @@ class RemarksSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mode = PremiseFormScope.of(context);
-    final readOnly = ref.watch(premiseFormControllerProvider(mode).select((s) => s.isReadOnly));
+    final session = PremiseFormScope.of(context);
+    final readOnly = ref.watch(premiseFormControllerProvider(session).select((s) => s.isReadOnly));
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -18,10 +18,7 @@ class RemarksSection extends ConsumerWidget {
       children: [
         Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(16),
-          ),
+          decoration: BoxDecoration(color: cs.surfaceContainerLow, borderRadius: BorderRadius.circular(16)),
           child: Text(
             'No remarks yet.',
             style: textTheme.bodyMedium?.copyWith(color: cs.onSurface.withValues(alpha: 0.65)),

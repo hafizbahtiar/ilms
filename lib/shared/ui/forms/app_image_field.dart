@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ilms/shared/constants/app_image_limits.dart';
 import 'package:ilms/shared/models/app_image_item.dart';
 import 'package:ilms/shared/ui/media/app_image_grid_sheet.dart';
 import 'package:ilms/shared/ui/media/app_image_source.dart';
@@ -16,6 +17,8 @@ class AppImageField extends StatelessWidget {
     this.readOnly = false,
     this.label,
     this.required = false,
+    this.maxImages = AppImageLimits.defaultMaxImages,
+    this.showImageCount = true,
     this.maxColumns = 3,
     this.maxRows = 3,
     this.spacing = 8,
@@ -30,6 +33,12 @@ class AppImageField extends StatelessWidget {
   final bool readOnly;
   final String? label;
   final bool required;
+
+  /// Maximum number of images allowed in this field (default: 30).
+  final int maxImages;
+
+  /// Shows `label (current/max)` when [label] is set.
+  final bool showImageCount;
   final int maxColumns;
   final int maxRows;
   final double spacing;
@@ -39,23 +48,32 @@ class AppImageField extends StatelessWidget {
   final VoidCallback? onOverflowTap;
   final Widget? emptyPlaceholder;
 
-  static const _maxCells = 9;
+  static const _gridCellCount = 9;
   static const _editOverflowThreshold = 8;
+
+  bool get _canAddMore => !readOnly && onAdd != null && images.length < maxImages;
+
+  String? _labelText() {
+    if (label == null) return null;
+    if (!showImageCount) return label;
+    return '$label (${images.length}/$maxImages)';
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final slots = _buildSlots();
+    final labelText = _labelText();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (label != null) ...[
+        if (labelText != null) ...[
           Text.rich(
             TextSpan(
-              text: label,
+              text: labelText,
               style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
               children: [
                 if (required)
@@ -71,7 +89,9 @@ class AppImageField extends StatelessWidget {
         if (slots.isEmpty)
           _EmptyImageState(
             readOnly: readOnly,
-            onAdd: onAdd,
+            onAdd: _canAddMore ? onAdd : null,
+            atLimit: !readOnly && onAdd != null && images.length >= maxImages,
+            maxImages: maxImages,
             color: cs.primary,
             textTheme: textTheme,
             surfaceColor: cs.surfaceContainerLow,
@@ -132,7 +152,7 @@ class AppImageField extends StatelessWidget {
     if (images.isEmpty) return const [];
 
     final slots = <_ImageGridSlot>[];
-    final usesEditOverflow = !readOnly && onAdd != null && images.length > _editOverflowThreshold;
+    final usesEditOverflow = _canAddMore && images.length > _editOverflowThreshold;
     final usesReadOnlyOverflow = readOnly && images.length > _editOverflowThreshold;
 
     if (usesEditOverflow) {
@@ -168,7 +188,7 @@ class AppImageField extends StatelessWidget {
       slots.add(_ImageGridSlot.image(images[i], index: i));
     }
 
-    if (!readOnly && onAdd != null && images.length < _maxCells) {
+    if (_canAddMore && images.length < _gridCellCount) {
       slots.add(const _ImageGridSlot.add());
     }
 
@@ -268,6 +288,8 @@ class _EmptyImageState extends StatelessWidget {
   const _EmptyImageState({
     required this.readOnly,
     required this.onAdd,
+    required this.atLimit,
+    required this.maxImages,
     required this.color,
     required this.textTheme,
     required this.surfaceColor,
@@ -277,6 +299,8 @@ class _EmptyImageState extends StatelessWidget {
 
   final bool readOnly;
   final VoidCallback? onAdd;
+  final bool atLimit;
+  final int maxImages;
   final Color color;
   final TextTheme textTheme;
   final Color surfaceColor;
@@ -295,6 +319,8 @@ class _EmptyImageState extends StatelessWidget {
         Text(
           readOnly
               ? 'No images.'
+              : atLimit
+              ? 'Maximum $maxImages photos reached.'
               : onAdd != null
               ? 'Tap to capture a photo'
               : 'No images yet.',

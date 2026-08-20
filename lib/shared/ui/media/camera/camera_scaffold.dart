@@ -1,9 +1,11 @@
+import 'dart:io';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:ilms/shared/ui/media/camera/camera_service.dart';
 import 'package:ilms/shared/ui/media/camera/camera_status_view.dart';
 
-/// Full-screen camera layout with edge-to-edge preview and overlay controls.
+/// Full-screen camera layout with edge-to-edge preview, capture review strip, and overlay controls.
 class CameraScaffold extends StatelessWidget {
   const CameraScaffold({
     super.key,
@@ -14,12 +16,22 @@ class CameraScaffold extends StatelessWidget {
     required this.onRetry,
     required this.onOpenSettings,
     required this.onSwitchCamera,
+    this.captures = const [],
+    this.canCaptureMore = true,
+    this.onDone,
+    this.onRemoveCapture,
+    this.reviewScrollController,
   });
 
   final AppCameraService service;
   final bool isProcessing;
+  final List<File> captures;
+  final bool canCaptureMore;
   final VoidCallback onCapture;
   final VoidCallback onClose;
+  final VoidCallback? onDone;
+  final ValueChanged<int>? onRemoveCapture;
+  final ScrollController? reviewScrollController;
   final VoidCallback onRetry;
   final VoidCallback onOpenSettings;
   final VoidCallback onSwitchCamera;
@@ -35,15 +47,23 @@ class CameraScaffold extends StatelessWidget {
                 _CameraPreviewFill(controller: service.controller!),
                 const _ViewfinderOverlay(),
                 const _GradientOverlay(begin: Alignment.topCenter, end: Alignment.bottomCenter, stops: [0, 0.22]),
-                const _GradientOverlay(begin: Alignment.bottomCenter, end: Alignment.topCenter, stops: [0, 0.34]),
+                const _GradientOverlay(begin: Alignment.bottomCenter, end: Alignment.topCenter, stops: [0, 0.42]),
                 SafeArea(
                   child: Column(
                     children: [
-                      _TopBar(onClose: onClose, service: service),
+                      _TopBar(onClose: onClose, service: service, captureCount: captures.length, onDone: onDone),
                       const Spacer(),
+                      if (captures.isNotEmpty)
+                        _CaptureReviewStrip(
+                          captures: captures,
+                          scrollController: reviewScrollController,
+                          onRemove: onRemoveCapture,
+                        ),
                       _BottomControls(
                         busy: isProcessing,
                         canSwitchCamera: service.canSwitchCamera,
+                        canCaptureMore: canCaptureMore,
+                        captureCount: captures.length,
                         onCapture: onCapture,
                         onSwitchCamera: onSwitchCamera,
                       ),
@@ -67,6 +87,123 @@ class CameraScaffold extends StatelessWidget {
   }
 }
 
+class _CaptureReviewStrip extends StatelessWidget {
+  const _CaptureReviewStrip({required this.captures, this.scrollController, this.onRemove});
+
+  final List<File> captures;
+  final ScrollController? scrollController;
+  final ValueChanged<int>? onRemove;
+
+  static const _thumbSize = 84.0;
+  static const _removeButtonOverflow = 8.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${captures.length} photo${captures.length == 1 ? '' : 's'} captured',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelLarge
+                ?.copyWith(color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w600),
+          ),
+          if (captures.length > 3) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Swipe to review all',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white60),
+            ),
+          ],
+          const SizedBox(height: 10),
+          SizedBox(
+            height: _thumbSize + _removeButtonOverflow,
+            child: ListView.separated(
+              controller: scrollController,
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, _removeButtonOverflow, 16, 0),
+              itemCount: captures.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                return _CaptureThumb(
+                  file: captures[index],
+                  index: index,
+                  size: _thumbSize,
+                  onRemove: onRemove == null ? null : () => onRemove!(index),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CaptureThumb extends StatelessWidget {
+  const _CaptureThumb({required this.file, required this.index, required this.size, this.onRemove});
+
+  final File file;
+  final int index;
+  final double size;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(file, width: size, height: size, fit: BoxFit.cover),
+          ),
+          Positioned(
+            left: 6,
+            bottom: 6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '${index + 1}',
+                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          if (onRemove != null)
+            Positioned(
+              top: -6,
+              right: -6,
+              child: Material(
+                color: Colors.black.withValues(alpha: 0.72),
+                shape: const CircleBorder(),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: onRemove,
+                  child: const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CameraPreviewFill extends StatelessWidget {
   const _CameraPreviewFill({required this.controller});
 
@@ -74,22 +211,31 @@ class _CameraPreviewFill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final previewRatio = controller.value.aspectRatio;
-        if (previewRatio == 0) {
+    if (!controller.value.isInitialized) {
+      return const ColoredBox(color: Colors.black);
+    }
+
+    return ValueListenableBuilder<CameraValue>(
+      valueListenable: controller,
+      builder: (context, value, child) {
+        final previewSize = value.previewSize;
+        if (previewSize == null) {
           return Center(child: CameraPreview(controller));
         }
 
-        final screenRatio = constraints.maxWidth / constraints.maxHeight;
-        var scale = screenRatio / previewRatio;
-        if (scale < 1) scale = 1 / scale;
+        // Sensor preview size is reported in landscape — swap for portrait display.
+        final isPortrait = MediaQuery.orientationOf(context) == Orientation.portrait;
+        final previewWidth = isPortrait ? previewSize.height : previewSize.width;
+        final previewHeight = isPortrait ? previewSize.width : previewSize.height;
 
         return ClipRect(
-          child: Transform.scale(
-            scale: scale,
-            child: Center(
-              child: AspectRatio(aspectRatio: previewRatio, child: CameraPreview(controller)),
+          child: OverflowBox(
+            alignment: Alignment.center,
+            maxWidth: double.infinity,
+            maxHeight: double.infinity,
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(width: previewWidth, height: previewHeight, child: CameraPreview(controller)),
             ),
           ),
         );
@@ -128,7 +274,7 @@ class _ViewfinderOverlay extends StatelessWidget {
     return IgnorePointer(
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 96),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 120),
           child: AspectRatio(
             aspectRatio: 3 / 4,
             child: CustomPaint(painter: _ViewfinderPainter(color: Colors.white.withValues(alpha: 0.55))),
@@ -174,10 +320,12 @@ class _ViewfinderPainter extends CustomPainter {
 }
 
 class _TopBar extends StatefulWidget {
-  const _TopBar({required this.onClose, required this.service});
+  const _TopBar({required this.onClose, required this.service, required this.captureCount, this.onDone});
 
   final VoidCallback onClose;
   final AppCameraService service;
+  final int captureCount;
+  final VoidCallback? onDone;
 
   @override
   State<_TopBar> createState() => _TopBarState();
@@ -197,15 +345,32 @@ class _TopBarState extends State<_TopBar> {
             child: Column(
               children: [
                 Text(
-                  'Capture Photo',
+                  widget.captureCount == 0 ? 'Capture Photos' : 'Review & Add',
                   style: textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 2),
-                Text('Align the subject within the frame', style: textTheme.bodySmall?.copyWith(color: Colors.white70)),
+                Text(
+                  widget.captureCount == 0
+                      ? 'Snap multiple photos, then tap Done'
+                      : '${widget.captureCount} ready to add',
+                  style: textTheme.bodySmall?.copyWith(color: Colors.white70),
+                ),
               ],
             ),
           ),
-          _FlashToggle(service: widget.service, onChanged: () => setState(() {})),
+          if (widget.onDone != null)
+            TextButton(
+              onPressed: widget.onDone,
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.black,
+                backgroundColor: const Color(0xFFFFE600),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+              ),
+              child: Text('Done (${widget.captureCount})', style: const TextStyle(fontWeight: FontWeight.w700)),
+            )
+          else
+            _FlashToggle(service: widget.service, onChanged: () => setState(() {})),
         ],
       ),
     );
@@ -216,17 +381,29 @@ class _BottomControls extends StatelessWidget {
   const _BottomControls({
     required this.busy,
     required this.canSwitchCamera,
+    required this.canCaptureMore,
+    required this.captureCount,
     required this.onCapture,
     required this.onSwitchCamera,
   });
 
   final bool busy;
   final bool canSwitchCamera;
+  final bool canCaptureMore;
+  final int captureCount;
   final VoidCallback onCapture;
   final VoidCallback onSwitchCamera;
 
   @override
   Widget build(BuildContext context) {
+    final hint = !canCaptureMore
+        ? 'Photo limit reached'
+        : busy
+        ? 'Saving photo…'
+        : captureCount == 0
+        ? 'Tap to capture'
+        : 'Tap to capture another';
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
       child: Column(
@@ -238,18 +415,18 @@ class _BottomControls extends StatelessWidget {
                 child: canSwitchCamera
                     ? _CameraGlassButton(
                         icon: Icons.cameraswitch_rounded,
-                        onTap: busy ? () {} : onSwitchCamera,
+                        onTap: busy || !canCaptureMore ? () {} : onSwitchCamera,
                         label: 'Flip',
                       )
                     : const SizedBox(width: 46),
               ),
-              _CameraShutterButton(busy: busy, onTap: onCapture),
+              _CameraShutterButton(busy: busy || !canCaptureMore, onTap: onCapture),
               const Expanded(child: SizedBox(width: 46)),
             ],
           ),
           const SizedBox(height: 14),
           Text(
-            busy ? 'Saving photo…' : 'Tap to capture',
+            hint,
             style: Theme.of(context).textTheme.labelLarge
                 ?.copyWith(color: Colors.white.withValues(alpha: 0.82), fontWeight: FontWeight.w600),
           ),

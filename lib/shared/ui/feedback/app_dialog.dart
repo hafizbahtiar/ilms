@@ -49,11 +49,19 @@ Future<T?> showAppDialog<T>({
         );
       }
 
+      final actionRow = _buildMaterialActionRow(context, actions);
+
       return AlertDialog(
         icon: icon,
         title: Text(title),
-        content: dialogContent,
-        actions: _buildMaterialActions(context, actions),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ?dialogContent,
+            if (actionRow != null) ...[if (dialogContent != null) const SizedBox(height: 24), actionRow],
+          ],
+        ),
       );
     },
   );
@@ -87,28 +95,43 @@ Widget? _buildContent(String? message, Widget? content) {
   return Text(message);
 }
 
-List<Widget> _buildMaterialActions<T>(BuildContext context, List<AppDialogAction<T>> actions) {
+Widget? _buildMaterialActionRow<T>(BuildContext context, List<AppDialogAction<T>> actions) {
+  if (actions.isEmpty) return null;
+
+  return Row(
+    children: [
+      for (var i = 0; i < actions.length; i++) ...[
+        if (i > 0) const SizedBox(width: 12),
+        Expanded(child: _buildMaterialActionButton(context, actions[i])),
+      ],
+    ],
+  );
+}
+
+Widget _buildMaterialActionButton<T>(BuildContext context, AppDialogAction<T> action) {
   final colorScheme = Theme.of(context).colorScheme;
 
-  return [
-    for (final action in actions)
-      switch (action.style) {
-        AppDialogActionStyle.filled => FilledButton(
-          style: FilledButton.styleFrom(minimumSize: const Size(64, 40)),
-          onPressed: () => _handleAction(context, action),
-          child: Text(action.label),
-        ),
-        AppDialogActionStyle.destructive => TextButton(
-          style: TextButton.styleFrom(foregroundColor: colorScheme.error),
-          onPressed: () => _handleAction(context, action),
-          child: Text(action.label),
-        ),
-        AppDialogActionStyle.text => TextButton(
-          onPressed: () => _handleAction(context, action),
-          child: Text(action.label),
-        ),
-      },
-  ];
+  return switch (action.style) {
+    AppDialogActionStyle.filled => FilledButton(
+      style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+      onPressed: () => _handleAction(context, action),
+      child: Text(action.label),
+    ),
+    AppDialogActionStyle.destructive => OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 44),
+        foregroundColor: colorScheme.error,
+        side: BorderSide(color: colorScheme.error.withValues(alpha: 0.55)),
+      ),
+      onPressed: () => _handleAction(context, action),
+      child: Text(action.label),
+    ),
+    AppDialogActionStyle.text => OutlinedButton(
+      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+      onPressed: () => _handleAction(context, action),
+      child: Text(action.label),
+    ),
+  };
 }
 
 List<Widget> _buildCupertinoActions<T>(BuildContext context, List<AppDialogAction<T>> actions) {

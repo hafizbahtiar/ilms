@@ -31,7 +31,11 @@ class PremiseRepositoryImpl implements PremiseRepository {
   }
 
   @override
-  Future<int> uploadPendingImages({required String visitNo, required PremiseForm form}) async {
+  Future<int> uploadPendingImages({
+    required String visitNo,
+    required PremiseForm form,
+    String process = 'create',
+  }) async {
     final pending = form.censusImages.where((image) => image.isLocalOnly && image.localPath != null).toList();
     if (pending.isEmpty) return 0;
 
@@ -43,7 +47,8 @@ class PremiseRepositoryImpl implements PremiseRepository {
           visitNo: visitNo,
           localPath: image.localPath!,
           typeCode: image.typeCode,
-          seq: i + 1,
+          seq: image.uploadSeq ?? i + 1,
+          process: process,
         );
         uploaded++;
       } catch (e) {
