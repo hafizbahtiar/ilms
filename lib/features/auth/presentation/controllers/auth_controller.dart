@@ -8,14 +8,35 @@ class AuthController extends StateNotifier<AuthState> {
 
   final AuthRepository _repository;
 
-  Future<void> login({required String email, required String password}) async {
+  Future<void> login({required String username, required String password}) async {
     state = const AuthState(isLoading: true);
 
     try {
-      final user = await _repository.login(email: email, password: password);
+      final user = await _repository.login(username: username, password: password);
       state = AuthState(user: user);
     } on AuthException catch (error) {
       state = AuthState(errorMessage: error.message);
     }
+  }
+
+  Future<bool> tryAutoLogin() async {
+    try {
+      final user = await _repository.autoLogin();
+      state = AuthState(user: user);
+      return true;
+    } catch (_) {
+      try {
+        await _repository.clearSession();
+      } catch (_) {
+        // Never crash startup when secure storage is unavailable.
+      }
+      state = const AuthState();
+      return false;
+    }
+  }
+
+  Future<void> logout() async {
+    await _repository.logout();
+    state = const AuthState();
   }
 }

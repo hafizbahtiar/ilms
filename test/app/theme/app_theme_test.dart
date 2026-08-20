@@ -5,19 +5,51 @@ import 'package:ilms/app/app.dart';
 import 'package:ilms/app/theme/app_theme.dart';
 import 'package:ilms/core/config/app_config.dart';
 import 'package:ilms/core/config/app_flavor.dart';
+import 'package:ilms/core/local/preferences/app_preferences.dart';
+import 'package:ilms/features/auth/domain/entities/auth_user.dart';
+import 'package:ilms/features/auth/domain/repositories/auth_repository.dart';
+import 'package:ilms/features/auth/presentation/providers/auth_providers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class _NoSessionAuthRepository implements AuthRepository {
+  @override
+  Future<AuthUser> login({required String username, required String password}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AuthUser> autoLogin() async {
+    throw Exception('No session');
+  }
+
+  @override
+  Future<void> clearSession() async {}
+
+  @override
+  Future<void> logout() async {}
+}
 
 void main() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    AppPreferences.reset();
+    await AppPreferences.init();
+  });
+
   tearDown(AppConfig.reset);
+  tearDown(AppPreferences.reset);
 
   test('light theme uses CelcomDigi navy and Digi yellow', () {
     expect(AppTheme.light.colorScheme.primary, const Color(0xFF001871));
     expect(AppTheme.light.colorScheme.secondary, const Color(0xFFFFE600));
+    expect(AppTheme.light.colorScheme.tertiary, AppTheme.success);
     expect(AppTheme.light.brightness, Brightness.light);
   });
 
   test('dark theme uses the same brand anchors', () {
     expect(AppTheme.dark.colorScheme.primary, const Color(0xFF001871));
     expect(AppTheme.dark.colorScheme.secondary, const Color(0xFFFFE600));
+    expect(AppTheme.dark.colorScheme.tertiary, AppTheme.successDark);
     expect(AppTheme.dark.brightness, Brightness.dark);
   });
 
@@ -37,7 +69,14 @@ void main() {
   testWidgets('app enables system light and dark themes', (tester) async {
     await AppConfig.init(flavor: AppFlavor.dev, loader: (_) async => {'APP_ENV': 'dev'});
 
-    await tester.pumpWidget(const App());
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authRepositoryProvider.overrideWith((ref) => _NoSessionAuthRepository())],
+        child: const App(),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.themeMode, ThemeMode.system);

@@ -1,0 +1,82 @@
+import 'package:flutter/material.dart';
+import 'package:ilms/features/premise/domain/entities/premise_census_image.dart';
+import 'package:ilms/features/premise/domain/entities/premise_company_contact.dart';
+import 'package:ilms/features/premise/domain/entities/premise_details.dart';
+import 'package:ilms/features/premise/domain/entities/premise_form.dart';
+import 'package:ilms/features/premise/presentation/controllers/premise_form_state.dart';
+import 'package:ilms/shared/models/general_model.dart';
+
+class PremiseFormMapper {
+  PremiseFormMapper._();
+
+  static PremiseForm fromPresentation({
+    required PremiseFormFields fields,
+    required List<PremiseCensusImage> censusImages,
+    String? visitNo,
+    String? updatedAt,
+    int? localDraftId,
+  }) {
+    return PremiseForm(
+      visitNo: visitNo,
+      updatedAt: updatedAt,
+      localDraftId: localDraftId,
+      companyContact: PremiseCompanyContact(
+        companyName: _text(fields.companyName),
+        registerNumber: _text(fields.registerNumber),
+        companyTelNo: _text(fields.companyTelNo),
+        companyFaxNo: _text(fields.companyFaxNo),
+        stickerNo: _text(fields.stickerNo),
+        censusDate: _text(fields.censusDate),
+        unit: _text(fields.unit),
+        building: _text(fields.building),
+        street1: _text(fields.street1),
+        street2: _text(fields.street2),
+        stateCode: _codeFromDisplay(_text(fields.state)),
+        stateDescription: _descFromDisplay(_text(fields.state)),
+        postcode: _text(fields.postcode),
+        areaCode: _codeFromDisplay(_text(fields.area)),
+        areaDescription: _descFromDisplay(_text(fields.area)),
+        contactPersonName: _text(fields.contactPersonName),
+        contactPersonPhone: _text(fields.contactPersonPhone),
+        contactPersonEmail: _text(fields.contactPersonEmail),
+        contactPersonPosition: _text(fields.contactPersonPosition),
+      ),
+      details: PremiseDetails(
+        traderName: _text(fields.traderName),
+        businessTypeCode: _codeFromDisplay(_text(fields.businessType)),
+        businessTypeDescription: _descFromDisplay(_text(fields.businessType)),
+        premiseTypeCode: _codeFromDisplay(_text(fields.premiseType)),
+        premiseTypeDescription: _descFromDisplay(_text(fields.premiseType)),
+        width: _text(fields.width),
+        length: _text(fields.length),
+      ),
+      censusImages: censusImages,
+    );
+  }
+
+  static String? _text(TextEditingController controller) {
+    final value = controller.text.trim();
+    return value.isEmpty ? null : value;
+  }
+
+  /// Parses `CODE : Description` picker labels back to code.
+  static String? _codeFromDisplay(String? display) {
+    if (display == null) return null;
+    final parts = display.split(':');
+    if (parts.isEmpty) return display;
+    final code = parts.first.trim();
+    return code.isEmpty ? display : code;
+  }
+
+  static String? _descFromDisplay(String? display) {
+    if (display == null) return null;
+    final parts = display.split(':');
+    if (parts.length < 2) return null;
+    final desc = parts.sublist(1).join(':').trim();
+    return desc.isEmpty ? null : desc;
+  }
+
+  static void applyLookupSelection({required TextEditingController controller, required GeneralModel item}) {
+    controller.text = item.display;
+  }
+}

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../config/app_config.dart';
 import 'api_client.dart';
+import 'auth_interceptor.dart';
 import 'network_exception.dart';
 
 class DioClient implements ApiClient {
@@ -25,18 +26,29 @@ class DioClient implements ApiClient {
         baseUrl: config.baseUrl,
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
-        headers: const {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
+        headers: const {'Accept': 'application/json', 'Content-Type': 'application/json'},
       ),
     );
 
-    return _instance = DioClient(dio);
+    final client = DioClient(dio);
+    dio.interceptors.insert(0, AuthInterceptor(client));
+    return _instance = client;
   }
 
   static void reset() {
     _instance = null;
+  }
+
+  String? _accessToken;
+
+  String? get accessToken => _accessToken;
+
+  void setAccessToken(String token) {
+    _accessToken = token;
+  }
+
+  void clearAccessToken() {
+    _accessToken = null;
   }
 
   @override
@@ -54,10 +66,7 @@ class DioClient implements ApiClient {
       final response = await request();
       return response.data as T;
     } on DioException catch (error) {
-      throw NetworkException(
-        error.message ?? 'Request failed',
-        statusCode: error.response?.statusCode,
-      );
+      throw NetworkException(error.message ?? 'Request failed', statusCode: error.response?.statusCode);
     }
   }
 }

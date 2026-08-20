@@ -7,12 +7,7 @@ class AuthState {
   final String? errorMessage;
   final AuthUser? user;
 
-  AuthState copyWith({
-    bool? isLoading,
-    String? errorMessage,
-    AuthUser? user,
-    bool clearError = false,
-  }) {
+  AuthState copyWith({bool? isLoading, String? errorMessage, AuthUser? user, bool clearError = false}) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,

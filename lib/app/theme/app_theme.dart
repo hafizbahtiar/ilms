@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 class AppTheme {
   static const navy = Color(0xFF001871);
   static const yellow = Color(0xFFFFE600);
+  static const success = Color(0xFF2E7D32);
+  static const successDark = Color(0xFF66BB6A);
+  static const onSuccessLight = Colors.white;
+  static const onSuccessDark = Color(0xFF0D2B14);
   static const _ink = Color(0xFF111827);
   static const _lightSurface = Color(0xFFF7F9FD);
   static const _lightBackground = Color(0xFFF3F5FB);
@@ -31,6 +35,10 @@ class AppTheme {
       onSecondary: Colors.black,
       secondaryContainer: isLight ? const Color(0xFFFFF6B0) : const Color(0xFF4A4300),
       onSecondaryContainer: isLight ? _ink : yellow,
+      tertiary: isLight ? success : successDark,
+      onTertiary: isLight ? onSuccessLight : onSuccessDark,
+      tertiaryContainer: isLight ? const Color(0xFFC8E6C9) : const Color(0xFF1B5E20),
+      onTertiaryContainer: isLight ? const Color(0xFF1B5E20) : const Color(0xFFC8E6C9),
       error: isLight ? const Color(0xFFB3261E) : const Color(0xFFF2B8B5),
       onError: isLight ? Colors.white : const Color(0xFF601410),
       surface: surface,
