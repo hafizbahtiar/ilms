@@ -24,3 +24,24 @@ final premiseDraftCountProvider = StreamProvider<int>((ref) {
 final premiseLatestDraftProvider = StreamProvider<PremiseDraftSummary?>((ref) {
   return ref.watch(premiseDraftRepositoryProvider).watchLatestDraft();
 });
+
+/// visitNo of every premise record with a pending local unsaved edit — used
+/// to show an "Unsaved" tag on list tiles.
+final premiseEditSessionVisitNosProvider = StreamProvider<Set<String>>((ref) {
+  return ref.watch(premiseDraftRepositoryProvider).watchEditSessionVisitNos();
+});
+
+/// Every pending local unsaved edit — used for the unsaved-edits badge/list.
+final premiseEditSessionListProvider = StreamProvider<List<PremiseDraftSummary>>((ref) {
+  return ref.watch(premiseDraftRepositoryProvider).watchEditSessions();
+});
+
+final premiseEditSessionCountProvider = StreamProvider<int>((ref) {
+  return ref.watch(premiseDraftRepositoryProvider).watchEditSessions().map((items) => items.length);
+});
+
+/// New-entry drafts and pending local unsaved edits together, for the
+/// Drafts page.
+final premiseDraftsAndEditSessionsProvider = StreamProvider<List<PremiseDraftSummary>>((ref) {
+  return ref.watch(premiseDraftRepositoryProvider).watchDraftsAndEditSessions();
+});

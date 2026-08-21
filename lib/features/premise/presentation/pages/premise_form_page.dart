@@ -3,11 +3,16 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ilms/features/premise/presentation/controllers/premise_form_state.dart';
+import 'package:ilms/features/premise/presentation/utils/premise_form_focus.dart';
 import 'package:ilms/features/premise/presentation/providers/premise_form_providers.dart';
 import 'package:ilms/features/premise/presentation/sections/premise_form_sections.dart';
 import 'package:ilms/features/premise/presentation/widgets/premise_form_exit_sheet.dart';
+import 'package:ilms/features/premise/presentation/widgets/premise_form_more_sheet.dart';
 import 'package:ilms/features/premise/presentation/widgets/premise_form_tab_bar.dart';
+import 'package:ilms/features/premise/presentation/widgets/premise_photo_upload_sheet.dart';
 import 'package:ilms/features/premise/presentation/widgets/premise_section_header.dart';
+import 'package:ilms/features/premise/presentation/widgets/premise_visit_status_sheet.dart';
+import 'package:ilms/shared/ui/feedback/app_dialog.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
 
 class PremiseFormPage extends ConsumerStatefulWidget {
@@ -32,6 +37,12 @@ class _PremiseFormPageState extends ConsumerState<PremiseFormPage> {
   bool _programmaticScroll = false;
   bool _leaveConfirmed = false;
 
+  /// Guards against double-tapping Submit — `formState.isSubmitting` only
+  /// covers the network call itself, not the visit-status sheet shown
+  /// before it, so a fast second tap during that gap could otherwise start
+  /// a second submit flow (a second visit-status sheet, a duplicate create).
+  bool _isSubmitFlowActive = false;
+
   static const _scrollAnchor = 24.0;
 
   PremiseFormSession get _session => widget.session;
@@ -43,9 +54,28 @@ class _PremiseFormPageState extends ConsumerState<PremiseFormPage> {
     _tabKeys = [for (final section in premiseFormSections) GlobalKey(debugLabel: 'premise_tab_${section.id}')];
 
     _scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final controller = ref.read(premiseFormControllerProvider(_session).notifier);
+      final loaded = await controller.initialize(_session);
+      if (!mounted) return;
+
+      if (!loaded) {
+        AppSnackbar.error(context, 'Failed to load premise details.');
+        _popForm();
+        return;
+      }
+
+      if (_session.isVacantIntent) {
+        controller.markVacant();
+      }
+
+      // Measure section offsets only once the real content is in the tree —
+      // scheduling this before initialize() resolves means it fires while
+      // the page is still showing the loading spinner (no scroll view, no
+      // section keys) for server-loaded sessions with a real network
+      // round-trip, permanently leaving the tab bar's scroll-sync unusable
+      // since nothing re-triggers the measurement afterward.
       _scheduleOffsetMeasure();
-      ref.read(premiseFormControllerProvider(_session).notifier).initialize(_session);
     });
   }
 
@@ -206,7 +236,12 @@ class _PremiseFormPageState extends ConsumerState<PremiseFormPage> {
       return;
     }
 
-    final choice = await showPremiseFormExitSheet(context, showDeleteDraft: formState.localDraftId != null);
+    final isEditSession = formState.mode == PremiseFormMode.edit;
+    final choice = await showPremiseFormExitSheet(
+      context,
+      showDeleteDraft: formState.localDraftId != null,
+      isEditSession: isEditSession,
+    ).unfocusPremiseFormOnComplete(context);
     if (!mounted || choice == null) return;
 
     switch (choice) {
@@ -221,7 +256,7 @@ class _PremiseFormPageState extends ConsumerState<PremiseFormPage> {
       case PremiseFormExitChoice.deleteDraft:
         await controller.deleteDraft();
         if (!mounted) return;
-        AppSnackbar.success(context, 'Draft deleted.');
+        AppSnackbar.success(context, isEditSession ? 'Changes discarded.' : 'Draft deleted.');
         _popForm();
       case PremiseFormExitChoice.exitWithoutSaving:
         _popForm();
@@ -230,7 +265,14 @@ class _PremiseFormPageState extends ConsumerState<PremiseFormPage> {
 
   Future<void> _onSaveDraft() async {
     FocusScope.of(context).unfocus();
-    final ok = await ref.read(premiseFormControllerProvider(_session).notifier).saveDraft();
+    final controller = ref.read(premiseFormControllerProvider(_session).notifier);
+
+    if (!controller.hasUnsavedChanges) {
+      AppSnackbar.info(context, 'No changes to save.');
+      return;
+    }
+
+    final ok = await controller.saveDraft();
     if (!mounted) return;
 
     if (ok) {
@@ -241,20 +283,125 @@ class _PremiseFormPageState extends ConsumerState<PremiseFormPage> {
   }
 
   Future<void> _onSubmit() async {
-    FocusScope.of(context).unfocus();
-    final ok = await ref.read(premiseFormControllerProvider(_session).notifier).submit();
+    if (_isSubmitFlowActive) return;
+    setState(() => _isSubmitFlowActive = true);
+
+    try {
+      FocusScope.of(context).unfocus();
+      final controller = ref.read(premiseFormControllerProvider(_session).notifier);
+
+      final currentVisitStatus = ref.read(premiseFormControllerProvider(_session)).visitStatus;
+      final visitStatus = await showPremiseVisitStatusSheet(
+        context,
+        ref,
+        selectedCode: currentVisitStatus,
+      ).unfocusPremiseFormOnComplete(context);
+      if (!mounted || visitStatus == null) return;
+      controller.selectVisitStatus(visitStatus);
+
+      final ok = await controller.submit();
+      if (!mounted) return;
+
+      if (ok) {
+        final outcome = controller.lastSubmitOutcome;
+        var allUploaded = outcome == null || outcome.pendingImages.isEmpty;
+
+        if (outcome != null && !allUploaded) {
+          allUploaded = await showPremisePhotoUploadSheet(
+            context,
+            ref,
+            visitNo: outcome.visitNo,
+            process: outcome.process,
+            allImages: outcome.allCensusImages,
+          );
+          if (!mounted) return;
+        }
+
+        // Only removes the draft from the resumable Drafts list once photos
+        // actually finished — "Save as Draft" in the upload sheet leaves it
+        // there, tied to the now-created premise record via its visitNo, so
+        // resuming later retries just the photos instead of duplicating.
+        await controller.finalizeSubmit(allUploaded: allUploaded);
+        if (!mounted) return;
+
+        if (allUploaded) {
+          AppSnackbar.success(context, 'Premise census saved.');
+        } else {
+          AppSnackbar.warning(context, 'Saved as draft — some photos still need to upload. Resume it later to retry.');
+        }
+        _popForm();
+        return;
+      }
+
+      final error = controller.lastSubmitError;
+      if (error != null) {
+        AppSnackbar.error(context, error);
+        final sectionIndex = ref.read(premiseFormControllerProvider(_session)).activeSectionIndex;
+        await _jumpToSection(sectionIndex);
+        return;
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitFlowActive = false);
+    }
+  }
+
+  Future<void> _onMoreOptions() async {
+    final choice = await showPremiseFormMoreSheet(context).unfocusPremiseFormOnComplete(context);
+    if (!mounted || choice == null) return;
+
+    switch (choice) {
+      case PremiseFormMoreChoice.markVacant:
+        await _confirmMarkVacant();
+    }
+  }
+
+  Future<void> _confirmMarkVacant() async {
+    final confirmed = await confirmAppDialog(
+      context: context,
+      title: 'Mark as vacant premise?',
+      message:
+          'Company, contact and trader fields will be set to N/A, and the address, business type and premise type '
+          'will be cleared for you to fill in with the actual vacant unit details.',
+      confirmLabel: 'Mark Vacant',
+    ).unfocusPremiseFormOnComplete(context);
+    if (!mounted || !confirmed) return;
+
+    ref.read(premiseFormControllerProvider(_session).notifier).markVacant();
+    AppSnackbar.success(context, 'Marked as vacant premise.');
+  }
+
+  Future<void> _onDiscardChanges() async {
+    final confirmed = await confirmAppDialog(
+      context: context,
+      title: 'Discard unsaved changes?',
+      message: 'Your local edits will be removed and this premise will reload its current saved version.',
+      confirmLabel: 'Discard',
+      confirmStyle: AppDialogActionStyle.destructive,
+    ).unfocusPremiseFormOnComplete(context);
+    if (!mounted || !confirmed) return;
+
+    final controller = ref.read(premiseFormControllerProvider(_session).notifier);
+    final ok = await controller.discardEditSession();
     if (!mounted) return;
 
-    if (ok) {
-      AppSnackbar.success(context, 'Premise census saved (mock).');
-      _popForm();
+    if (!ok) {
+      AppSnackbar.error(context, 'Failed to discard changes.');
       return;
     }
 
-    final active = ref.read(premiseFormControllerProvider(_session)).activeSectionIndex;
-    await _jumpToSection(active);
-    if (!mounted) return;
-    AppSnackbar.info(context, 'Please complete the required sections.');
+    // The reload tears down and rebuilds the section widgets (same as the
+    // initial load), so the tab bar's scroll-sync needs re-measuring —
+    // otherwise it's left stuck exactly like the initial-load bug.
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
+    setState(() {
+      _activeSectionIndex = 0;
+      _offsetsReady = false;
+    });
+    _scheduleOffsetMeasure();
+
+    AppSnackbar.success(context, 'Changes discarded.');
   }
 
   @override
@@ -278,64 +425,115 @@ class _PremiseFormPageState extends ConsumerState<PremiseFormPage> {
         session: _session,
         child: Scaffold(
           appBar: AppBar(
-            title: const Text('Premise Census'),
+            title: formState.mode == PremiseFormMode.edit && formState.localDraftId != null
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Premise Census'),
+                      Text(
+                        'Unsaved changes restored',
+                        style: Theme.of(context).textTheme.labelSmall
+                            ?.copyWith(color: cs.onPrimary.withValues(alpha: 0.75)),
+                      ),
+                    ],
+                  )
+                : const Text('Premise Census'),
             centerTitle: false,
             actions: [
               if (!formState.isReadOnly)
                 TextButton(
                   onPressed: formState.isDraftSaving ? null : _onSaveDraft,
                   child: formState.isDraftSaving
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator.adaptive(strokeWidth: 2))
-                      : const Text('Save'),
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator.adaptive(
+                            valueColor: AlwaysStoppedAnimation<Color>(cs.onPrimary),
+                          ),
+                        )
+                      : Text('Save', style: TextStyle(color: cs.onPrimary)),
                 ),
+              if (formState.mode == PremiseFormMode.view)
+                TextButton(
+                  onPressed: () => ref.read(premiseFormControllerProvider(_session).notifier).switchToEditMode(),
+                  child: Text('Edit', style: TextStyle(color: cs.onPrimary)),
+                ),
+              if (!formState.isReadOnly) IconButton(onPressed: _onMoreOptions, icon: const Icon(Icons.more_vert)),
             ],
           ),
-          body: Column(
-            children: [
-              PremiseFormTabBar(
-                activeIndex: _activeSectionIndex,
-                onTabSelected: _jumpToSection,
-                tabKeys: _tabKeys,
-                tabScrollController: _tabScrollController,
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  physics: const ClampingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      for (var i = 0; i < premiseFormSections.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 28),
-                        KeyedSubtree(
-                          key: _sectionKeys[i],
-                          child: PremiseSectionHeader(title: premiseFormSections[i].headerTitle),
-                        ),
-                        premiseFormSections[i].builder(context),
+          body: SafeArea(
+            child: Column(
+              children: [
+                PremiseFormTabBar(
+                  activeIndex: _activeSectionIndex,
+                  onTabSelected: _jumpToSection,
+                  tabKeys: _tabKeys,
+                  tabScrollController: _tabScrollController,
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    physics: const ClampingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (var i = 0; i < premiseFormSections.length; i++) ...[
+                          if (i > 0) const SizedBox(height: 28),
+                          KeyedSubtree(
+                            key: _sectionKeys[i],
+                            child: PremiseSectionHeader(title: premiseFormSections[i].headerTitle),
+                          ),
+                          premiseFormSections[i].builder(context),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           bottomNavigationBar: formState.isReadOnly
               ? null
               : SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: cs.tertiary,
-                        foregroundColor: cs.onTertiary,
-                        disabledBackgroundColor: cs.tertiary.withValues(alpha: 0.38),
-                        disabledForegroundColor: cs.onTertiary.withValues(alpha: 0.72),
-                      ),
-                      onPressed: formState.isSubmitting ? null : _onSubmit,
-                      child: formState.isSubmitting
-                          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator.adaptive())
-                          : const Text('Submit'),
+                    child: Row(
+                      children: [
+                        if (formState.mode == PremiseFormMode.edit && formState.localDraftId != null) ...[
+                          // Row gives non-flex children an unbounded max-width
+                          // constraint (only maxHeight is fixed) — a bare
+                          // OutlinedButton here hits that and throws inside
+                          // its own internal minimum-size ConstrainedBox.
+                          // Flexible forces a real bounded width.
+                          Flexible(
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: cs.error,
+                                side: BorderSide(color: cs.error.withValues(alpha: 0.5)),
+                              ),
+                              onPressed: (formState.isSubmitting || _isSubmitFlowActive) ? null : _onDiscardChanges,
+                              child: const Text('Discard'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        Expanded(
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: cs.tertiary,
+                              foregroundColor: cs.onTertiary,
+                              disabledBackgroundColor: cs.tertiary.withValues(alpha: 0.38),
+                              disabledForegroundColor: cs.onTertiary.withValues(alpha: 0.72),
+                            ),
+                            onPressed: (formState.isSubmitting || _isSubmitFlowActive) ? null : _onSubmit,
+                            child: (formState.isSubmitting || _isSubmitFlowActive)
+                                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator.adaptive())
+                                : const Text('Submit'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

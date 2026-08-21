@@ -13,6 +13,10 @@ class PremiseDuplicateFilterSelection {
     this.street,
     this.building,
     this.unitNo,
+    this.companyName = '',
+    this.traderName = '',
+    this.licenseNo = '',
+    this.licenseFileNo = '',
   });
 
   final GeneralModel? parliament;
@@ -20,6 +24,10 @@ class PremiseDuplicateFilterSelection {
   final GeneralModel? street;
   final GeneralModel? building;
   final GeneralModel? unitNo;
+  final String companyName;
+  final String traderName;
+  final String licenseNo;
+  final String licenseFileNo;
 
   PremiseDuplicateFilterSelection copyWith({
     GeneralModel? parliament,
@@ -27,6 +35,10 @@ class PremiseDuplicateFilterSelection {
     GeneralModel? street,
     GeneralModel? building,
     GeneralModel? unitNo,
+    String? companyName,
+    String? traderName,
+    String? licenseNo,
+    String? licenseFileNo,
     bool clearParliament = false,
     bool clearArea = false,
     bool clearStreet = false,
@@ -39,6 +51,10 @@ class PremiseDuplicateFilterSelection {
       street: clearStreet ? null : (street ?? this.street),
       building: clearBuilding ? null : (building ?? this.building),
       unitNo: clearUnitNo ? null : (unitNo ?? this.unitNo),
+      companyName: companyName ?? this.companyName,
+      traderName: traderName ?? this.traderName,
+      licenseNo: licenseNo ?? this.licenseNo,
+      licenseFileNo: licenseFileNo ?? this.licenseFileNo,
     );
   }
 
@@ -49,6 +65,10 @@ class PremiseDuplicateFilterSelection {
       street: street?.desc ?? '',
       building: building?.desc ?? '',
       unit: unitNo?.desc ?? '',
+      companyName: companyName.trim(),
+      traderName: traderName.trim(),
+      licenseNo: licenseNo.trim(),
+      licenseFileNo: licenseFileNo.trim(),
     );
   }
 
@@ -58,10 +78,22 @@ class PremiseDuplicateFilterSelection {
         street?.desc ?? '',
         parliament?.desc ?? '',
         area?.desc ?? '',
+        companyName.trim(),
+        traderName.trim(),
+        licenseNo.trim(),
+        licenseFileNo.trim(),
       ].where((value) => value.isNotEmpty).toList();
 
   bool get isEmpty =>
-      parliament == null && area == null && street == null && building == null && unitNo == null;
+      parliament == null &&
+      area == null &&
+      street == null &&
+      building == null &&
+      unitNo == null &&
+      companyName.trim().isEmpty &&
+      traderName.trim().isEmpty &&
+      licenseNo.trim().isEmpty &&
+      licenseFileNo.trim().isEmpty;
 }
 
 class PremiseDuplicateState {
@@ -128,7 +160,16 @@ class PremiseDuplicateController extends Notifier<PremiseDuplicateState> {
   }
 
   void setParliament(GeneralModel? value) {
-    state = state.copyWith(filter: PremiseDuplicateFilterSelection(parliament: value));
+    state = state.copyWith(
+      filter: state.filter.copyWith(
+        parliament: value,
+        clearParliament: value == null,
+        clearArea: true,
+        clearStreet: true,
+        clearBuilding: true,
+        clearUnitNo: true,
+      ),
+    );
   }
 
   void setArea(GeneralModel? value) {
@@ -150,6 +191,15 @@ class PremiseDuplicateController extends Notifier<PremiseDuplicateState> {
   void setUnitNo(GeneralModel? value) {
     state = state.copyWith(filter: state.filter.copyWith(unitNo: value));
   }
+
+  void setCompanyName(String value) => state = state.copyWith(filter: state.filter.copyWith(companyName: value));
+
+  void setTraderName(String value) => state = state.copyWith(filter: state.filter.copyWith(traderName: value));
+
+  void setLicenseNo(String value) => state = state.copyWith(filter: state.filter.copyWith(licenseNo: value));
+
+  void setLicenseFileNo(String value) =>
+      state = state.copyWith(filter: state.filter.copyWith(licenseFileNo: value));
 
   void resetFilter() {
     state = state.copyWith(filter: const PremiseDuplicateFilterSelection());

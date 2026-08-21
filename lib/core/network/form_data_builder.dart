@@ -45,10 +45,7 @@ class FormDataBuilder {
 
   bool _isSimpleMap(Map<String, dynamic> map) {
     for (final value in map.values) {
-      if (value is Uint8List ||
-          value is File ||
-          value is Map ||
-          value is List) {
+      if (value is Uint8List || value is File || value is Map || value is List) {
         return false;
       }
     }
@@ -66,19 +63,10 @@ class FormDataBuilder {
 
   Future<void> _addFile(FormData formData, String key, File file) async {
     final filename = file.path.split('/').last;
-    formData.files.add(
-      MapEntry(
-        key,
-        await MultipartFile.fromFile(file.path, filename: filename),
-      ),
-    );
+    formData.files.add(MapEntry(key, await MultipartFile.fromFile(file.path, filename: filename)));
   }
 
-  Future<void> _addMapList(
-    FormData formData,
-    String key,
-    List<Map<String, dynamic>> mapList,
-  ) async {
+  Future<void> _addMapList(FormData formData, String key, List<Map<String, dynamic>> mapList) async {
     for (var i = 0; i < mapList.length; i++) {
       final map = mapList[i];
       for (final entry in map.entries) {
@@ -99,12 +87,7 @@ class FormDataBuilder {
     }
   }
 
-  Future<void> _addGenericList(
-    FormData formData,
-    String key,
-    List<dynamic> list, {
-    String parentKey = '',
-  }) async {
+  Future<void> _addGenericList(FormData formData, String key, List<dynamic> list, {String parentKey = ''}) async {
     final fullKey = parentKey.isEmpty ? key : '$parentKey[$key]';
     for (var i = 0; i < list.length; i++) {
       final item = list[i];

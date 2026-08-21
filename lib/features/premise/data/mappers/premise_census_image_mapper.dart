@@ -17,6 +17,10 @@ class PremiseCensusImageMapper {
   }
 
   static PremiseCensusImage fromLocalCapture({required String localPath, String? typeCode, String? typeDescription}) {
-    return PremiseCensusImage(localPath: localPath, typeCode: typeCode, typeDescription: typeDescription);
+    return PremiseCensusImage(
+      localPath: localPath,
+      typeCode: typeCode ?? PremiseCensusImageDefaults.typeCode,
+      typeDescription: typeDescription ?? PremiseCensusImageDefaults.typeDescription,
+    );
   }
 }

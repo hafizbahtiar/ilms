@@ -1,6 +1,7 @@
 import 'package:ilms/features/premise/data/datasources/premise_duplicate_remote_data_source.dart';
 import 'package:ilms/features/premise/data/mappers/premise_draft_mapper.dart';
 import 'package:ilms/features/premise/data/models/premise_duplicate_models.dart';
+import 'package:ilms/features/premise/domain/entities/premise_draft_summary.dart';
 import 'package:ilms/features/premise/domain/entities/premise_duplicate_filter.dart';
 import 'package:ilms/features/premise/domain/entities/premise_duplicate_result.dart';
 import 'package:ilms/features/premise/domain/repositories/premise_draft_repository.dart';
@@ -24,6 +25,7 @@ class PremiseDuplicateRepositoryImpl implements PremiseDuplicateRepository {
       payload: payload,
       companyName: PremiseDraftMapper.displayCompanyNameFromPayload(payload),
       traderName: PremiseDraftMapper.displayTraderNameFromPayload(payload),
+      draftType: PremiseDraftType.duplicate,
     );
   }
 

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ilms/app/theme/theme_mode_controller.dart';
+import 'package:ilms/core/config/app_flavor.dart';
 import 'package:ilms/features/auth/presentation/providers/auth_providers.dart';
+import 'package:ilms/flavors.dart' as flavors;
+import 'package:ilms/shared/ui/controls/environment_switcher.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
 
@@ -176,6 +179,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                     : const Text('Login'),
                               ),
                             ),
+                            if (AppFlavor.fromName(flavors.appFlavor) != AppFlavor.prod) ...[
+                              const SizedBox(height: 16),
+                              const EnvironmentSwitcher(),
+                            ],
                           ],
                         ),
                       ),

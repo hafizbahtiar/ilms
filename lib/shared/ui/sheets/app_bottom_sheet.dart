@@ -125,7 +125,10 @@ class _AppBottomSheetShell extends StatelessWidget {
         child: _BottomSheetSurface(
           borderRadius: _topRadius,
           showDragHandle: showDragHandle,
-          expandContent: bottomBar != null,
+          // Compact always shrink-wraps to its content (capped by maxHeight
+          // above) — even with a bottomBar, it should sit right under the
+          // fields, not get stretched to the full cap with a gap above it.
+          expandContent: false,
           header: _buildHeader(context),
           bottomBar: bottomBar,
           child: Padding(
@@ -261,13 +264,19 @@ class _BottomSheetSurface extends StatelessWidget {
       child: Column(
         mainAxisSize: expandContent ? MainAxisSize.max : MainAxisSize.min,
         children: [
+          const SizedBox(height: 10),
           if (showDragHandle) const _DragHandle(),
           if (header != null) ...[header!, Divider(height: 1, color: colorScheme.outlineVariant)],
           if (header == null && showDragHandle) const SizedBox(height: 4),
-          if (expandContent)
-            Expanded(child: child)
-          else
-            child,
+          // Compact sheets shrink-wrap to content, but that content is only
+          // capped by an outer maxHeight ConstrainedBox — with enough tiles
+          // (e.g. a 3-choice exit sheet) the Column's natural height can
+          // exceed that cap and overflow instead of respecting it. Flexible
+          // lets the Column shrink the content area down to whatever's
+          // actually left, and SingleChildScrollView makes the remainder
+          // reachable by scrolling instead of clipping/overflowing.
+          if (expandContent) Expanded(child: child) else Flexible(child: SingleChildScrollView(child: child)),
+          const SizedBox(height: 10),
           ?bottomBar,
         ],
       ),

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:ilms/features/premise/domain/entities/premise_address.dart';
+import 'package:ilms/features/premise/domain/entities/premise_business_activity.dart';
 import 'package:ilms/features/premise/domain/entities/premise_census_image.dart';
 import 'package:ilms/features/premise/domain/entities/premise_company_contact.dart';
 import 'package:ilms/features/premise/domain/entities/premise_details.dart';
 import 'package:ilms/features/premise/domain/entities/premise_form.dart';
+import 'package:ilms/features/premise/domain/entities/premise_license.dart';
+import 'package:ilms/features/premise/domain/entities/premise_remark.dart';
 import 'package:ilms/features/premise/presentation/controllers/premise_form_state.dart';
 import 'package:ilms/shared/lookups/lookup_labels.dart';
 import 'package:ilms/shared/models/general_model.dart';
@@ -13,14 +17,22 @@ class PremiseFormMapper {
   static PremiseForm fromPresentation({
     required PremiseFormFields fields,
     required List<PremiseCensusImage> censusImages,
+    List<PremiseRemark> remarks = const [],
+    List<PremiseLicense> licenses = const [],
+    List<PremiseBusinessActivity> businessActivities = const [],
+    List<PremiseAddress> addresses = const [],
     String? visitNo,
     String? updatedAt,
     int? localDraftId,
+    String? visitStatus,
+    String? visitStatusDesc,
   }) {
     return PremiseForm(
       visitNo: visitNo,
       updatedAt: updatedAt,
       localDraftId: localDraftId,
+      visitStatus: visitStatus,
+      visitStatusDesc: visitStatusDesc,
       companyContact: PremiseCompanyContact(
         companyName: _text(fields.companyName),
         registerNumber: _text(fields.registerNumber),
@@ -52,6 +64,10 @@ class PremiseFormMapper {
         length: _text(fields.length),
       ),
       censusImages: censusImages,
+      remarks: remarks,
+      licenses: licenses,
+      businessActivities: businessActivities,
+      addresses: addresses,
     );
   }
 

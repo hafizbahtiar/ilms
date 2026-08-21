@@ -30,8 +30,31 @@ class PremiseDraftRepositoryImpl implements PremiseDraftRepository {
       localDraftId: row.id,
       payload: PremiseDraftMapper.decodePayload(row.formPayload),
       visitNo: row.visitNo,
+      draftType: PremiseDraftTypeStorage.fromStorage(row.draftType),
     );
   }
+
+  @override
+  Future<PremiseDraftLoadResult?> loadEditSession(String visitNo) async {
+    final row = await _local.getEditSessionByVisitNo(visitNo);
+    if (row == null) return null;
+
+    return PremiseDraftLoadResult(
+      localDraftId: row.id,
+      payload: PremiseDraftMapper.decodePayload(row.formPayload),
+      visitNo: row.visitNo,
+      draftType: PremiseDraftTypeStorage.fromStorage(row.draftType),
+    );
+  }
+
+  @override
+  Stream<Set<String>> watchEditSessionVisitNos() => _local.watchEditSessionVisitNos();
+
+  @override
+  Stream<List<PremiseDraftSummary>> watchEditSessions() => _local.watchEditSessions();
+
+  @override
+  Stream<List<PremiseDraftSummary>> watchDraftsAndEditSessions() => _local.watchDraftsAndEditSessions();
 
   @override
   Future<int> saveDraft({
@@ -40,6 +63,8 @@ class PremiseDraftRepositoryImpl implements PremiseDraftRepository {
     required String companyName,
     required String traderName,
     String? visitNo,
+    bool isEditSession = false,
+    PremiseDraftType draftType = PremiseDraftType.newEntry,
   }) {
     return _local.upsertDraft(
       localDraftId: localDraftId,
@@ -47,6 +72,8 @@ class PremiseDraftRepositoryImpl implements PremiseDraftRepository {
       traderName: traderName,
       formPayload: PremiseDraftMapper.encodePayload(payload),
       visitNo: visitNo,
+      isEditSession: isEditSession,
+      draftType: draftType,
     );
   }
 
@@ -69,6 +96,7 @@ class PremiseDraftRepositoryImpl implements PremiseDraftRepository {
       payload: payload,
       companyName: row.companyName,
       traderName: row.traderName,
+      draftType: PremiseDraftType.duplicate,
     );
   }
 }

@@ -86,10 +86,7 @@ class AppTextField extends StatelessWidget {
                 if (required)
                   TextSpan(
                     text: ' *',
-                    style: textTheme.labelLarge?.copyWith(
-                      color: cs.error,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: textTheme.labelLarge?.copyWith(color: cs.error, fontWeight: FontWeight.w700),
                   ),
               ],
             ),
@@ -114,10 +111,7 @@ class AppTextField extends StatelessWidget {
           onEditingComplete: onEditingComplete,
           autovalidateMode: autovalidateMode,
           textCapitalization: uppercase ? TextCapitalization.characters : textCapitalization,
-          inputFormatters: [
-            if (uppercase) const UppercaseTextFormatter(),
-            ...?inputFormatters,
-          ],
+          inputFormatters: [if (uppercase) const UppercaseTextFormatter(), ...?inputFormatters],
           decoration: InputDecoration(
             hintText: hintText,
             counterText: maxLength != null ? '' : null,

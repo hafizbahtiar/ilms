@@ -14,3 +14,7 @@ final class PremiseSubmitException extends PremiseException {
 final class PremiseImageUploadException extends PremiseException {
   const PremiseImageUploadException(super.message);
 }
+
+final class PremiseImageDeleteException extends PremiseException {
+  const PremiseImageDeleteException(super.message);
+}

@@ -21,14 +21,15 @@ final premiseStatesProvider = generalStatesProvider;
 final premiseImageTypesProvider = generalImageTypesProvider;
 final premiseParliamentsProvider = generalParliamentsProvider;
 final premiseRemarksProvider = generalRemarksProvider;
+final premiseBusinessLicenseStatusesProvider = generalBusinessLicenseStatusesProvider;
+final premiseBusinessActivityStatusesProvider = generalBusinessActivityStatusesProvider;
+final premiseVisitStatusesProvider = generalVisitStatusesProvider;
+final premisePhasesProvider = generalPhasesProvider;
 
 final premisePostcodesProvider = FutureProvider.family<List<GeneralModel>, String?>((ref, stateCode) {
   return ref.read(generalLookupRepositoryProvider).getPostcodes(stateCode: stateCode);
 });
 
 final premiseAreasProvider = FutureProvider.family<List<GeneralModel>, GeneralAreaFilter>((ref, filter) {
-  return ref.read(generalLookupRepositoryProvider).getAreas(
-        stateCode: filter.stateCode,
-        postcode: filter.postcode,
-      );
+  return ref.read(generalLookupRepositoryProvider).getAreas(stateCode: filter.stateCode, postcode: filter.postcode);
 });

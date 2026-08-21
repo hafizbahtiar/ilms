@@ -16,6 +16,10 @@ class PremiseDraftEntries extends Table {
 
   TextColumn get visitNo => text().nullable()();
 
+  /// [PremiseDraftType] name — how this draft came to be (new entry, vacant,
+  /// or a duplicate of an existing record/draft).
+  TextColumn get draftType => text().withDefault(const Constant('newEntry'))();
+
   /// JSON payload — form fields + census images metadata.
   TextColumn get formPayload => text()();
 

@@ -12,5 +12,9 @@ abstract class PremiseDataSource {
     String? typeCode,
     int? seq,
     String process = 'create',
+    void Function(double progress)? onProgress,
   });
+
+  /// Deletes an already-uploaded census photo by its server-side image ID.
+  Future<void> deletePhoto({required String imageId});
 }

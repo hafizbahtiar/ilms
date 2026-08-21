@@ -364,6 +364,18 @@ class $PremiseDraftEntriesTable extends PremiseDraftEntries
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _draftTypeMeta = const VerificationMeta(
+    'draftType',
+  );
+  @override
+  late final GeneratedColumn<String> draftType = GeneratedColumn<String>(
+    'draft_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('newEntry'),
+  );
   static const VerificationMeta _formPayloadMeta = const VerificationMeta(
     'formPayload',
   );
@@ -406,6 +418,7 @@ class $PremiseDraftEntriesTable extends PremiseDraftEntries
     isActive,
     isEditSession,
     visitNo,
+    draftType,
     formPayload,
     createdAt,
     updatedAt,
@@ -465,6 +478,12 @@ class $PremiseDraftEntriesTable extends PremiseDraftEntries
       context.handle(
         _visitNoMeta,
         visitNo.isAcceptableOrUnknown(data['visit_no']!, _visitNoMeta),
+      );
+    }
+    if (data.containsKey('draft_type')) {
+      context.handle(
+        _draftTypeMeta,
+        draftType.isAcceptableOrUnknown(data['draft_type']!, _draftTypeMeta),
       );
     }
     if (data.containsKey('form_payload')) {
@@ -531,6 +550,10 @@ class $PremiseDraftEntriesTable extends PremiseDraftEntries
         DriftSqlType.string,
         data['${effectivePrefix}visit_no'],
       ),
+      draftType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}draft_type'],
+      )!,
       formPayload: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}form_payload'],
@@ -562,6 +585,10 @@ class PremiseDraftEntry extends DataClass
   final bool isEditSession;
   final String? visitNo;
 
+  /// [PremiseDraftType] name — how this draft came to be (new entry, vacant,
+  /// or a duplicate of an existing record/draft).
+  final String draftType;
+
   /// JSON payload — form fields + census images metadata.
   final String formPayload;
   final DateTime createdAt;
@@ -574,6 +601,7 @@ class PremiseDraftEntry extends DataClass
     required this.isActive,
     required this.isEditSession,
     this.visitNo,
+    required this.draftType,
     required this.formPayload,
     required this.createdAt,
     required this.updatedAt,
@@ -590,6 +618,7 @@ class PremiseDraftEntry extends DataClass
     if (!nullToAbsent || visitNo != null) {
       map['visit_no'] = Variable<String>(visitNo);
     }
+    map['draft_type'] = Variable<String>(draftType);
     map['form_payload'] = Variable<String>(formPayload);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -607,6 +636,7 @@ class PremiseDraftEntry extends DataClass
       visitNo: visitNo == null && nullToAbsent
           ? const Value.absent()
           : Value(visitNo),
+      draftType: Value(draftType),
       formPayload: Value(formPayload),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -626,6 +656,7 @@ class PremiseDraftEntry extends DataClass
       isActive: serializer.fromJson<bool>(json['isActive']),
       isEditSession: serializer.fromJson<bool>(json['isEditSession']),
       visitNo: serializer.fromJson<String?>(json['visitNo']),
+      draftType: serializer.fromJson<String>(json['draftType']),
       formPayload: serializer.fromJson<String>(json['formPayload']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -642,6 +673,7 @@ class PremiseDraftEntry extends DataClass
       'isActive': serializer.toJson<bool>(isActive),
       'isEditSession': serializer.toJson<bool>(isEditSession),
       'visitNo': serializer.toJson<String?>(visitNo),
+      'draftType': serializer.toJson<String>(draftType),
       'formPayload': serializer.toJson<String>(formPayload),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -656,6 +688,7 @@ class PremiseDraftEntry extends DataClass
     bool? isActive,
     bool? isEditSession,
     Value<String?> visitNo = const Value.absent(),
+    String? draftType,
     String? formPayload,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -667,6 +700,7 @@ class PremiseDraftEntry extends DataClass
     isActive: isActive ?? this.isActive,
     isEditSession: isEditSession ?? this.isEditSession,
     visitNo: visitNo.present ? visitNo.value : this.visitNo,
+    draftType: draftType ?? this.draftType,
     formPayload: formPayload ?? this.formPayload,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -686,6 +720,7 @@ class PremiseDraftEntry extends DataClass
           ? data.isEditSession.value
           : this.isEditSession,
       visitNo: data.visitNo.present ? data.visitNo.value : this.visitNo,
+      draftType: data.draftType.present ? data.draftType.value : this.draftType,
       formPayload: data.formPayload.present
           ? data.formPayload.value
           : this.formPayload,
@@ -704,6 +739,7 @@ class PremiseDraftEntry extends DataClass
           ..write('isActive: $isActive, ')
           ..write('isEditSession: $isEditSession, ')
           ..write('visitNo: $visitNo, ')
+          ..write('draftType: $draftType, ')
           ..write('formPayload: $formPayload, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -720,6 +756,7 @@ class PremiseDraftEntry extends DataClass
     isActive,
     isEditSession,
     visitNo,
+    draftType,
     formPayload,
     createdAt,
     updatedAt,
@@ -735,6 +772,7 @@ class PremiseDraftEntry extends DataClass
           other.isActive == this.isActive &&
           other.isEditSession == this.isEditSession &&
           other.visitNo == this.visitNo &&
+          other.draftType == this.draftType &&
           other.formPayload == this.formPayload &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -748,6 +786,7 @@ class PremiseDraftEntriesCompanion extends UpdateCompanion<PremiseDraftEntry> {
   final Value<bool> isActive;
   final Value<bool> isEditSession;
   final Value<String?> visitNo;
+  final Value<String> draftType;
   final Value<String> formPayload;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -759,6 +798,7 @@ class PremiseDraftEntriesCompanion extends UpdateCompanion<PremiseDraftEntry> {
     this.isActive = const Value.absent(),
     this.isEditSession = const Value.absent(),
     this.visitNo = const Value.absent(),
+    this.draftType = const Value.absent(),
     this.formPayload = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -771,6 +811,7 @@ class PremiseDraftEntriesCompanion extends UpdateCompanion<PremiseDraftEntry> {
     this.isActive = const Value.absent(),
     this.isEditSession = const Value.absent(),
     this.visitNo = const Value.absent(),
+    this.draftType = const Value.absent(),
     required String formPayload,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -785,6 +826,7 @@ class PremiseDraftEntriesCompanion extends UpdateCompanion<PremiseDraftEntry> {
     Expression<bool>? isActive,
     Expression<bool>? isEditSession,
     Expression<String>? visitNo,
+    Expression<String>? draftType,
     Expression<String>? formPayload,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -797,6 +839,7 @@ class PremiseDraftEntriesCompanion extends UpdateCompanion<PremiseDraftEntry> {
       if (isActive != null) 'is_active': isActive,
       if (isEditSession != null) 'is_edit_session': isEditSession,
       if (visitNo != null) 'visit_no': visitNo,
+      if (draftType != null) 'draft_type': draftType,
       if (formPayload != null) 'form_payload': formPayload,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -811,6 +854,7 @@ class PremiseDraftEntriesCompanion extends UpdateCompanion<PremiseDraftEntry> {
     Value<bool>? isActive,
     Value<bool>? isEditSession,
     Value<String?>? visitNo,
+    Value<String>? draftType,
     Value<String>? formPayload,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -823,6 +867,7 @@ class PremiseDraftEntriesCompanion extends UpdateCompanion<PremiseDraftEntry> {
       isActive: isActive ?? this.isActive,
       isEditSession: isEditSession ?? this.isEditSession,
       visitNo: visitNo ?? this.visitNo,
+      draftType: draftType ?? this.draftType,
       formPayload: formPayload ?? this.formPayload,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -853,6 +898,9 @@ class PremiseDraftEntriesCompanion extends UpdateCompanion<PremiseDraftEntry> {
     if (visitNo.present) {
       map['visit_no'] = Variable<String>(visitNo.value);
     }
+    if (draftType.present) {
+      map['draft_type'] = Variable<String>(draftType.value);
+    }
     if (formPayload.present) {
       map['form_payload'] = Variable<String>(formPayload.value);
     }
@@ -875,6 +923,7 @@ class PremiseDraftEntriesCompanion extends UpdateCompanion<PremiseDraftEntry> {
           ..write('isActive: $isActive, ')
           ..write('isEditSession: $isEditSession, ')
           ..write('visitNo: $visitNo, ')
+          ..write('draftType: $draftType, ')
           ..write('formPayload: $formPayload, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -1074,6 +1123,7 @@ typedef $$PremiseDraftEntriesTableCreateCompanionBuilder =
       Value<bool> isActive,
       Value<bool> isEditSession,
       Value<String?> visitNo,
+      Value<String> draftType,
       required String formPayload,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -1087,6 +1137,7 @@ typedef $$PremiseDraftEntriesTableUpdateCompanionBuilder =
       Value<bool> isActive,
       Value<bool> isEditSession,
       Value<String?> visitNo,
+      Value<String> draftType,
       Value<String> formPayload,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -1133,6 +1184,11 @@ class $$PremiseDraftEntriesTableFilterComposer
 
   ColumnFilters<String> get visitNo => $composableBuilder(
     column: $table.visitNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get draftType => $composableBuilder(
+    column: $table.draftType,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1196,6 +1252,11 @@ class $$PremiseDraftEntriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get draftType => $composableBuilder(
+    column: $table.draftType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get formPayload => $composableBuilder(
     column: $table.formPayload,
     builder: (column) => ColumnOrderings(column),
@@ -1247,6 +1308,9 @@ class $$PremiseDraftEntriesTableAnnotationComposer
 
   GeneratedColumn<String> get visitNo =>
       $composableBuilder(column: $table.visitNo, builder: (column) => column);
+
+  GeneratedColumn<String> get draftType =>
+      $composableBuilder(column: $table.draftType, builder: (column) => column);
 
   GeneratedColumn<String> get formPayload => $composableBuilder(
     column: $table.formPayload,
@@ -1310,6 +1374,7 @@ class $$PremiseDraftEntriesTableTableManager
                 Value<bool> isActive = const Value.absent(),
                 Value<bool> isEditSession = const Value.absent(),
                 Value<String?> visitNo = const Value.absent(),
+                Value<String> draftType = const Value.absent(),
                 Value<String> formPayload = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -1321,6 +1386,7 @@ class $$PremiseDraftEntriesTableTableManager
                 isActive: isActive,
                 isEditSession: isEditSession,
                 visitNo: visitNo,
+                draftType: draftType,
                 formPayload: formPayload,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -1334,6 +1400,7 @@ class $$PremiseDraftEntriesTableTableManager
                 Value<bool> isActive = const Value.absent(),
                 Value<bool> isEditSession = const Value.absent(),
                 Value<String?> visitNo = const Value.absent(),
+                Value<String> draftType = const Value.absent(),
                 required String formPayload,
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -1345,6 +1412,7 @@ class $$PremiseDraftEntriesTableTableManager
                 isActive: isActive,
                 isEditSession: isEditSession,
                 visitNo: visitNo,
+                draftType: draftType,
                 formPayload: formPayload,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

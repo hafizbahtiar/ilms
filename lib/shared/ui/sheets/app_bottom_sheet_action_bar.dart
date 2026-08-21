@@ -11,6 +11,7 @@ class AppBottomSheetActionBar extends StatelessWidget {
     this.showSecondary = true,
     this.primaryEnabled = true,
     this.secondaryEnabled = true,
+    this.secondaryDestructive = false,
   });
 
   final VoidCallback onPrimary;
@@ -20,6 +21,10 @@ class AppBottomSheetActionBar extends StatelessWidget {
   final bool showSecondary;
   final bool primaryEnabled;
   final bool secondaryEnabled;
+
+  /// Colors the secondary button as a destructive action (e.g. "Delete")
+  /// instead of the default neutral "Reset" styling.
+  final bool secondaryDestructive;
 
   @override
   Widget build(BuildContext context) {
@@ -42,16 +47,19 @@ class AppBottomSheetActionBar extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: secondaryEnabled ? onSecondary : null,
+                    style: secondaryDestructive
+                        ? OutlinedButton.styleFrom(
+                            foregroundColor: cs.error,
+                            side: BorderSide(color: cs.error.withValues(alpha: 0.55)),
+                          )
+                        : null,
                     child: Text(secondaryLabel),
                   ),
                 ),
                 const SizedBox(width: 12),
               ],
               Expanded(
-                child: FilledButton(
-                  onPressed: primaryEnabled ? onPrimary : null,
-                  child: Text(primaryLabel),
-                ),
+                child: FilledButton(onPressed: primaryEnabled ? onPrimary : null, child: Text(primaryLabel)),
               ),
             ],
           ),

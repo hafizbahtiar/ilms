@@ -1,5 +1,6 @@
 import 'package:ilms/features/premise/data/datasources/premise_data_source.dart';
 import 'package:ilms/features/premise/data/models/premise_submit_payload_model.dart';
+import 'package:ilms/features/premise/domain/entities/premise_census_image.dart';
 import 'package:ilms/features/premise/domain/entities/premise_form.dart';
 import 'package:ilms/features/premise/domain/entities/premise_submit_result.dart';
 import 'package:ilms/features/premise/domain/exceptions/premise_exception.dart';
@@ -9,6 +10,12 @@ class PremiseRepositoryImpl implements PremiseRepository {
   PremiseRepositoryImpl(this._dataSource);
 
   final PremiseDataSource _dataSource;
+
+  static String _resolveTypeCode(PremiseCensusImage image) {
+    final code = image.typeCode?.trim();
+    if (code != null && code.isNotEmpty) return code;
+    return PremiseCensusImageDefaults.typeCode;
+  }
 
   @override
   Future<PremiseSubmitResult> submitCreate(PremiseForm form) async {
@@ -46,7 +53,7 @@ class PremiseRepositoryImpl implements PremiseRepository {
         await _dataSource.uploadImage(
           visitNo: visitNo,
           localPath: image.localPath!,
-          typeCode: image.typeCode,
+          typeCode: _resolveTypeCode(image),
           seq: image.uploadSeq ?? i + 1,
           process: process,
         );
@@ -56,5 +63,38 @@ class PremiseRepositoryImpl implements PremiseRepository {
       }
     }
     return uploaded;
+  }
+
+  @override
+  Future<void> uploadImage({
+    required String visitNo,
+    required PremiseCensusImage image,
+    String process = 'create',
+    void Function(double progress)? onProgress,
+  }) async {
+    final localPath = image.localPath;
+    if (localPath == null) return;
+
+    try {
+      await _dataSource.uploadImage(
+        visitNo: visitNo,
+        localPath: localPath,
+        typeCode: _resolveTypeCode(image),
+        seq: image.uploadSeq ?? 1,
+        process: process,
+        onProgress: onProgress,
+      );
+    } catch (e) {
+      throw PremiseImageUploadException('Failed to upload image: $e');
+    }
+  }
+
+  @override
+  Future<void> deletePhoto({required String imageId}) async {
+    try {
+      await _dataSource.deletePhoto(imageId: imageId);
+    } catch (e) {
+      throw PremiseImageDeleteException('Failed to delete image: $e');
+    }
   }
 }

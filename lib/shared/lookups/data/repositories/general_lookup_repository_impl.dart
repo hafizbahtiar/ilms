@@ -41,18 +41,12 @@ class GeneralLookupRepositoryImpl implements GeneralLookupRepository {
 
   @override
   Future<List<GeneralModel>> getBuildings(String streetCode) {
-    return _readOrFetch(
-      GeneralLookupCacheKeys.buildings(streetCode),
-      () => _dataSource.fetchBuildings(streetCode),
-    );
+    return _readOrFetch(GeneralLookupCacheKeys.buildings(streetCode), () => _dataSource.fetchBuildings(streetCode));
   }
 
   @override
   Future<List<GeneralModel>> getStreets(String areaCode) {
-    return _readOrFetch(
-      GeneralLookupCacheKeys.streets(areaCode),
-      () => _dataSource.fetchStreets(areaCode),
-    );
+    return _readOrFetch(GeneralLookupCacheKeys.streets(areaCode), () => _dataSource.fetchStreets(areaCode));
   }
 
   @override
@@ -65,18 +59,12 @@ class GeneralLookupRepositoryImpl implements GeneralLookupRepository {
 
   @override
   Future<List<GeneralModel>> getBusinessActivityStatuses() {
-    return _readOrFetch(
-      GeneralLookupCacheKeys.businessActivityStatuses(),
-      _dataSource.fetchBusinessActivityStatuses,
-    );
+    return _readOrFetch(GeneralLookupCacheKeys.businessActivityStatuses(), _dataSource.fetchBusinessActivityStatuses);
   }
 
   @override
   Future<List<GeneralModel>> getBusinessLicenseStatuses() {
-    return _readOrFetch(
-      GeneralLookupCacheKeys.businessLicenseStatuses(),
-      _dataSource.fetchBusinessLicenseStatuses,
-    );
+    return _readOrFetch(GeneralLookupCacheKeys.businessLicenseStatuses(), _dataSource.fetchBusinessLicenseStatuses);
   }
 
   @override
@@ -164,18 +152,12 @@ class GeneralLookupRepositoryImpl implements GeneralLookupRepository {
 
   @override
   Future<List<GeneralModel>> refreshStreets(String areaCode) {
-    return _refresh(
-      GeneralLookupCacheKeys.streets(areaCode),
-      () => _dataSource.fetchStreets(areaCode),
-    );
+    return _refresh(GeneralLookupCacheKeys.streets(areaCode), () => _dataSource.fetchStreets(areaCode));
   }
 
   @override
   Future<List<GeneralModel>> refreshBuildings(String streetCode) {
-    return _refresh(
-      GeneralLookupCacheKeys.buildings(streetCode),
-      () => _dataSource.fetchBuildings(streetCode),
-    );
+    return _refresh(GeneralLookupCacheKeys.buildings(streetCode), () => _dataSource.fetchBuildings(streetCode));
   }
 
   @override
@@ -246,10 +228,7 @@ class GeneralLookupRepositoryImpl implements GeneralLookupRepository {
     }
   }
 
-  Future<List<GeneralModel>> _readOrFetch(
-    String cacheKey,
-    Future<List<GeneralModel>> Function() fetch,
-  ) async {
+  Future<List<GeneralModel>> _readOrFetch(String cacheKey, Future<List<GeneralModel>> Function() fetch) async {
     final cached = await _readCache(cacheKey);
     if (cached != null) return cached;
 
@@ -258,10 +237,7 @@ class GeneralLookupRepositoryImpl implements GeneralLookupRepository {
     return fresh;
   }
 
-  Future<List<GeneralModel>> _refresh(
-    String cacheKey,
-    Future<List<GeneralModel>> Function() fetch,
-  ) async {
+  Future<List<GeneralModel>> _refresh(String cacheKey, Future<List<GeneralModel>> Function() fetch) async {
     await _database.deleteKeyValue(cacheKey);
     final fresh = await fetch();
     await _writeCache(cacheKey, fresh);

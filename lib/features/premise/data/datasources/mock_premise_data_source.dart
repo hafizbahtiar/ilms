@@ -35,7 +35,16 @@ class MockPremiseDataSource implements PremiseDataSource {
     String? typeCode,
     int? seq,
     String process = 'create',
+    void Function(double progress)? onProgress,
   }) async {
-    await Future<void>.delayed(const Duration(milliseconds: 120));
+    for (var i = 1; i <= 5; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 24));
+      onProgress?.call(i / 5);
+    }
+  }
+
+  @override
+  Future<void> deletePhoto({required String imageId}) async {
+    await Future<void>.delayed(const Duration(milliseconds: 150));
   }
 }

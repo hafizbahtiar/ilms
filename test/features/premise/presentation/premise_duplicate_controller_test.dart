@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ilms/features/premise/presentation/controllers/premise_duplicate_controller.dart';
-import 'package:ilms/features/premise/presentation/providers/premise_duplicate_providers.dart';
 import 'package:ilms/shared/models/general_model.dart';
 
 void main() {

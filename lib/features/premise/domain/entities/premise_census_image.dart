@@ -1,6 +1,13 @@
 import 'package:equatable/equatable.dart';
 import 'package:ilms/features/premise/domain/entities/premise_image_upload_status.dart';
 
+/// Default census image type sent to `/create-photo` when the user does not
+/// pick a category (this app skips type selection — all new photos use this).
+abstract final class PremiseCensusImageDefaults {
+  static const typeCode = 'OTHER';
+  static const typeDescription = 'Other';
+}
+
 /// Census photo attached to a premise form.
 ///
 /// Improved over legacy [ImageData]: explicit upload lifecycle and optional

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ilms/app/router/app_routes.dart';
 import 'package:ilms/features/auth/presentation/providers/auth_providers.dart';
 import 'package:ilms/features/premise/presentation/providers/premise_draft_providers.dart';
+import 'package:ilms/features/premise/presentation/widgets/premise_status_summary_chart.dart';
 import 'package:ilms/shared/constants/home_modules.dart';
 import 'package:ilms/shared/ui/home/home_module_button.dart';
 import 'package:ilms/shared/ui/home/home_module_group.dart';
@@ -21,17 +22,30 @@ class PremiseHomeSection extends ConsumerWidget {
     }
 
     final draftCount = ref.watch(premiseDraftCountProvider).valueOrNull ?? 0;
+    final unsavedEditCount = ref.watch(premiseEditSessionCountProvider).valueOrNull ?? 0;
+    // The Drafts button opens a page that now lists both new-entry drafts
+    // and unsaved edits together (tagged), so its badge should reflect the
+    // same combined total rather than just new-entry drafts.
+    final draftsPageCount = draftCount + unsavedEditCount;
 
     return HomeModuleGroup(
       title: _module.title,
       icon: _module.icon,
       color: _module.color,
-      prefix: const _PremiseLastDraftCard(),
+      prefix: const Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _PremiseHomePrefixRow(),
+          SizedBox(height: 12),
+          PremiseStatusSummaryChart(),
+        ],
+      ),
       buttons: [
         HomeModuleButton(
           label: 'View All',
           icon: Icons.list_alt_outlined,
           accentColor: _module.color,
+          badgeCount: unsavedEditCount > 0 ? unsavedEditCount : null,
           onTap: () => context.push(AppRoutes.module('premise')),
         ),
         HomeModuleButton(
@@ -44,7 +58,7 @@ class PremiseHomeSection extends ConsumerWidget {
           label: 'Drafts',
           icon: Icons.drafts_outlined,
           accentColor: _module.color,
-          badgeCount: draftCount > 0 ? draftCount : null,
+          badgeCount: draftsPageCount > 0 ? draftsPageCount : null,
           onTap: () => context.push(AppRoutes.premiseDrafts),
         ),
         HomeModuleButton(
@@ -55,6 +69,28 @@ class PremiseHomeSection extends ConsumerWidget {
         ),
       ],
     );
+  }
+}
+
+/// Lays the unsaved-edits quick button to the left of the last-draft card —
+/// each hides itself independently, so this collapses entirely when there's
+/// neither, and drops the Row (and its spacing) when only one is present.
+class _PremiseHomePrefixRow extends ConsumerWidget {
+  const _PremiseHomePrefixRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unsavedCount = ref.watch(premiseEditSessionCountProvider).valueOrNull ?? 0;
+
+    if (unsavedCount == 0) return const _PremiseLastDraftCard();
+
+    // No CrossAxisAlignment.stretch: this Row sits in an unbounded-height
+    // context (HomeModuleGroup's Column, itself inside the scrollable home
+    // page), so stretch would force a tight *infinite* height onto every
+    // child — Material's RenderPhysicalShape can't lay out with that. Both
+    // children use the same 14px padding + 44px icon box, so they're
+    // naturally near-identical heights already without forcing it.
+    return Row(children: [const Expanded(child: _PremiseLastDraftCard())]);
   }
 }
 

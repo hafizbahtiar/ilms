@@ -22,6 +22,7 @@ class AppImageField extends StatelessWidget {
     this.maxColumns = 3,
     this.maxRows = 3,
     this.spacing = 8,
+    this.isProcessing = false,
     this.onAdd,
     this.onRemove,
     this.onImageTap,
@@ -42,6 +43,10 @@ class AppImageField extends StatelessWidget {
   final int maxColumns;
   final int maxRows;
   final double spacing;
+
+  /// Shows a spinner on the add tile and blocks taps while an add operation
+  /// (e.g. saving a captured photo to disk) is in flight.
+  final bool isProcessing;
   final VoidCallback? onAdd;
   final ValueChanged<int>? onRemove;
   final ValueChanged<int>? onImageTap;
@@ -91,6 +96,7 @@ class AppImageField extends StatelessWidget {
             readOnly: readOnly,
             onAdd: _canAddMore ? onAdd : null,
             atLimit: !readOnly && onAdd != null && images.length >= maxImages,
+            isProcessing: isProcessing,
             maxImages: maxImages,
             color: cs.primary,
             textTheme: textTheme,
@@ -113,7 +119,10 @@ class AppImageField extends StatelessWidget {
                       child: _ImageCell(
                         slot: slot,
                         readOnly: readOnly,
-                        onTap: () => _handleTap(context, slot),
+                        isProcessing: isProcessing,
+                        onTap: slot.kind == _ImageGridSlotKind.add && isProcessing
+                            ? null
+                            : () => _handleTap(context, slot),
                         onRemove: slot.imageIndex != null && onRemove != null && !readOnly
                             ? () => onRemove!(slot.imageIndex!)
                             : null,
@@ -153,7 +162,10 @@ class AppImageField extends StatelessWidget {
 
     final slots = <_ImageGridSlot>[];
     final usesEditOverflow = _canAddMore && images.length > _editOverflowThreshold;
-    final usesReadOnlyOverflow = readOnly && images.length > _editOverflowThreshold;
+    // Read-only has no add tile reserving a slot, so it fills the full 3x3
+    // grid before overflowing — the overlay lands on the 9th (last) cell
+    // instead of the 8th.
+    final usesReadOnlyOverflow = readOnly && images.length > _gridCellCount;
 
     if (usesEditOverflow) {
       for (var i = 0; i < _editOverflowThreshold - 1; i++) {
@@ -171,14 +183,14 @@ class AppImageField extends StatelessWidget {
     }
 
     if (usesReadOnlyOverflow) {
-      for (var i = 0; i < _editOverflowThreshold - 1; i++) {
+      for (var i = 0; i < _gridCellCount - 1; i++) {
         slots.add(_ImageGridSlot.image(images[i], index: i));
       }
       slots.add(
         _ImageGridSlot.overflow(
-          images[_editOverflowThreshold - 1],
-          index: _editOverflowThreshold - 1,
-          extraCount: images.length - _editOverflowThreshold,
+          images[_gridCellCount - 1],
+          index: _gridCellCount - 1,
+          extraCount: images.length - _gridCellCount,
         ),
       );
       return slots;
@@ -216,11 +228,18 @@ class _ImageGridSlot {
 }
 
 class _ImageCell extends StatelessWidget {
-  const _ImageCell({required this.slot, required this.readOnly, required this.onTap, this.onRemove});
+  const _ImageCell({
+    required this.slot,
+    required this.readOnly,
+    required this.onTap,
+    this.isProcessing = false,
+    this.onRemove,
+  });
 
   final _ImageGridSlot slot;
   final bool readOnly;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool isProcessing;
   final VoidCallback? onRemove;
 
   @override
@@ -228,7 +247,7 @@ class _ImageCell extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return switch (slot.kind) {
-      _ImageGridSlotKind.add => _AddTile(onTap: onTap, color: cs.primary),
+      _ImageGridSlotKind.add => _AddTile(onTap: onTap, color: cs.primary, isBusy: isProcessing),
       _ImageGridSlotKind.image || _ImageGridSlotKind.overflow => Material(
         color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
@@ -260,10 +279,11 @@ class _ImageCell extends StatelessWidget {
 }
 
 class _AddTile extends StatelessWidget {
-  const _AddTile({required this.onTap, required this.color});
+  const _AddTile({required this.onTap, required this.color, this.isBusy = false});
 
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final Color color;
+  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
@@ -275,9 +295,17 @@ class _AddTile extends StatelessWidget {
         child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withValues(alpha: 0.45), width: 1.5),
+            border: Border.all(color: color.withValues(alpha: isBusy ? 0.25 : 0.45), width: 1.5),
           ),
-          child: Center(child: Icon(Icons.photo_camera_outlined, color: color, size: 32)),
+          child: Center(
+            child: isBusy
+                ? SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2.5, color: color.withValues(alpha: 0.6)),
+                  )
+                : Icon(Icons.photo_camera_outlined, color: color, size: 32),
+          ),
         ),
       ),
     );
@@ -294,6 +322,7 @@ class _EmptyImageState extends StatelessWidget {
     required this.textTheme,
     required this.surfaceColor,
     required this.onSurfaceColor,
+    this.isProcessing = false,
     this.placeholder,
   });
 
@@ -305,6 +334,7 @@ class _EmptyImageState extends StatelessWidget {
   final TextTheme textTheme;
   final Color surfaceColor;
   final Color onSurfaceColor;
+  final bool isProcessing;
   final Widget? placeholder;
 
   @override
@@ -314,10 +344,19 @@ class _EmptyImageState extends StatelessWidget {
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.photo_camera_outlined, size: 40, color: readOnly ? onSurfaceColor.withValues(alpha: 0.35) : color),
+        if (isProcessing)
+          SizedBox(
+            width: 40,
+            height: 40,
+            child: CircularProgressIndicator(strokeWidth: 2.5, color: color.withValues(alpha: 0.6)),
+          )
+        else
+          Icon(Icons.photo_camera_outlined, size: 40, color: readOnly ? onSurfaceColor.withValues(alpha: 0.35) : color),
         const SizedBox(height: 10),
         Text(
-          readOnly
+          isProcessing
+              ? 'Saving photo…'
+              : readOnly
               ? 'No images.'
               : atLimit
               ? 'Maximum $maxImages photos reached.'
@@ -335,7 +374,7 @@ class _EmptyImageState extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: readOnly ? null : onAdd,
+        onTap: readOnly || isProcessing ? null : onAdd,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
           child: Center(child: content),

@@ -187,6 +187,7 @@ class GeneralLookupCatalog {
     GeneralModel(code: 'R03', desc: 'Signboard tidak mematuhi'),
     GeneralModel(code: 'R04', desc: 'Lesen tamat tempoh'),
     GeneralModel(code: 'R05', desc: 'Maklumat tidak lengkap'),
+    GeneralModel(code: 'R06', desc: 'Other'),
   ];
 
   static const businessActivityStatuses = <GeneralModel>[

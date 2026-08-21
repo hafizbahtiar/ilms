@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:ilms/features/premise/presentation/utils/premise_form_focus.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
 
 enum PremiseFormExitChoice { saveAndExit, deleteDraft, exitWithoutSaving }
 
-Future<PremiseFormExitChoice?> showPremiseFormExitSheet(BuildContext context, {required bool showDeleteDraft}) {
+Future<PremiseFormExitChoice?> showPremiseFormExitSheet(
+  BuildContext context, {
+  required bool showDeleteDraft,
+  bool isEditSession = false,
+}) {
   final itemCount = showDeleteDraft ? 3 : 2;
 
   return showAppBottomSheet<PremiseFormExitChoice>(
@@ -27,8 +32,10 @@ Future<PremiseFormExitChoice?> showPremiseFormExitSheet(BuildContext context, {r
           if (showDeleteDraft) ...[
             const SizedBox(height: 8),
             _ExitActionTile(
-              icon: Icons.delete_outline_rounded,
-              label: 'Delete draft',
+              icon: isEditSession ? Icons.undo_rounded : Icons.delete_outline_rounded,
+              // "Delete draft" doesn't fit editing an existing record — this is
+              // discarding unsaved local edits, not deleting an unfinished entry.
+              label: isEditSession ? 'Discard changes' : 'Delete draft',
               foregroundColor: cs.error,
               onTap: () => Navigator.of(context).pop(PremiseFormExitChoice.deleteDraft),
             ),
@@ -42,7 +49,7 @@ Future<PremiseFormExitChoice?> showPremiseFormExitSheet(BuildContext context, {r
         ],
       );
     },
-  );
+  ).unfocusPremiseFormOnComplete(context);
 }
 
 class _ExitActionTile extends StatelessWidget {

@@ -15,9 +15,7 @@ void main() {
 
       final form = PremiseFormMapper.fromPresentation(
         fields: fields,
-        censusImages: [
-          PremiseCensusImageMapper.fromLocalCapture(localPath: '/tmp/a.jpg'),
-        ],
+        censusImages: [PremiseCensusImageMapper.fromLocalCapture(localPath: '/tmp/a.jpg')],
       );
 
       expect(form.companyContact.companyName, 'ACME SDN BHD');
@@ -43,6 +41,28 @@ void main() {
       expect(payload['company_details'], isA<Map>());
       expect(payload['premise_details'], isA<Map>());
       expect(payload.containsKey('images'), isFalse);
+
+      fields.dispose();
+    });
+
+    test('nests visit_status inside company_details, not top-level', () {
+      final fields = PremiseFormFields();
+      fields.companyName.text = 'ACME SDN BHD';
+      fields.traderName.text = 'ACME TRADING';
+
+      final form = PremiseFormMapper.fromPresentation(
+        fields: fields,
+        censusImages: const [],
+        visitStatus: '01',
+        visitStatusDesc: '01 : Berjaya Lawati',
+      );
+      final payload = PremiseSubmitPayloadModel.fromDomain(form).toCreateJson();
+
+      // The server rejects the request as "Visit status is required." unless
+      // this is nested under company_details — a top-level key is ignored.
+      expect(payload.containsKey('visit_status'), isFalse);
+      final companyDetails = payload['company_details'] as Map;
+      expect(companyDetails['visit_status'], '01');
 
       fields.dispose();
     });

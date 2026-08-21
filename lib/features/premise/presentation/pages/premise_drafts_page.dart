@@ -16,62 +16,80 @@ class PremiseDraftsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final draftsAsync = ref.watch(premiseDraftListProvider);
+    final itemsAsync = ref.watch(premiseDraftsAndEditSessionsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Premise Drafts'), centerTitle: false),
-      body: draftsAsync.when(
+      body: itemsAsync.when(
         loading: () => const AppListView(state: AppListState.loading, itemCount: 0, itemBuilder: _noop),
         error: (_, _) => AppListView(
           state: AppListState.error,
           itemCount: 0,
           itemBuilder: _noop,
           errorMessage: 'Unable to load drafts.',
-          onRetry: () => ref.invalidate(premiseDraftListProvider),
+          onRetry: () => ref.invalidate(premiseDraftsAndEditSessionsProvider),
         ),
-        data: (drafts) => AppListView(
-          state: drafts.isEmpty ? AppListState.empty : AppListState.content,
-          itemCount: drafts.length,
+        data: (items) => AppListView(
+          state: items.isEmpty ? AppListState.empty : AppListState.content,
+          itemCount: items.length,
           itemBuilder: (context, index) {
-            final draft = drafts[index];
+            final item = items[index];
             return _DraftTile(
-              draft: draft,
-              onOpen: () => context.push(AppRoutes.premiseFormDraft(draft.id)),
-              onMore: () => _showDraftActions(context, ref, draft),
+              item: item,
+              onOpen: () => _openItem(context, item),
+              onMore: () => _showItemActions(context, ref, item),
             );
           },
           empty: const AppListEmptyConfig(
             icon: Icons.drafts_outlined,
-            title: 'No drafts yet',
-            subtitle: 'Start a new premise entry and save it as a draft.',
+            title: 'No drafts or unsaved edits yet',
+            subtitle: 'Start a new premise entry, or edit an existing one, and save it to see it here.',
           ),
         ),
       ),
     );
   }
 
-  Future<void> _showDraftActions(BuildContext context, WidgetRef ref, PremiseDraftSummary draft) async {
+  void _openItem(BuildContext context, PremiseDraftSummary item) {
+    if (item.isEditSession) {
+      final visitNo = item.visitNo;
+      if (visitNo == null) return;
+      // Routes through the same view→edit resume flow as tapping the
+      // record directly — picks the pending local edit back up in edit
+      // mode instead of the plain local-draft-id flow.
+      context.push(AppRoutes.premiseFormView(visitNo));
+      return;
+    }
+    context.push(AppRoutes.premiseFormDraft(item.id));
+  }
+
+  Future<void> _showItemActions(BuildContext context, WidgetRef ref, PremiseDraftSummary item) async {
     final action = await showAppBottomSheet<_DraftAction>(
       context: context,
-      title: draft.displayTitle,
-      subtitle: draft.displaySubtitle,
+      title: item.displayTitle,
+      subtitle: item.displaySubtitle,
       preset: AppBottomSheetPreset.compact,
-      itemCount: 2,
+      itemCount: item.isEditSession ? 1 : 2,
       builder: (context, _) {
         final cs = Theme.of(context).colorScheme;
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 10),
+            // Duplicating an unsaved edit doesn't make sense — it's a
+            // pending change to an existing record, not a reusable
+            // template like a new-entry draft.
+            if (!item.isEditSession) ...[
+              _DraftActionTile(
+                icon: Icons.copy_outlined,
+                label: 'Duplicate',
+                onTap: () => Navigator.of(context).pop(_DraftAction.duplicate),
+              ),
+              const SizedBox(height: 8),
+            ],
             _DraftActionTile(
-              icon: Icons.copy_outlined,
-              label: 'Duplicate',
-              onTap: () => Navigator.of(context).pop(_DraftAction.duplicate),
-            ),
-            const SizedBox(height: 8),
-            _DraftActionTile(
-              icon: Icons.delete_outline_rounded,
-              label: 'Delete',
+              icon: item.isEditSession ? Icons.undo_rounded : Icons.delete_outline_rounded,
+              label: item.isEditSession ? 'Discard' : 'Delete',
               foregroundColor: cs.error,
               onTap: () => Navigator.of(context).pop(_DraftAction.delete),
             ),
@@ -84,15 +102,15 @@ class PremiseDraftsPage extends ConsumerWidget {
 
     switch (action) {
       case _DraftAction.duplicate:
-        await _duplicateDraft(context, ref, draft);
+        await _duplicateDraft(context, ref, item);
       case _DraftAction.delete:
-        await _confirmDelete(context, ref, draft);
+        await _confirmDelete(context, ref, item);
     }
   }
 
-  Future<void> _duplicateDraft(BuildContext context, WidgetRef ref, PremiseDraftSummary draft) async {
+  Future<void> _duplicateDraft(BuildContext context, WidgetRef ref, PremiseDraftSummary item) async {
     try {
-      final newId = await ref.read(premiseDraftRepositoryProvider).duplicateDraft(draft.id);
+      final newId = await ref.read(premiseDraftRepositoryProvider).duplicateDraft(item.id);
       if (!context.mounted) return;
       AppSnackbar.success(context, 'Draft duplicated.');
       context.push(AppRoutes.premiseFormDraft(newId));
@@ -102,26 +120,28 @@ class PremiseDraftsPage extends ConsumerWidget {
     }
   }
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, PremiseDraftSummary draft) async {
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, PremiseDraftSummary item) async {
     final confirmed = await confirmAppDialog(
       context: context,
-      title: 'Delete draft?',
-      message: 'This will permanently remove "${draft.displayTitle}".',
-      confirmLabel: 'Delete',
+      title: item.isEditSession ? 'Discard unsaved changes?' : 'Delete draft?',
+      message: item.isEditSession
+          ? 'This will remove your local edits for "${item.displayTitle}". The saved record itself is unaffected.'
+          : 'This will permanently remove "${item.displayTitle}".',
+      confirmLabel: item.isEditSession ? 'Discard' : 'Delete',
       confirmStyle: AppDialogActionStyle.destructive,
     );
     if (!confirmed || !context.mounted) return;
 
-    await ref.read(premiseDraftRepositoryProvider).deleteDraft(draft.id);
+    await ref.read(premiseDraftRepositoryProvider).deleteDraft(item.id);
     if (!context.mounted) return;
-    AppSnackbar.success(context, 'Draft deleted.');
+    AppSnackbar.success(context, item.isEditSession ? 'Changes discarded.' : 'Draft deleted.');
   }
 }
 
 class _DraftTile extends StatelessWidget {
-  const _DraftTile({required this.draft, required this.onOpen, required this.onMore});
+  const _DraftTile({required this.item, required this.onOpen, required this.onMore});
 
-  final PremiseDraftSummary draft;
+  final PremiseDraftSummary item;
   final VoidCallback onOpen;
   final VoidCallback onMore;
 
@@ -130,14 +150,65 @@ class _DraftTile extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return AppListTile(
-      title: draft.displayTitle,
-      subtitle: draft.displaySubtitle,
-      leading: const Icon(Icons.storefront_outlined),
-      trailing: IconButton(
-        icon: Icon(Icons.more_vert_rounded, color: cs.onSurface.withValues(alpha: 0.55)),
-        onPressed: onMore,
+      title: item.displayTitle,
+      subtitle: item.displaySubtitle,
+      leading: Icon(item.isEditSession ? Icons.edit_note_rounded : Icons.storefront_outlined),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _TypeTag(isEditSession: item.isEditSession, draftType: item.draftType),
+          IconButton(
+            icon: Icon(Icons.more_vert_rounded, color: cs.onSurface.withValues(alpha: 0.55)),
+            onPressed: onMore,
+          ),
+        ],
       ),
       onTap: onOpen,
+    );
+  }
+}
+
+class _TypeTag extends StatelessWidget {
+  const _TypeTag({required this.isEditSession, required this.draftType});
+
+  final bool isEditSession;
+  final PremiseDraftType draftType;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    Color bg;
+    Color fg;
+    String label;
+    if (isEditSession) {
+      bg = cs.errorContainer;
+      fg = cs.onErrorContainer;
+      label = 'Unsaved';
+    } else {
+      switch (draftType) {
+        case PremiseDraftType.vacant:
+          bg = cs.tertiaryContainer;
+          fg = cs.onTertiaryContainer;
+          label = 'Vacant';
+        case PremiseDraftType.duplicate:
+          bg = cs.secondaryContainer;
+          fg = cs.onSecondaryContainer;
+          label = 'Duplicate';
+        case PremiseDraftType.newEntry:
+          bg = cs.surfaceContainerHighest;
+          fg = cs.onSurface.withValues(alpha: 0.7);
+          label = 'Draft';
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700, color: fg),
+      ),
     );
   }
 }

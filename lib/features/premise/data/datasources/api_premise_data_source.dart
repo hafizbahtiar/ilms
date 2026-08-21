@@ -5,6 +5,7 @@ import 'package:ilms/core/network/api_response_helper.dart';
 import 'package:ilms/core/network/dio_client.dart';
 import 'package:ilms/core/network/form_data_builder.dart';
 import 'package:ilms/features/premise/data/models/premise_submit_payload_model.dart';
+import 'package:ilms/features/premise/domain/entities/premise_census_image.dart';
 import 'package:ilms/features/premise/domain/entities/premise_form.dart';
 import 'package:ilms/features/premise/domain/entities/premise_submit_result.dart';
 
@@ -12,7 +13,7 @@ import 'premise_data_source.dart';
 
 class ApiPremiseDataSource implements PremiseDataSource {
   ApiPremiseDataSource({FormDataBuilder? formDataBuilder})
-      : _formDataBuilder = formDataBuilder ?? const FormDataBuilder();
+    : _formDataBuilder = formDataBuilder ?? const FormDataBuilder();
 
   final FormDataBuilder _formDataBuilder;
 
@@ -41,6 +42,7 @@ class ApiPremiseDataSource implements PremiseDataSource {
     String? typeCode,
     int? seq,
     String process = 'create',
+    void Function(double progress)? onProgress,
   }) async {
     final file = File(localPath);
     if (!await file.exists()) {
@@ -52,11 +54,7 @@ class ApiPremiseDataSource implements PremiseDataSource {
       'visit_no': visitNo,
       'process': process,
       'images': <Map<String, dynamic>>[
-        {
-          'type': typeCode ?? '',
-          'seq': seq ?? 1,
-          'file': bytes,
-        },
+        {'type': typeCode ?? PremiseCensusImageDefaults.typeCode, 'seq': seq ?? 1, 'file': bytes},
       ],
     };
 
@@ -65,6 +63,12 @@ class ApiPremiseDataSource implements PremiseDataSource {
       final response = await DioClient.instance.dio.post<Map<String, dynamic>>(
         '/api/premiseCensus/create-photo',
         data: formData,
+        onSendProgress: onProgress == null
+            ? null
+            : (sent, total) {
+                if (total <= 0) return;
+                onProgress(sent / total);
+              },
       );
 
       final payload = response.data;
@@ -78,6 +82,26 @@ class ApiPremiseDataSource implements PremiseDataSource {
     }
   }
 
+  @override
+  Future<void> deletePhoto({required String imageId}) async {
+    try {
+      final formData = await _formDataBuilder.fromMap({'image_id': imageId});
+      final response = await DioClient.instance.dio.post<Map<String, dynamic>>(
+        '/api/premiseCensus/delete-photo',
+        data: formData,
+      );
+
+      final payload = response.data;
+      if (payload == null) return;
+
+      ensureApiSuccess(payload, fallbackMessage: 'Failed to delete photo.');
+    } on ApiResponseException {
+      rethrow;
+    } on DioException catch (error) {
+      throw ApiResponseException(extractDioErrorMessage(error) ?? 'Failed to delete photo.');
+    }
+  }
+
   Future<PremiseSubmitResult> _submit({
     required String endpoint,
     required Map<String, dynamic> body,
@@ -85,10 +109,7 @@ class ApiPremiseDataSource implements PremiseDataSource {
   }) async {
     try {
       final formData = await _formDataBuilder.fromMap(body);
-      final response = await DioClient.instance.dio.post<Map<String, dynamic>>(
-        endpoint,
-        data: formData,
-      );
+      final response = await DioClient.instance.dio.post<Map<String, dynamic>>(endpoint, data: formData);
 
       final payload = response.data;
       if (payload == null) {

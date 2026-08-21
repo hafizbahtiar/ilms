@@ -10,11 +10,15 @@ import '../core/network/dio_client.dart';
 import '../features/auth/data/local/secure_auth_session_store.dart';
 import '../flavors.dart' as flavors;
 import 'app.dart';
+import 'environment/environment_controller.dart';
 
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AppConfig.init(flavor: AppFlavor.fromName(flavors.appFlavor));
   await LocalStorageBootstrap.init();
+
+  final storedFlavor = AppPreferences.instance.getString(environmentOverridePrefsKey);
+  final flavor = storedFlavor != null ? AppFlavor.fromName(storedFlavor) : AppFlavor.fromName(flavors.appFlavor);
+  await AppConfig.init(flavor: flavor);
   DioClient.create(AppConfig.instance);
 
   final sessionStore = SecureAuthSessionStore(

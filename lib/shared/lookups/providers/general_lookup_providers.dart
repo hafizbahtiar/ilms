@@ -20,6 +20,35 @@ final generalLookupRepositoryProvider = Provider<GeneralLookupRepository>((ref) 
   );
 });
 
+/// Kicks off the commonly-used lookups concurrently in the background
+/// (called once at app startup, right after the splash/auto-login gate) so
+/// they're already cached by the time a form needs them. Fire-and-forget:
+/// callers must not await this — each fetch is wrapped so a single failure
+/// (e.g. offline on first launch) can't surface as an unhandled error or
+/// block startup.
+void warmUpGeneralLookups(WidgetRef ref) {
+  final futures = <Future<List<GeneralModel>>>[
+    ref.read(generalStatesProvider.future),
+    ref.read(generalBusinessTypesProvider.future),
+    ref.read(generalPremiseTypesProvider.future),
+    ref.read(generalVisitBusinessTypesProvider.future),
+    ref.read(generalVisitStatusesProvider.future),
+    ref.read(generalImageTypesProvider.future),
+    ref.read(generalRemarksProvider.future),
+    ref.read(generalBusinessActivityStatusesProvider.future),
+    ref.read(generalBusinessLicenseStatusesProvider.future),
+    ref.read(generalPhasesProvider.future),
+    ref.read(generalYesNoProvider.future),
+    ref.read(generalParliamentsProvider(null).future),
+    ref.read(generalPostcodesProvider(null).future),
+    ref.read(generalAreasProvider(const GeneralAreaFilter()).future),
+  ];
+
+  for (final future in futures) {
+    future.catchError((_) => const <GeneralModel>[]);
+  }
+}
+
 /// Refreshes all lookup caches and invalidates in-memory providers.
 Future<void> refreshAllGeneralLookups(WidgetRef ref) async {
   final repository = ref.read(generalLookupRepositoryProvider);

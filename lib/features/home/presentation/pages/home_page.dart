@@ -39,8 +39,6 @@ class HomePage extends ConsumerWidget {
               const SizedBox(height: 20),
               ProfileCard(user: user, onTap: () => context.push(AppRoutes.profile)),
               if (visibleModules.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Text('Modules', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                 const SizedBox(height: 16),
                 const PremiseHomeSection(),
                 const BillboardHomeSection(),

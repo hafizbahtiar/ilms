@@ -23,30 +23,8 @@ class PremiseFormSectionDef {
   final bool isRequired;
 }
 
-/// Section order mirrors legacy `ilms_flutter/lib/modules/premis` for now.
-/// Reorder here when the form structure changes.
+/// Tab / scroll order for the premise census form.
 const premiseFormSections = <PremiseFormSectionDef>[
-  PremiseFormSectionDef(
-    id: 'company',
-    tabLabel: 'Company',
-    headerTitle: 'Company & Contact Details',
-    isRequired: true,
-    builder: _buildCompanyContactSection,
-  ),
-  PremiseFormSectionDef(
-    id: 'details',
-    tabLabel: 'Details',
-    headerTitle: 'Premise Details',
-    isRequired: true,
-    builder: _buildPremiseDetailsSection,
-  ),
-  PremiseFormSectionDef(
-    id: 'address',
-    tabLabel: 'Address',
-    headerTitle: 'Premise Address',
-    isRequired: true,
-    builder: _buildPremiseAddressSection,
-  ),
   PremiseFormSectionDef(
     id: 'license',
     tabLabel: 'License',
@@ -64,7 +42,26 @@ const premiseFormSections = <PremiseFormSectionDef>[
     id: 'images',
     tabLabel: 'Images',
     headerTitle: 'Census Images',
+    isRequired: true,
     builder: _buildCensusImagesSection,
+  ),
+  PremiseFormSectionDef(
+    id: 'company',
+    tabLabel: 'Company',
+    headerTitle: 'Company & Contact Details',
+    builder: _buildCompanyContactSection,
+  ),
+  PremiseFormSectionDef(
+    id: 'details',
+    tabLabel: 'Details',
+    headerTitle: 'Premise Details',
+    builder: _buildPremiseDetailsSection,
+  ),
+  PremiseFormSectionDef(
+    id: 'address',
+    tabLabel: 'Address',
+    headerTitle: 'Premise Address',
+    builder: _buildPremiseAddressSection,
   ),
 ];
 

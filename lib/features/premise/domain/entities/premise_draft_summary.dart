@@ -1,5 +1,16 @@
 import 'package:equatable/equatable.dart';
 
+/// How a local premise draft came to be — surfaced as a tag on draft list
+/// tiles so users can tell a plain new entry apart from a vacant-lot entry
+/// or a copy created via the duplicate flow.
+enum PremiseDraftType { newEntry, vacant, duplicate }
+
+extension PremiseDraftTypeStorage on PremiseDraftType {
+  static PremiseDraftType fromStorage(String? value) {
+    return PremiseDraftType.values.firstWhere((type) => type.name == value, orElse: () => PremiseDraftType.newEntry);
+  }
+}
+
 /// List row for premise draft screens.
 class PremiseDraftSummary extends Equatable {
   const PremiseDraftSummary({
@@ -8,6 +19,8 @@ class PremiseDraftSummary extends Equatable {
     required this.traderName,
     required this.updatedAt,
     this.isEditSession = false,
+    this.visitNo,
+    this.draftType = PremiseDraftType.newEntry,
   });
 
   final int id;
@@ -15,6 +28,12 @@ class PremiseDraftSummary extends Equatable {
   final String traderName;
   final DateTime updatedAt;
   final bool isEditSession;
+  final PremiseDraftType draftType;
+
+  /// Set for edit-session rows — the server record this is a pending local
+  /// edit of. Needed to resume it via the view→edit flow rather than the
+  /// plain local-draft-id flow.
+  final String? visitNo;
 
   String get displayTitle {
     final company = companyName.trim();
@@ -40,5 +59,5 @@ class PremiseDraftSummary extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, companyName, traderName, updatedAt, isEditSession];
+  List<Object?> get props => [id, companyName, traderName, updatedAt, isEditSession, visitNo, draftType];
 }

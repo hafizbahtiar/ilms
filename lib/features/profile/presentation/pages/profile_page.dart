@@ -34,7 +34,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile'), centerTitle: false),
-      body: _ProfileBody(authUser: authUser, profileState: profileState),
+      body: SafeArea(
+        child: _ProfileBody(authUser: authUser, profileState: profileState),
+      ),
     );
   }
 }

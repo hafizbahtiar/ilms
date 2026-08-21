@@ -10,10 +10,11 @@ import 'package:ilms/features/home/presentation/pages/home_page.dart';
 import 'package:ilms/features/home/presentation/pages/module_placeholder_page.dart';
 import 'package:ilms/features/investigation/presentation/pages/investigation_page.dart';
 import 'package:ilms/features/premise/presentation/controllers/premise_form_state.dart';
+import 'package:ilms/features/premise/presentation/pages/premise_detail_page.dart';
 import 'package:ilms/features/premise/presentation/pages/premise_duplicate_page.dart';
 import 'package:ilms/features/premise/presentation/pages/premise_drafts_page.dart';
 import 'package:ilms/features/premise/presentation/pages/premise_form_page.dart';
-import 'package:ilms/features/premise/presentation/pages/premise_page.dart';
+import 'package:ilms/features/premise/presentation/pages/premise_list_page.dart';
 import 'package:ilms/features/profile/presentation/pages/profile_page.dart';
 
 import 'app_routes.dart';
@@ -65,8 +66,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final mode = PremiseFormModeX.fromQuery(state.uri.queryParameters['mode']);
           final localId = int.tryParse(state.uri.queryParameters['localId'] ?? '');
           final instanceKey = state.uri.queryParameters['i'];
-          final session = PremiseFormSession(mode: mode, localDraftId: localId, instanceKey: instanceKey);
+          final isVacantIntent = state.uri.queryParameters['vacant'] == 'true';
+          final visitNo = state.uri.queryParameters['visitNo'];
+          final session = PremiseFormSession(
+            mode: mode,
+            localDraftId: localId,
+            instanceKey: instanceKey,
+            isVacantIntent: isVacantIntent,
+            visitNo: visitNo,
+          );
           return PremiseFormPage(session: session);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.premiseDetail,
+        builder: (context, state) {
+          final visitNo = state.uri.queryParameters['visitNo'] ?? '';
+          return PremiseDetailPage(visitNo: visitNo);
         },
       ),
       GoRoute(path: AppRoutes.premiseDrafts, builder: (context, state) => const PremiseDraftsPage()),
@@ -77,7 +93,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final moduleId = state.pathParameters['moduleId'];
           final module = homeModulesById[moduleId] ?? homeModules.first;
           return switch (moduleId) {
-            'premise' => PremisePage(module: module),
+            'premise' => PremiseListPage(module: module),
             'billboard' => BillboardPage(module: module),
             'investigation' => InvestigationPage(module: module),
             _ => ModulePlaceholderPage(module: module),

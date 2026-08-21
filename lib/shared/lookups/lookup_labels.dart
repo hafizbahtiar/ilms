@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:ilms/shared/models/general_model.dart';
 
-/// Standard picker label: `CODE : Description`
+/// Standard picker label. Prefers the server-provided `display` (e.g.
+/// `"O : OTHER"` for remarks, which is keyed by [GeneralModel.type], not
+/// [GeneralModel.code]) and only falls back to composing `CODE : Description`
+/// for lookups the API doesn't send a display string for (e.g. mock data).
 String generalLookupLabel(GeneralModel option) {
+  final apiDisplay = option.apiDisplay?.trim();
+  if (apiDisplay != null && apiDisplay.isNotEmpty) return apiDisplay;
+
   final code = option.code?.trim();
   final desc = option.desc?.trim();
   if (code != null && code.isNotEmpty && desc != null && desc.isNotEmpty) {

@@ -4,6 +4,7 @@ import 'package:ilms/features/premise/presentation/controllers/premise_duplicate
 import 'package:ilms/shared/lookups/providers/general_lookup_providers.dart';
 import 'package:ilms/shared/models/general_model.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
+import 'package:ilms/shared/ui/forms/app_text_field.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
 import 'package:ilms/shared/ui/sheets/app_option_picker_sheet.dart';
 
@@ -13,11 +14,11 @@ Future<bool?> showPremiseDuplicateFilterSheet(BuildContext context, WidgetRef re
   return showAppBottomSheet<bool>(
     context: context,
     title: 'All Filter',
-    subtitle: 'Fill in the premise address criteria, then tap Apply.',
+    subtitle: 'Fill in the premise details or address criteria, then tap Apply.',
     preset: AppBottomSheetPreset.scrollable,
     isDismissible: false,
     enableDrag: true,
-    itemCount: 5,
+    itemCount: 9,
     trailing: IconButton(
       tooltip: 'Refresh lookups',
       onPressed: () async {
@@ -45,20 +46,75 @@ Future<bool?> showPremiseDuplicateFilterSheet(BuildContext context, WidgetRef re
   });
 }
 
-class _PremiseDuplicateFilterBody extends ConsumerWidget {
+class _PremiseDuplicateFilterBody extends ConsumerStatefulWidget {
   const _PremiseDuplicateFilterBody({this.scrollController});
 
   final ScrollController? scrollController;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PremiseDuplicateFilterBody> createState() => _PremiseDuplicateFilterBodyState();
+}
+
+class _PremiseDuplicateFilterBodyState extends ConsumerState<_PremiseDuplicateFilterBody> {
+  late final TextEditingController _companyController;
+  late final TextEditingController _traderController;
+  late final TextEditingController _licenseNoController;
+  late final TextEditingController _licenseFileController;
+
+  @override
+  void initState() {
+    super.initState();
+    final filter = ref.read(premiseDuplicateControllerProvider).filter;
+    _companyController = TextEditingController(text: filter.companyName);
+    _traderController = TextEditingController(text: filter.traderName);
+    _licenseNoController = TextEditingController(text: filter.licenseNo);
+    _licenseFileController = TextEditingController(text: filter.licenseFileNo);
+  }
+
+  @override
+  void dispose() {
+    _companyController.dispose();
+    _traderController.dispose();
+    _licenseNoController.dispose();
+    _licenseFileController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final filter = ref.watch(premiseDuplicateControllerProvider.select((state) => state.filter));
     final controller = ref.read(premiseDuplicateControllerProvider.notifier);
 
     return ListView(
-      controller: scrollController,
+      controller: widget.scrollController,
       padding: const EdgeInsets.symmetric(vertical: 10),
       children: [
+        AppTextField(
+          label: 'Company Name',
+          controller: _companyController,
+          onChanged: controller.setCompanyName,
+        ),
+        const SizedBox(height: 12),
+        AppTextField(
+          label: 'Trader Name',
+          controller: _traderController,
+          onChanged: controller.setTraderName,
+        ),
+        const SizedBox(height: 12),
+        AppTextField(
+          label: 'License No.',
+          controller: _licenseNoController,
+          onChanged: controller.setLicenseNo,
+        ),
+        const SizedBox(height: 12),
+        AppTextField(
+          label: 'License File No.',
+          controller: _licenseFileController,
+          onChanged: controller.setLicenseFileNo,
+        ),
+        const SizedBox(height: 16),
+        Text('Premise Address', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 12),
         _FilterSection(
           title: 'Parliament',
           value: filter.parliament?.desc,

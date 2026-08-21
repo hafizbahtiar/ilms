@@ -36,6 +36,47 @@ class PremiseDraftLocalDataSource {
     return (_db.select(_db.premiseDraftEntries)..where((row) => row.id.equals(id))).getSingleOrNull();
   }
 
+  /// The active, unsynced edit-session row for [visitNo] — the local
+  /// unsaved edit of an existing premise record, if one is pending.
+  Future<PremiseDraftEntry?> getEditSessionByVisitNo(String visitNo) {
+    return (_db.select(_db.premiseDraftEntries)..where(
+          (row) =>
+              row.visitNo.equals(visitNo) &
+              row.isActive.equals(true) &
+              row.isSynced.equals(false) &
+              row.isEditSession.equals(true),
+        ))
+        .getSingleOrNull();
+  }
+
+  /// visitNo of every premise record with a pending local unsaved edit —
+  /// used to show an "Unsaved" tag on list tiles.
+  Stream<Set<String>> watchEditSessionVisitNos() {
+    final query = _db.select(_db.premiseDraftEntries)
+      ..where((row) => row.isActive.equals(true) & row.isSynced.equals(false) & row.isEditSession.equals(true));
+
+    return query.watch().map((rows) => rows.map((row) => row.visitNo).whereType<String>().toSet());
+  }
+
+  /// Every pending local unsaved edit (edit-session rows only).
+  Stream<List<PremiseDraftSummary>> watchEditSessions() {
+    final query = _db.select(_db.premiseDraftEntries)
+      ..where((row) => row.isActive.equals(true) & row.isSynced.equals(false) & row.isEditSession.equals(true))
+      ..orderBy([(row) => OrderingTerm.desc(row.updatedAt)]);
+
+    return query.watch().map((rows) => rows.map(_toSummary).toList());
+  }
+
+  /// New-entry drafts AND pending local unsaved edits together, newest
+  /// first — [PremiseDraftSummary.isEditSession] distinguishes the two.
+  Stream<List<PremiseDraftSummary>> watchDraftsAndEditSessions() {
+    final query = _db.select(_db.premiseDraftEntries)
+      ..where((row) => row.isActive.equals(true) & row.isSynced.equals(false))
+      ..orderBy([(row) => OrderingTerm.desc(row.updatedAt)]);
+
+    return query.watch().map((rows) => rows.map(_toSummary).toList());
+  }
+
   Future<int> upsertDraft({
     int? localDraftId,
     required String companyName,
@@ -43,6 +84,7 @@ class PremiseDraftLocalDataSource {
     required String formPayload,
     String? visitNo,
     bool isEditSession = false,
+    PremiseDraftType draftType = PremiseDraftType.newEntry,
   }) async {
     final now = DateTime.now();
 
@@ -53,6 +95,7 @@ class PremiseDraftLocalDataSource {
           traderName: Value(traderName),
           formPayload: Value(formPayload),
           visitNo: Value(visitNo),
+          draftType: Value(draftType.name),
           updatedAt: Value(now),
         ),
       );
@@ -68,6 +111,7 @@ class PremiseDraftLocalDataSource {
             formPayload: formPayload,
             visitNo: Value(visitNo),
             isEditSession: Value(isEditSession),
+            draftType: Value(draftType.name),
             createdAt: now,
             updatedAt: now,
           ),
@@ -91,6 +135,8 @@ class PremiseDraftLocalDataSource {
       traderName: row.traderName,
       updatedAt: row.updatedAt,
       isEditSession: row.isEditSession,
+      visitNo: row.visitNo,
+      draftType: PremiseDraftTypeStorage.fromStorage(row.draftType),
     );
   }
 }

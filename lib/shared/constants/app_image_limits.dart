@@ -1,6 +1,9 @@
 /// Shared image count limits used by form image fields across modules.
 abstract final class AppImageLimits {
   static const int defaultMaxImages = 30;
+
+  /// Minimum census photos required before a premise form can be submitted.
+  static const int premiseMinCensusImages = 2;
 }
 
 /// Returns how many more images can still be added.

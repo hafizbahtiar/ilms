@@ -56,10 +56,7 @@ class PremiseDraftMapper {
     'length': (f, v) => f.length.text = v,
   };
 
-  static PremiseDraftPayloadModel toPayload({
-    required PremiseFormFields fields,
-    required PremiseFormState state,
-  }) {
+  static PremiseDraftPayloadModel toPayload({required PremiseFormFields fields, required PremiseFormState state}) {
     final map = <String, String>{};
     for (final entry in _fieldKeys.entries) {
       map[entry.key] = entry.value(fields);
@@ -70,6 +67,10 @@ class PremiseDraftMapper {
       companyPostcode: state.companyPostcode,
       fields: map,
       censusImages: state.censusImages,
+      remarks: state.remarks,
+      licenses: state.licenses,
+      businessActivities: state.businessActivities,
+      addresses: state.addresses,
     );
   }
 
@@ -98,6 +99,10 @@ class PremiseDraftMapper {
         censusImages: payload.censusImages,
         companyStateCode: payload.companyStateCode,
         companyPostcode: payload.companyPostcode,
+        remarks: payload.remarks,
+        licenses: payload.licenses,
+        businessActivities: payload.businessActivities,
+        addresses: payload.addresses,
       ),
     );
   }
@@ -118,6 +123,10 @@ class PremiseDraftMapper {
     final hasText = payload.fields.values.any((value) => value.trim().isNotEmpty);
     return !hasText &&
         payload.censusImages.isEmpty &&
+        payload.remarks.isEmpty &&
+        payload.licenses.isEmpty &&
+        payload.businessActivities.isEmpty &&
+        payload.addresses.isEmpty &&
         payload.companyStateCode == null &&
         payload.companyPostcode == null;
   }

@@ -11,6 +11,7 @@ class HomeModuleGroup extends StatelessWidget {
     required this.buttons,
     this.prefix,
     this.maxColumns = 4,
+    this.noIcon = true,
   });
 
   final String title;
@@ -19,6 +20,7 @@ class HomeModuleGroup extends StatelessWidget {
   final List<Widget> buttons;
   final Widget? prefix;
   final int maxColumns;
+  final bool noIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -32,25 +34,24 @@ class HomeModuleGroup extends StatelessWidget {
       children: [
         Row(
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+            if (noIcon == false) ...[
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, size: 20, color: color),
               ),
-              child: Icon(icon, size: 20, color: color),
-            ),
-            const SizedBox(width: 12),
+              const SizedBox(width: 12),
+            ],
             Expanded(
               child: Text(title, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
             ),
           ],
         ),
-        if (prefix != null) ...[
-          const SizedBox(height: 12),
-          prefix!,
-        ],
+        if (prefix != null) ...[const SizedBox(height: 12), prefix!],
         if (buttons.isNotEmpty) ...[
           const SizedBox(height: 12),
           HomeModuleGrid(maxColumns: maxColumns, buttons: buttons),

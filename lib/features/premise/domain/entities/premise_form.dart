@@ -20,6 +20,8 @@ class PremiseForm extends Equatable {
     this.businessActivities = const [],
     this.remarks = const [],
     this.censusImages = const [],
+    this.visitStatus,
+    this.visitStatusDesc,
   });
 
   final String? visitNo;
@@ -32,6 +34,11 @@ class PremiseForm extends Equatable {
   final List<PremiseBusinessActivity> businessActivities;
   final List<PremiseRemark> remarks;
   final List<PremiseCensusImage> censusImages;
+
+  /// Picked via the "Choose Visit Status" step right before submit
+  /// (legacy `PremisSubmitView`) — required by the server on create/update.
+  final String? visitStatus;
+  final String? visitStatusDesc;
 
   bool get isUpdate => visitNo != null && visitNo!.isNotEmpty;
 
@@ -46,6 +53,8 @@ class PremiseForm extends Equatable {
     List<PremiseBusinessActivity>? businessActivities,
     List<PremiseRemark>? remarks,
     List<PremiseCensusImage>? censusImages,
+    String? visitStatus,
+    String? visitStatusDesc,
   }) {
     return PremiseForm(
       visitNo: visitNo ?? this.visitNo,
@@ -58,6 +67,8 @@ class PremiseForm extends Equatable {
       businessActivities: businessActivities ?? this.businessActivities,
       remarks: remarks ?? this.remarks,
       censusImages: censusImages ?? this.censusImages,
+      visitStatus: visitStatus ?? this.visitStatus,
+      visitStatusDesc: visitStatusDesc ?? this.visitStatusDesc,
     );
   }
 
@@ -73,5 +84,7 @@ class PremiseForm extends Equatable {
     businessActivities,
     remarks,
     censusImages,
+    visitStatus,
+    visitStatusDesc,
   ];
 }
