@@ -2,6 +2,46 @@ import 'package:flutter/material.dart';
 import 'package:ilms/shared/ui/lists/app_list_view.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
 
+/// Compact tag row for displaying a [showAppMultiOptionPicker] result outside
+/// the sheet (e.g. under an "Edit" button) — a default [Chip] reserves
+/// generous built-in padding/height meant for its own tap/delete targets,
+/// which wastes space here since the row itself isn't interactive.
+class AppSelectedValuesWrap extends StatelessWidget {
+  const AppSelectedValuesWrap({super.key, required this.values, this.spacing = 6, this.runSpacing = 6});
+
+  final List<String> values;
+  final double spacing;
+  final double runSpacing;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Wrap(
+      spacing: spacing,
+      runSpacing: runSpacing,
+      children: [
+        for (final value in values)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: cs.primaryContainer.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              value,
+              style: textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface.withValues(alpha: 0.9),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 /// Shows a selectable option list inside [showAppBottomSheet].
 ///
 /// When [options] is empty the sheet still opens with an [empty] state instead
@@ -82,6 +122,78 @@ Future<T?> showAppAsyncOptionPicker<T>({
         scrollController: scrollController,
         empty: empty ?? _defaultEmptyConfig(title),
         loadingMessage: loadingMessage ?? 'Loading options…',
+        searchable: searchable,
+      );
+    },
+  );
+}
+
+/// Shows a multi-select option list inside [showAppBottomSheet], with a
+/// pinned Apply/Clear action bar. Selections toggle in place (tapping a row
+/// never closes the sheet) — only Apply returns the final list, Clear resets
+/// to empty, and dismissing the sheet (back/backdrop) resolves `null` same as
+/// [showAppOptionPicker].
+///
+/// [T] must have meaningful equality (`==`) for selection tracking to work —
+/// value types (`String`, `int`) or an `Equatable` are safe; a plain class
+/// without `==` falls back to identity, which is fine as long as [options]
+/// is a stable snapshot for the sheet's lifetime (not rebuilt while open).
+Future<List<T>?> showAppMultiOptionPicker<T>({
+  required BuildContext context,
+  required String title,
+  required List<T> options,
+  required String Function(T option) label,
+  List<T> initialSelected = const [],
+  String? subtitle,
+  AppBottomSheetPreset preset = AppBottomSheetPreset.auto,
+  AppListEmptyConfig? empty,
+  bool searchable = false,
+  String applyLabel = 'Apply',
+  String clearLabel = 'Clear',
+}) {
+  if (options.isEmpty) {
+    return showAppBottomSheet<List<T>>(
+      context: context,
+      title: title,
+      subtitle: subtitle,
+      preset: AppBottomSheetPreset.compact,
+      builder: (context, scrollController) => AppListView(
+        state: AppListState.empty,
+        itemCount: 0,
+        itemBuilder: (_, _) => const SizedBox.shrink(),
+        empty: empty ?? _defaultEmptyConfig(title),
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+      ),
+    );
+  }
+
+  final selected = ValueNotifier<List<T>>(List.of(initialSelected));
+
+  return showAppBottomSheet<List<T>>(
+    context: context,
+    title: title,
+    subtitle: subtitle,
+    itemCount: options.length,
+    preset: preset,
+    bottomBar: ValueListenableBuilder<List<T>>(
+      valueListenable: selected,
+      builder: (context, value, _) {
+        return AppBottomSheetActionBar(
+          primaryLabel: applyLabel,
+          secondaryLabel: clearLabel,
+          secondaryEnabled: value.isNotEmpty,
+          onPrimary: () => Navigator.of(context).pop(value),
+          onSecondary: () => selected.value = const [],
+        );
+      },
+    ),
+    builder: (context, scrollController) {
+      return _MultiOptionPickerList<T>(
+        options: options,
+        label: label,
+        selected: selected,
+        scrollController: scrollController,
         searchable: searchable,
       );
     },
@@ -321,6 +433,122 @@ class _SearchField extends StatelessWidget {
   }
 }
 
+class _MultiOptionPickerList<T> extends StatefulWidget {
+  const _MultiOptionPickerList({
+    required this.options,
+    required this.label,
+    required this.selected,
+    this.scrollController,
+    this.searchable = false,
+  });
+
+  final List<T> options;
+  final String Function(T option) label;
+  final ValueNotifier<List<T>> selected;
+  final ScrollController? scrollController;
+  final bool searchable;
+
+  @override
+  State<_MultiOptionPickerList<T>> createState() => _MultiOptionPickerListState<T>();
+}
+
+class _MultiOptionPickerListState<T> extends State<_MultiOptionPickerList<T>> {
+  final _searchController = TextEditingController();
+  var _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<T> get _filtered {
+    if (_query.isEmpty) return widget.options;
+    final needle = _query.toLowerCase();
+    return widget.options.where((option) => widget.label(option).toLowerCase().contains(needle)).toList();
+  }
+
+  void _toggle(T option) {
+    final next = List<T>.of(widget.selected.value);
+    if (!next.remove(option)) {
+      next.add(option);
+    }
+    widget.selected.value = next;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = _filtered;
+
+    final searchField = widget.searchable
+        ? _SearchField(controller: _searchController, onChanged: _onQueryChanged)
+        : null;
+
+    final list = ValueListenableBuilder<List<T>>(
+      valueListenable: widget.selected,
+      builder: (context, selectedValues, _) {
+        final tiles = [
+          for (final option in filtered)
+            _OptionTile<T>(
+              label: widget.label(option),
+              selected: selectedValues.contains(option),
+              onTap: () => _toggle(option),
+              multi: true,
+            ),
+        ];
+
+        // AnimatedSwitcher gives the empty/results swap a soft cross-fade
+        // instead of an abrupt jump-cut as the user types.
+        final resultsChild = filtered.isEmpty
+            ? _NoMatchesState(key: const ValueKey('empty'), query: _query)
+            : (widget.scrollController != null
+                  ? ListView.separated(
+                      key: const ValueKey('list'),
+                      controller: widget.scrollController,
+                      itemCount: tiles.length,
+                      padding: const EdgeInsets.only(top: 10),
+                      separatorBuilder: (_, _) => const SizedBox(height: 4),
+                      itemBuilder: (context, index) => tiles[index],
+                    )
+                  : Column(
+                      key: const ValueKey('list'),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 10),
+                        for (var i = 0; i < tiles.length; i++) ...[if (i > 0) const SizedBox(height: 4), tiles[i]],
+                      ],
+                    ));
+
+        return AnimatedSwitcher(duration: const Duration(milliseconds: 180), child: resultsChild);
+      },
+    );
+
+    if (searchField == null) return list;
+
+    // With a scrollController (DraggableScrollableSheet path) the results
+    // list scrolls the whole sheet, so the search field has to sit outside
+    // it as a fixed header. Without one (compact path), everything already
+    // shrink-wraps together.
+    if (widget.scrollController != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(padding: const EdgeInsets.only(top: 10), child: searchField),
+          Expanded(child: list),
+        ],
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [const SizedBox(height: 10), searchField, list],
+    );
+  }
+
+  void _onQueryChanged(String value) => setState(() => _query = value);
+}
+
 class _NoMatchesState extends StatelessWidget {
   const _NoMatchesState({super.key, required this.query});
 
@@ -351,11 +579,16 @@ class _NoMatchesState extends StatelessWidget {
 }
 
 class _OptionTile<T> extends StatelessWidget {
-  const _OptionTile({required this.label, required this.selected, required this.onTap});
+  const _OptionTile({required this.label, required this.selected, required this.onTap, this.multi = false});
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
+
+  /// Multi-select rows keep a persistent leading checkbox (tapping toggles,
+  /// never closes the sheet) instead of the single-pick's trailing check
+  /// (tapping selects and closes).
+  final bool multi;
 
   @override
   Widget build(BuildContext context) {
@@ -372,6 +605,14 @@ class _OptionTile<T> extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
+              if (multi) ...[
+                Icon(
+                  selected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                  color: selected ? cs.primary : cs.onSurface.withValues(alpha: 0.4),
+                  size: 22,
+                ),
+                const SizedBox(width: 12),
+              ],
               Expanded(
                 child: Text(
                   label,
@@ -381,7 +622,7 @@ class _OptionTile<T> extends StatelessWidget {
                   ),
                 ),
               ),
-              if (selected) Icon(Icons.check_rounded, color: cs.primary, size: 22),
+              if (!multi && selected) Icon(Icons.check_rounded, color: cs.primary, size: 22),
             ],
           ),
         ),

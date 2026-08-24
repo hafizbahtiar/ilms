@@ -17,8 +17,12 @@ class AppImageSource {
     String? cacheKey,
     bool enableLoadState = true,
     bool enableSlideOutPage = false,
+    Color? failedColor,
   }) {
     final gestureHandler = gestureConfig == null ? null : (_) => gestureConfig;
+    final Widget? Function(ExtendedImageState)? loadStateChanged = enableLoadState
+        ? (state) => _loadStateChanged(state, failedColor)
+        : null;
 
     if (item.bytes != null && item.bytes!.isNotEmpty) {
       return ExtendedImage.memory(
@@ -28,7 +32,7 @@ class AppImageSource {
         enableSlideOutPage: enableSlideOutPage,
         enableLoadState: enableLoadState,
         initGestureConfigHandler: gestureHandler,
-        loadStateChanged: enableLoadState ? _loadStateChanged : null,
+        loadStateChanged: loadStateChanged,
       );
     }
 
@@ -42,7 +46,7 @@ class AppImageSource {
           enableSlideOutPage: enableSlideOutPage,
           enableLoadState: enableLoadState,
           initGestureConfigHandler: gestureHandler,
-          loadStateChanged: enableLoadState ? _loadStateChanged : null,
+          loadStateChanged: loadStateChanged,
         );
       }
     }
@@ -70,24 +74,33 @@ class AppImageSource {
         enableSlideOutPage: enableSlideOutPage,
         enableLoadState: enableLoadState,
         initGestureConfigHandler: gestureHandler,
-        loadStateChanged: enableLoadState ? _loadStateChanged : null,
+        loadStateChanged: loadStateChanged,
         printError: true,
       );
     }
 
-    return brokenImage();
+    return brokenImage(background: failedColor);
   }
 
   /// Always shows load/failure state — a silently blank thumbnail is
   /// indistinguishable from "no image" and impossible to diagnose.
-  static Widget thumbnail(AppImageItem item, {BoxFit fit = BoxFit.cover}) {
-    return extendedImage(item, fit: fit, enableLoadState: true);
+  ///
+  /// [failedColor] overrides the failure state's background (default dark
+  /// grey) — e.g. a per-item color so a broken thumbnail still reads as
+  /// "this item" instead of a uniform grey box everywhere.
+  static Widget thumbnail(AppImageItem item, {BoxFit fit = BoxFit.cover, Color? failedColor}) {
+    return extendedImage(item, fit: fit, enableLoadState: true, failedColor: failedColor);
   }
 
-  static Widget? _loadStateChanged(ExtendedImageState state) {
+  static Widget? _loadStateChanged(ExtendedImageState state, Color? failedColor) {
     return switch (state.extendedImageLoadState) {
       LoadState.loading => const Center(child: CircularProgressIndicator.adaptive()),
-      LoadState.failed => brokenImage(),
+      // A caller-supplied [failedColor] means the fallback is an intentional,
+      // purely-visual placeholder (e.g. a per-item color swatch) — no retry
+      // affordance needed there. Without one, this is the generic
+      // broken-image case, where tap-to-retry is the useful behavior.
+      LoadState.failed =>
+        failedColor != null ? ColoredBox(color: failedColor) : _RetryableBrokenImage(onRetry: state.reLoadImage),
       LoadState.completed => null,
     };
   }
@@ -96,6 +109,35 @@ class AppImageSource {
     return ColoredBox(
       color: background ?? const Color(0xFF2A2A2A),
       child: const Center(child: Icon(Icons.broken_image_outlined, color: Colors.white54, size: 40)),
+    );
+  }
+}
+
+class _RetryableBrokenImage extends StatelessWidget {
+  const _RetryableBrokenImage({required this.onRetry});
+
+  final void Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: const Color(0xFF2A2A2A),
+      child: Center(
+        child: InkWell(
+          onTap: onRetry,
+          child: const Padding(
+            padding: EdgeInsets.all(4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.refresh_rounded, color: Colors.white70, size: 22),
+                SizedBox(height: 2),
+                Icon(Icons.broken_image_outlined, color: Colors.white38, size: 18),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
