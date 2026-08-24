@@ -18,6 +18,40 @@ class PremiseAddress extends Equatable {
     this.longitude,
   });
 
+  PremiseAddress copyWith({
+    int? localId,
+    int? premiseAddressId,
+    int? visitPremiseAddressId,
+    String? unitNo,
+    String? floor,
+    String? blockNo,
+    String? building,
+    String? streetName,
+    String? area,
+    String? parliament,
+    String? postcode,
+    String? state,
+    String? latitude,
+    String? longitude,
+  }) {
+    return PremiseAddress(
+      localId: localId ?? this.localId,
+      premiseAddressId: premiseAddressId ?? this.premiseAddressId,
+      visitPremiseAddressId: visitPremiseAddressId ?? this.visitPremiseAddressId,
+      unitNo: unitNo ?? this.unitNo,
+      floor: floor ?? this.floor,
+      blockNo: blockNo ?? this.blockNo,
+      building: building ?? this.building,
+      streetName: streetName ?? this.streetName,
+      area: area ?? this.area,
+      parliament: parliament ?? this.parliament,
+      postcode: postcode ?? this.postcode,
+      state: state ?? this.state,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+    );
+  }
+
   final int? localId;
   final int? premiseAddressId;
   final int? visitPremiseAddressId;

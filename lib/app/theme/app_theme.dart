@@ -50,6 +50,14 @@ class AppTheme {
     final radius = BorderRadius.circular(14);
     final buttonShape = RoundedRectangleBorder(borderRadius: radius);
 
+    // The app bar's background isn't always `colorScheme.primary` (dark mode
+    // uses `_darkSurface` instead, to sit closer to the rest of the dark
+    // chrome) — so its foreground has to be picked per-branch to match
+    // whichever background is actually in play, rather than a bare
+    // `Colors.white` that happened to read fine on both today but isn't
+    // actually tied to either.
+    final appBarForeground = isLight ? colorScheme.onPrimary : onSurface;
+
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
@@ -60,10 +68,10 @@ class AppTheme {
       dividerColor: colorScheme.outlineVariant,
       appBarTheme: AppBarTheme(
         backgroundColor: isLight ? navy : _darkSurface,
-        foregroundColor: Colors.white,
+        foregroundColor: appBarForeground,
         centerTitle: true,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: appBarForeground),
       ),
       cardTheme: CardThemeData(
         color: cardColor,
@@ -73,9 +81,12 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: navy,
-          foregroundColor: Colors.white,
+          foregroundColor: colorScheme.onPrimary,
           disabledBackgroundColor: outline,
-          disabledForegroundColor: Colors.white,
+          // Was a bare Colors.white — poor contrast against the light-mode
+          // `outline` background (a light blue-gray). Material's disabled
+          // convention (dimmed onSurface) reads correctly in both themes.
+          disabledForegroundColor: onSurface.withValues(alpha: 0.38),
           minimumSize: const Size.fromHeight(48),
           shape: buttonShape,
         ),
@@ -83,7 +94,7 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: yellow,
-          foregroundColor: Colors.black,
+          foregroundColor: colorScheme.onSecondary,
           minimumSize: const Size.fromHeight(48),
           shape: buttonShape,
         ),
@@ -99,9 +110,9 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(foregroundColor: navy, shape: buttonShape),
       ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: yellow,
-        foregroundColor: Colors.black,
+        foregroundColor: colorScheme.onSecondary,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -135,7 +146,7 @@ class AppTheme {
           if (states.contains(WidgetState.selected)) return navy;
           return Colors.transparent;
         }),
-        checkColor: const WidgetStatePropertyAll(Colors.white),
+        checkColor: WidgetStatePropertyAll(colorScheme.onPrimary),
         side: BorderSide(color: outline, width: 1.5),
       ),
       radioTheme: RadioThemeData(
@@ -158,7 +169,10 @@ class AppTheme {
         backgroundColor: isLight ? const Color(0xFFE8EDFF) : const Color(0xFF1A2A6B),
         selectedColor: yellow,
         labelStyle: TextStyle(color: onSurface, fontWeight: FontWeight.w600),
-        secondaryLabelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+        // Used for the label once a chip is `selected` (bg swaps to
+        // `selectedColor` = yellow/secondary) — must pair with onSecondary,
+        // not a bare black, to actually stay correct if secondary ever does.
+        secondaryLabelStyle: TextStyle(color: colorScheme.onSecondary, fontWeight: FontWeight.w600),
         side: BorderSide.none,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
@@ -168,7 +182,8 @@ class AppTheme {
         labelTextStyle: WidgetStatePropertyAll(TextStyle(color: onSurface, fontWeight: FontWeight.w600)),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: Colors.black);
+            // Selected icon sits on `indicatorColor` (yellow/secondary).
+            return IconThemeData(color: colorScheme.onSecondary);
           }
           return IconThemeData(color: onSurface);
         }),
@@ -185,7 +200,7 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: navy,
-        contentTextStyle: const TextStyle(color: Colors.white),
+        contentTextStyle: TextStyle(color: colorScheme.onPrimary),
         actionTextColor: yellow,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

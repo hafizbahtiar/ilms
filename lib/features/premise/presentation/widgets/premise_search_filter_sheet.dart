@@ -190,6 +190,7 @@ class _PremiseSearchFilterBodyState extends ConsumerState<_PremiseSearchFilterBo
       label: generalLookupLabel,
       isSelected: (item) => item.code == selected?.code,
       preset: AppBottomSheetPreset.scrollable,
+      searchable: true,
     );
     if (picked != null) _controller.setParliament(picked);
   }
@@ -207,6 +208,7 @@ class _PremiseSearchFilterBodyState extends ConsumerState<_PremiseSearchFilterBo
       label: generalLookupLabel,
       isSelected: (item) => item.code == filter.area?.code,
       preset: AppBottomSheetPreset.scrollable,
+      searchable: true,
     );
     if (picked != null) _controller.setArea(picked);
   }
@@ -224,6 +226,7 @@ class _PremiseSearchFilterBodyState extends ConsumerState<_PremiseSearchFilterBo
       label: generalLookupLabel,
       isSelected: (item) => item.code == filter.street?.code,
       preset: AppBottomSheetPreset.scrollable,
+      searchable: true,
     );
     if (picked != null) _controller.setStreet(picked);
   }
@@ -241,6 +244,7 @@ class _PremiseSearchFilterBodyState extends ConsumerState<_PremiseSearchFilterBo
       label: generalLookupLabel,
       isSelected: (item) => item.code == filter.building?.code,
       preset: AppBottomSheetPreset.scrollable,
+      searchable: true,
     );
     if (picked != null) _controller.setBuilding(picked);
   }

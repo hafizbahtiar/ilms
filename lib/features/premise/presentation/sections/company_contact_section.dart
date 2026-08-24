@@ -8,7 +8,9 @@ import 'package:ilms/shared/formatters/app_date_format.dart';
 import 'package:ilms/shared/models/general_model.dart';
 import 'package:ilms/shared/ui/forms/app_text_field.dart';
 import 'package:ilms/shared/ui/layout/responsive_two_column.dart';
+import 'package:ilms/shared/ui/lists/app_list_view.dart';
 import 'package:ilms/shared/ui/media/scanner/app_barcode_scanner_page.dart';
+import 'package:ilms/shared/ui/sheets/app_option_picker_sheet.dart';
 
 class CompanyContactSection extends ConsumerWidget {
   const CompanyContactSection({super.key});
@@ -20,17 +22,6 @@ class CompanyContactSection extends ConsumerWidget {
     final formState = ref.watch(premiseFormControllerProvider(session));
     final readOnly = formState.isReadOnly;
     final controller = ref.read(premiseFormControllerProvider(session).notifier);
-    final states = ref.watch(premiseStatesProvider).value ?? const [];
-    final postcodes = ref.watch(premisePostcodesProvider(formState.companyStateCode)).value ?? const [];
-    final areas =
-        ref
-            .watch(
-              premiseAreasProvider(
-                GeneralAreaFilter(stateCode: formState.companyStateCode, postcode: formState.companyPostcode),
-              ),
-            )
-            .value ??
-        const [];
 
     return Form(
       key: fields.companyFormKey,
@@ -38,12 +29,7 @@ class CompanyContactSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const PremiseSubsectionTitle(title: 'Census Details'),
-          AppTextField(
-            label: 'Company Name',
-            controller: fields.companyName,
-            readOnly: readOnly,
-            uppercase: true,
-          ),
+          AppTextField(label: 'Company Name', controller: fields.companyName, readOnly: readOnly, uppercase: true),
           const SizedBox(height: 12),
           AppTextField(
             label: 'Register Number',
@@ -103,28 +89,33 @@ class CompanyContactSection extends ConsumerWidget {
                 label: 'State',
                 controller: fields.state,
                 enabled: !readOnly,
-                options: states,
-                optionLabel: generalLookupLabel,
                 sheetSubtitle: 'Select state',
-                onOptionSelected: controller.selectCompanyState,
+                onTap: () => _pickState(context, ref, fields.state, controller),
               ),
               AppPickerField<GeneralModel>(
                 label: 'Postcode',
                 controller: fields.postcode,
                 enabled: !readOnly && formState.companyStateCode != null,
-                options: postcodes,
-                optionLabel: generalPostcodeLabel,
                 sheetSubtitle: formState.companyStateCode == null ? 'Select state first' : 'Select postcode',
-                onOptionSelected: controller.selectCompanyPostcode,
+                // Opens immediately and shows the sheet's own loading state
+                // instead of pre-resolving the list first — otherwise a tap
+                // that lands while the postcode list is still fetching for
+                // the just-picked state silently does nothing at all.
+                onTap: () => _pickPostcode(context, ref, fields.postcode, formState.companyStateCode!, controller),
               ),
               AppPickerField<GeneralModel>(
                 label: 'Area',
                 controller: fields.area,
                 enabled: !readOnly && formState.companyStateCode != null,
-                options: areas,
-                optionLabel: generalLookupLabel,
                 sheetSubtitle: 'Select area',
-                onOptionSelected: controller.selectCompanyArea,
+                onTap: () => _pickArea(
+                  context,
+                  ref,
+                  fields.area,
+                  formState.companyStateCode!,
+                  formState.companyPostcode,
+                  controller,
+                ),
               ),
             ],
           ),
@@ -146,7 +137,12 @@ class CompanyContactSection extends ConsumerWidget {
                 keyboardType: TextInputType.emailAddress,
                 readOnly: readOnly,
               ),
-              AppTextField(label: 'Position', controller: fields.contactPersonPosition, readOnly: readOnly, uppercase: true),
+              AppTextField(
+                label: 'Position',
+                controller: fields.contactPersonPosition,
+                readOnly: readOnly,
+                uppercase: true,
+              ),
             ],
           ),
         ],
@@ -175,4 +171,77 @@ Future<void> _scanStickerNo(BuildContext context, TextEditingController controll
   );
   if (code == null || !context.mounted) return;
   controller.text = code;
+}
+
+Future<void> _pickState(
+  BuildContext context,
+  WidgetRef ref,
+  TextEditingController fieldController,
+  PremiseFormController controller,
+) async {
+  final picked = await showAppAsyncOptionPicker<GeneralModel>(
+    context: context,
+    title: 'State',
+    loadOptions: () => ref.read(premiseStatesProvider.future),
+    label: generalLookupLabel,
+    isSelected: (item) => fieldController.text.trim() == generalLookupLabel(item).trim(),
+    searchable: true,
+    empty: const AppListEmptyConfig(
+      icon: Icons.map_outlined,
+      title: 'No states found',
+      subtitle: 'Lookup data may still be loading on the server. Try again later.',
+    ),
+  );
+  if (picked == null) return;
+  controller.selectCompanyState(picked);
+}
+
+Future<void> _pickPostcode(
+  BuildContext context,
+  WidgetRef ref,
+  TextEditingController fieldController,
+  String stateCode,
+  PremiseFormController controller,
+) async {
+  final picked = await showAppAsyncOptionPicker<GeneralModel>(
+    context: context,
+    title: 'Postcode',
+    loadOptions: () => ref.read(premisePostcodesProvider(stateCode).future),
+    label: generalPostcodeLabel,
+    isSelected: (item) => fieldController.text.trim() == generalPostcodeLabel(item).trim(),
+    searchable: true,
+    empty: const AppListEmptyConfig(
+      icon: Icons.mail_outline_rounded,
+      title: 'No postcodes found',
+      subtitle: 'Lookup data may still be loading on the server. Try again later.',
+    ),
+  );
+  if (picked == null) return;
+  controller.selectCompanyPostcode(picked);
+}
+
+Future<void> _pickArea(
+  BuildContext context,
+  WidgetRef ref,
+  TextEditingController fieldController,
+  String stateCode,
+  String? postcode,
+  PremiseFormController controller,
+) async {
+  final picked = await showAppAsyncOptionPicker<GeneralModel>(
+    context: context,
+    title: 'Area',
+    loadOptions: () =>
+        ref.read(premiseAreasProvider(GeneralAreaFilter(stateCode: stateCode, postcode: postcode)).future),
+    label: generalLookupLabel,
+    isSelected: (item) => fieldController.text.trim() == generalLookupLabel(item).trim(),
+    searchable: true,
+    empty: const AppListEmptyConfig(
+      icon: Icons.map_outlined,
+      title: 'No areas found',
+      subtitle: 'Lookup data may still be loading on the server. Try again later.',
+    ),
+  );
+  if (picked == null) return;
+  controller.selectCompanyArea(picked);
 }

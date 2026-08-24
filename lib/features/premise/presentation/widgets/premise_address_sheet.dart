@@ -8,10 +8,12 @@ import 'package:ilms/shared/lookups/providers/general_lookup_providers.dart';
 import 'package:ilms/shared/models/general_model.dart';
 import 'package:ilms/shared/ui/feedback/app_dialog.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
+import 'package:ilms/shared/ui/forms/app_map_field.dart';
+import 'package:ilms/shared/ui/forms/app_text_field.dart';
 import 'package:ilms/shared/ui/lists/app_list_view.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
 import 'package:ilms/shared/ui/sheets/app_option_picker_sheet.dart';
-import 'package:ilms/shared/ui/forms/app_text_field.dart';
+import 'package:ilms/features/premise/presentation/utils/premise_address_location.dart';
 
 /// Opens the add/edit sheet for a single [PremiseAddress]. Pass [index] and
 /// [initial] when editing an existing entry — the sheet mutates the form
@@ -76,6 +78,8 @@ class _PremiseAddressSheetBodyState extends ConsumerState<_PremiseAddressSheetBo
   GeneralModel? _area;
   GeneralModel? _street;
   GeneralModel? _building;
+  String? _latitude;
+  String? _longitude;
 
   @override
   void initState() {
@@ -96,6 +100,8 @@ class _PremiseAddressSheetBodyState extends ConsumerState<_PremiseAddressSheetBo
     }
     if (initial?.streetName != null) _streetController.text = initial!.streetName!;
     if (initial?.building != null) _buildingController.text = initial!.building!;
+    _latitude = initial?.latitude;
+    _longitude = initial?.longitude;
   }
 
   @override
@@ -119,6 +125,7 @@ class _PremiseAddressSheetBodyState extends ConsumerState<_PremiseAddressSheetBo
       label: generalLookupLabel,
       isSelected: (item) => item.code == _parliament?.code,
       preset: AppBottomSheetPreset.scrollable,
+      searchable: true,
       empty: const AppListEmptyConfig(
         icon: Icons.location_city_outlined,
         title: 'No parliaments found',
@@ -151,6 +158,7 @@ class _PremiseAddressSheetBodyState extends ConsumerState<_PremiseAddressSheetBo
       label: generalLookupLabel,
       isSelected: (item) => item.code == _area?.code,
       preset: AppBottomSheetPreset.scrollable,
+      searchable: true,
       empty: AppListEmptyConfig(
         icon: Icons.map_outlined,
         title: 'No areas found',
@@ -181,6 +189,7 @@ class _PremiseAddressSheetBodyState extends ConsumerState<_PremiseAddressSheetBo
       label: generalLookupLabel,
       isSelected: (item) => item.code == _street?.code,
       preset: AppBottomSheetPreset.scrollable,
+      searchable: true,
       empty: AppListEmptyConfig(
         icon: Icons.signpost_outlined,
         title: 'No streets found',
@@ -209,6 +218,7 @@ class _PremiseAddressSheetBodyState extends ConsumerState<_PremiseAddressSheetBo
       label: generalLookupLabel,
       isSelected: (item) => item.code == _building?.code,
       preset: AppBottomSheetPreset.scrollable,
+      searchable: true,
       empty: AppListEmptyConfig(
         icon: Icons.apartment_outlined,
         title: 'No buildings found',
@@ -235,6 +245,8 @@ class _PremiseAddressSheetBodyState extends ConsumerState<_PremiseAddressSheetBo
       area: _area?.code,
       parliament: _parliament?.code,
       postcode: _postcodeController.text.trim().isEmpty ? null : _postcodeController.text.trim(),
+      latitude: _latitude,
+      longitude: _longitude,
     );
 
     final controller = ref.read(premiseFormControllerProvider(widget.session).notifier);
@@ -268,48 +280,45 @@ class _PremiseAddressSheetBodyState extends ConsumerState<_PremiseAddressSheetBo
         controller: widget.scrollController,
         children: [
           const SizedBox(height: 10),
-          AppPickerField<GeneralModel>(
-            label: 'Parliament',
-            controller: _parliamentController,
-            onTap: _pickParliament,
-          ),
+          AppPickerField<GeneralModel>(label: 'Parliament', controller: _parliamentController, onTap: _pickParliament),
           const SizedBox(height: 12),
-          AppPickerField<GeneralModel>(
-            label: 'Area',
-            controller: _areaController,
-            onTap: _pickArea,
-          ),
+          AppPickerField<GeneralModel>(label: 'Area', controller: _areaController, onTap: _pickArea),
           const SizedBox(height: 12),
-          AppPickerField<GeneralModel>(
-            label: 'Street',
-            controller: _streetController,
-            onTap: _pickStreet,
-          ),
+          AppPickerField<GeneralModel>(label: 'Street', controller: _streetController, onTap: _pickStreet),
           const SizedBox(height: 12),
-          AppPickerField<GeneralModel>(
-            label: 'Building Name',
-            controller: _buildingController,
-            onTap: _pickBuilding,
-          ),
+          AppPickerField<GeneralModel>(label: 'Building Name', controller: _buildingController, onTap: _pickBuilding),
           const SizedBox(height: 12),
-          AppTextField(
-            label: 'Unit No.',
-            controller: _unitNoController,
-            uppercase: true,
-          ),
+          AppTextField(label: 'Unit No.', controller: _unitNoController, uppercase: true),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: AppTextField(label: 'Floor', controller: _floorController, uppercase: true)),
+              Expanded(
+                child: AppTextField(label: 'Floor', controller: _floorController, uppercase: true),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: AppTextField(label: 'Block No.', controller: _blockNoController, uppercase: true)),
+              Expanded(
+                child: AppTextField(label: 'Block No.', controller: _blockNoController, uppercase: true),
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          AppTextField(
-            label: 'Postcode',
-            controller: _postcodeController,
-            keyboardType: TextInputType.number,
+          AppTextField(label: 'Postcode', controller: _postcodeController, keyboardType: TextInputType.number),
+          const SizedBox(height: 12),
+          AppMapField(
+            label: 'Map Location',
+            pickerTitle: 'Pick Premise Location',
+            location: latLngFromPremiseAddress(PremiseAddress(latitude: _latitude, longitude: _longitude)),
+            onChanged: (picked) {
+              setState(() {
+                if (picked == null) {
+                  _latitude = null;
+                  _longitude = null;
+                } else {
+                  _latitude = picked.latitude.toString();
+                  _longitude = picked.longitude.toString();
+                }
+              });
+            },
           ),
           const SizedBox(height: 20),
         ],

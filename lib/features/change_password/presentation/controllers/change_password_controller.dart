@@ -13,9 +13,13 @@ class ChangePasswordController extends StateNotifier<ChangePasswordState> {
 
     try {
       await _repository.changePassword(currentPassword: currentPassword, newPassword: newPassword);
+      // autoDispose: the page can be popped (losing this controller's only
+      // watcher, tearing it down) while the request is still in flight.
+      if (!mounted) return false;
       state = const ChangePasswordState();
       return true;
     } on ChangePasswordException catch (error) {
+      if (!mounted) return false;
       state = ChangePasswordState(errorMessage: error.message);
       return false;
     }

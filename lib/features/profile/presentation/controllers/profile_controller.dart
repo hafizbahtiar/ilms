@@ -9,12 +9,26 @@ class ProfileController extends StateNotifier<ProfileState> {
   final ProfileRepository _repository;
 
   Future<void> fetchProfile() async {
-    state = const ProfileState(isLoading: true);
+    final cachedProfile = state.profile;
+    final isInitialLoad = cachedProfile == null;
+
+    state = ProfileState(
+      isLoading: isInitialLoad,
+      isRefreshing: !isInitialLoad,
+      profile: cachedProfile,
+      errorMessage: isInitialLoad ? null : state.errorMessage,
+    );
 
     try {
       final profile = await _repository.getProfile();
+      if (!mounted) return;
       state = ProfileState(profile: profile);
     } on ProfileException catch (error) {
+      if (!mounted) return;
+      if (cachedProfile != null) {
+        state = ProfileState(profile: cachedProfile);
+        return;
+      }
       state = ProfileState(errorMessage: error.message);
     }
   }

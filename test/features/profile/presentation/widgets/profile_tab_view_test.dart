@@ -11,8 +11,8 @@ import 'package:ilms/features/profile/domain/entities/profile_user.dart';
 import 'package:ilms/features/profile/domain/repositories/profile_repository.dart';
 import 'package:ilms/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:ilms/features/profile/presentation/controllers/profile_state.dart';
-import 'package:ilms/features/profile/presentation/pages/profile_page.dart';
 import 'package:ilms/features/profile/presentation/providers/profile_providers.dart';
+import 'package:ilms/features/profile/presentation/widgets/profile_tab_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -24,7 +24,7 @@ void main() {
 
   tearDown(AppPreferences.reset);
 
-  testWidgets('profile page shows fetched profile and permissions', (tester) async {
+  testWidgets('profile tab shows fetched profile and permissions', (tester) async {
     const authUser = AuthUser(
       id: '1',
       name: 'Administrator',
@@ -45,12 +45,11 @@ void main() {
             ),
           ),
         ],
-        child: const MaterialApp(home: ProfilePage()),
+        child: const MaterialApp(home: Scaffold(body: ProfileTabView())),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Administrator'), findsWidgets);
     expect(find.text('admin@admin.com'), findsWidgets);
     expect(find.text('0123456789'), findsOneWidget);
@@ -85,6 +84,9 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> logout() async {}
+
+  @override
+  Future<String?> getForgotPasswordUrl() async => null;
 }
 
 class _FakeProfileController extends ProfileController {

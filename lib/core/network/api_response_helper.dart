@@ -22,17 +22,45 @@ String? _messageFromPayload(Map<String, dynamic> payload) {
 }
 
 String? extractDioErrorMessage(DioException error) {
-  final data = error.response?.data;
+  final fromResponse = _messageFromResponseData(error.response?.data);
+  if (fromResponse != null) return fromResponse;
 
-  if (data is String && data.trim().isNotEmpty) return data.trim();
+  return _messageFromDioExceptionType(error);
+}
+
+String? _messageFromResponseData(dynamic data) {
+  if (data is String) {
+    final trimmed = data.trim();
+    if (trimmed.isEmpty || trimmed.startsWith('<')) return null;
+    return trimmed;
+  }
 
   if (data is Map) {
     final candidate = data['message'] ?? data['error'] ?? data['detail'] ?? data['title'];
     if (candidate is String && candidate.trim().isNotEmpty) return candidate.trim();
   }
 
-  if (error.message != null && error.message!.trim().isNotEmpty) {
-    return error.message!.trim();
-  }
   return null;
+}
+
+String? _messageFromDioExceptionType(DioException error) {
+  switch (error.type) {
+    case DioExceptionType.connectionTimeout:
+    case DioExceptionType.sendTimeout:
+    case DioExceptionType.receiveTimeout:
+    case DioExceptionType.transformTimeout:
+      return 'Unable to reach the server. Please check your connection and try again.';
+    case DioExceptionType.connectionError:
+      return 'Unable to connect to the server. Please check your connection and try again.';
+    case DioExceptionType.badResponse:
+      final statusCode = error.response?.statusCode;
+      if (statusCode != null && statusCode >= 500) {
+        return 'Server error. Please try again later.';
+      }
+      return null;
+    case DioExceptionType.cancel:
+    case DioExceptionType.badCertificate:
+    case DioExceptionType.unknown:
+      return null;
+  }
 }

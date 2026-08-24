@@ -89,23 +89,11 @@ class _PremiseDuplicateFilterBodyState extends ConsumerState<_PremiseDuplicateFi
       controller: widget.scrollController,
       padding: const EdgeInsets.symmetric(vertical: 10),
       children: [
-        AppTextField(
-          label: 'Company Name',
-          controller: _companyController,
-          onChanged: controller.setCompanyName,
-        ),
+        AppTextField(label: 'Company Name', controller: _companyController, onChanged: controller.setCompanyName),
         const SizedBox(height: 12),
-        AppTextField(
-          label: 'Trader Name',
-          controller: _traderController,
-          onChanged: controller.setTraderName,
-        ),
+        AppTextField(label: 'Trader Name', controller: _traderController, onChanged: controller.setTraderName),
         const SizedBox(height: 12),
-        AppTextField(
-          label: 'License No.',
-          controller: _licenseNoController,
-          onChanged: controller.setLicenseNo,
-        ),
+        AppTextField(label: 'License No.', controller: _licenseNoController, onChanged: controller.setLicenseNo),
         const SizedBox(height: 12),
         AppTextField(
           label: 'License File No.',
@@ -159,6 +147,7 @@ class _PremiseDuplicateFilterBodyState extends ConsumerState<_PremiseDuplicateFi
       label: (item) => item.desc ?? item.code ?? '-',
       isSelected: (item) => item.code == selected?.code,
       preset: AppBottomSheetPreset.scrollable,
+      searchable: true,
     );
     if (picked != null) {
       ref.read(premiseDuplicateControllerProvider.notifier).setParliament(picked);
@@ -180,6 +169,7 @@ class _PremiseDuplicateFilterBodyState extends ConsumerState<_PremiseDuplicateFi
       label: (item) => item.desc ?? item.code ?? '-',
       isSelected: (item) => item.code == filter.area?.code,
       preset: AppBottomSheetPreset.scrollable,
+      searchable: true,
     );
     if (picked != null) {
       ref.read(premiseDuplicateControllerProvider.notifier).setArea(picked);
@@ -201,6 +191,7 @@ class _PremiseDuplicateFilterBodyState extends ConsumerState<_PremiseDuplicateFi
       label: (item) => item.desc ?? item.code ?? '-',
       isSelected: (item) => item.code == filter.street?.code,
       preset: AppBottomSheetPreset.scrollable,
+      searchable: true,
     );
     if (picked != null) {
       ref.read(premiseDuplicateControllerProvider.notifier).setStreet(picked);
@@ -222,6 +213,7 @@ class _PremiseDuplicateFilterBodyState extends ConsumerState<_PremiseDuplicateFi
       label: (item) => item.desc ?? item.code ?? '-',
       isSelected: (item) => item.code == filter.building?.code,
       preset: AppBottomSheetPreset.scrollable,
+      searchable: true,
     );
     if (picked != null) {
       ref.read(premiseDuplicateControllerProvider.notifier).setBuilding(picked);

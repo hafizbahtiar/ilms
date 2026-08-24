@@ -8,4 +8,6 @@ abstract class AuthRepository {
   Future<void> clearSession();
 
   Future<void> logout();
+
+  Future<String?> getForgotPasswordUrl();
 }

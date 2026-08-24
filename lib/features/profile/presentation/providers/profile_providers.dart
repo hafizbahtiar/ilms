@@ -14,7 +14,6 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   return ProfileRepositoryImpl(ref.read(profileDataSourceProvider));
 });
 
-final profileControllerProvider =
-    StateNotifierProvider.autoDispose<ProfileController, ProfileState>((ref) {
+final profileControllerProvider = StateNotifierProvider<ProfileController, ProfileState>((ref) {
   return ProfileController(ref.read(profileRepositoryProvider));
 });

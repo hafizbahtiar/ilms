@@ -140,6 +140,7 @@ class AppPickerField<T> extends StatelessWidget {
     this.enabled = true,
     this.validator,
     this.suffixIcon = Icons.keyboard_arrow_down_rounded,
+    this.searchable = false,
   });
 
   final String label;
@@ -154,6 +155,10 @@ class AppPickerField<T> extends StatelessWidget {
   final bool enabled;
   final String? Function(String?)? validator;
   final IconData suffixIcon;
+
+  /// Shows a live-filter search box in the option sheet — off by default,
+  /// meant for pickers with realistically long lists (postcodes, etc.).
+  final bool searchable;
 
   Future<void> _handleTap(BuildContext context) async {
     if (!enabled) return;
@@ -174,6 +179,7 @@ class AppPickerField<T> extends StatelessWidget {
       options: items,
       label: resolveLabel,
       isSelected: (option) => controller.text.trim() == resolveLabel(option).trim(),
+      searchable: searchable,
     );
 
     if (selected == null) return;

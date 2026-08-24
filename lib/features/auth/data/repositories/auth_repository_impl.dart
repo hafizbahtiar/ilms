@@ -53,6 +53,9 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  @override
+  Future<String?> getForgotPasswordUrl() => _dataSource.getForgotPasswordUrl();
+
   AuthUser _mapToUser(LoginDataModel data, {String? fallbackId, String? fallbackToken}) {
     final accessToken = data.accessToken ?? fallbackToken;
 

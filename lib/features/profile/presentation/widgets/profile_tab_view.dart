@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ilms/app/router/app_routes.dart';
 import 'package:ilms/app/theme/theme_mode_controller.dart';
+import 'package:ilms/core/config/app_config.dart';
+import 'package:ilms/shared/ui/app_version_label.dart';
 import 'package:ilms/features/auth/domain/entities/auth_user.dart';
 import 'package:ilms/features/auth/presentation/providers/auth_providers.dart';
 import 'package:ilms/features/profile/domain/entities/profile_user.dart';
@@ -11,32 +13,71 @@ import 'package:ilms/features/profile/presentation/providers/profile_providers.d
 import 'package:ilms/features/profile/presentation/widgets/profile_widgets.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
 
-class ProfilePage extends ConsumerStatefulWidget {
-  const ProfilePage({super.key});
+/// Profile content for the "Profile" tab on the home page — no `Scaffold`
+/// or `AppBar` of its own; the home page's shared sliver app bar + tab bar
+/// covers that.
+class ProfileTabView extends ConsumerStatefulWidget {
+  const ProfileTabView({super.key, this.tabController, this.tabIndex = 1});
+
+  final TabController? tabController;
+  final int tabIndex;
 
   @override
-  ConsumerState<ProfilePage> createState() => _ProfilePageState();
+  ConsumerState<ProfileTabView> createState() => _ProfileTabViewState();
 }
 
-class _ProfilePageState extends ConsumerState<ProfilePage> {
+class _ProfileTabViewState extends ConsumerState<ProfileTabView> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
-    Future<void>.microtask(() {
+    widget.tabController?.addListener(_handleTabChange);
+    Future<void>.microtask(_loadProfileIfNeeded);
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfileTabView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tabController != widget.tabController) {
+      oldWidget.tabController?.removeListener(_handleTabChange);
+      widget.tabController?.addListener(_handleTabChange);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.tabController?.removeListener(_handleTabChange);
+    super.dispose();
+  }
+
+  void _handleTabChange() {
+    final controller = widget.tabController;
+    if (controller == null || controller.indexIsChanging) return;
+    if (controller.index == widget.tabIndex) {
       ref.read(profileControllerProvider.notifier).fetchProfile();
-    });
+    }
+  }
+
+  void _loadProfileIfNeeded() {
+    final state = ref.read(profileControllerProvider);
+    if (state.profile == null && !state.isLoading) {
+      ref.read(profileControllerProvider.notifier).fetchProfile();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final authUser = ref.watch(authControllerProvider).user;
     final profileState = ref.watch(profileControllerProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profile'), centerTitle: false),
-      body: SafeArea(
-        child: _ProfileBody(authUser: authUser, profileState: profileState),
-      ),
+    // Top is already covered by the home page's shared sliver app bar + tab
+    // bar — only the bottom (gesture-nav inset) needs guarding here.
+    return SafeArea(
+      top: false,
+      child: _ProfileBody(authUser: authUser, profileState: profileState),
     );
   }
 }
@@ -102,7 +143,12 @@ class _ProfileContent extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _ProfileHeader(displayName: displayName, email: profile.email, roles: authUser.roles),
+          _ProfileHeader(
+            displayName: displayName,
+            email: profile.email,
+            roles: authUser.roles,
+            envName: _readEnvName(),
+          ),
           const SizedBox(height: 24),
           Text('Account', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
           const SizedBox(height: 12),
@@ -183,6 +229,8 @@ class _ProfileContent extends ConsumerWidget {
               style: TextStyle(color: cs.error, fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ),
+          const SizedBox(height: 20),
+          const AppVersionLabel(),
         ],
       ),
     );
@@ -261,14 +309,23 @@ class _ProfileContent extends ConsumerWidget {
       ThemeMode.system => Icons.brightness_auto_outlined,
     };
   }
+
+  String _readEnvName() {
+    try {
+      return AppConfig.instance.envName;
+    } catch (_) {
+      return 'dev';
+    }
+  }
 }
 
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.displayName, required this.email, required this.roles});
+  const _ProfileHeader({required this.displayName, required this.email, required this.roles, required this.envName});
 
   final String displayName;
   final String email;
   final List<String> roles;
+  final String envName;
 
   @override
   Widget build(BuildContext context) {
@@ -276,51 +333,69 @@ class _ProfileHeader extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final initials = _initials(displayName);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 42,
-              backgroundColor: cs.primary.withValues(alpha: 0.12),
-              child: Text(
-                initials,
-                style: textTheme.headlineSmall?.copyWith(color: cs.primary, fontWeight: FontWeight.w800),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              displayName,
-              textAlign: TextAlign.center,
-              style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            if (email.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(
-                email,
-                textAlign: TextAlign.center,
-                style: textTheme.bodyLarge?.copyWith(color: cs.onSurface.withValues(alpha: 0.65)),
-              ),
-            ],
-            if (roles.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final role in roles)
-                    Chip(
-                      label: Text(role, style: const TextStyle(fontWeight: FontWeight.w700)),
-                      backgroundColor: cs.secondary.withValues(alpha: 0.35),
-                      side: BorderSide.none,
-                    ),
-                ],
-              ),
-            ],
-          ],
+    // Same gradient-hero language as the premise detail header — a plain
+    // white Card here read as a form, not a profile.
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [cs.primary, cs.primary.withValues(alpha: 0.82)],
         ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: cs.primary.withValues(alpha: 0.28), blurRadius: 24, offset: const Offset(0, 10))],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 84,
+            height: 84,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.16),
+              border: Border.all(color: cs.secondary, width: 2.5),
+            ),
+            alignment: Alignment.center,
+            child: ClipOval(
+              child: Image.asset(
+                'assets/profile.png',
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stack) => Text(
+                  initials,
+                  style: textTheme.headlineMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            displayName,
+            textAlign: TextAlign.center,
+            style: textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+          ),
+          if (email.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              email,
+              textAlign: TextAlign.center,
+              style: textTheme.bodyLarge?.copyWith(color: Colors.white.withValues(alpha: 0.82)),
+            ),
+          ],
+          const SizedBox(height: 16),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final role in roles) _HeaderPill(icon: Icons.badge_outlined, label: role),
+              _HeaderPill(icon: Icons.hub_outlined, label: envName.toUpperCase(), accent: cs.secondary),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -330,5 +405,43 @@ class _ProfileHeader extends StatelessWidget {
     if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
     return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'.toUpperCase();
+  }
+}
+
+/// Chip on the profile gradient header — a status dot in [accent] when set
+/// (the env pill), or a plain icon otherwise (role pills).
+class _HeaderPill extends StatelessWidget {
+  const _HeaderPill({required this.icon, required this.label, this.accent});
+
+  final IconData icon;
+  final String label;
+  final Color? accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final dotOrIcon = accent != null
+        ? Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+          )
+        : Icon(icon, size: 14, color: Colors.white.withValues(alpha: 0.9));
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(10)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          dotOrIcon,
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium
+                ?.copyWith(color: Colors.white, fontWeight: FontWeight.w700, letterSpacing: 0.2),
+          ),
+        ],
+      ),
+    );
   }
 }

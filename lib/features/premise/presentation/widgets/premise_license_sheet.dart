@@ -16,8 +16,10 @@ import 'package:ilms/shared/lookups/lookup_labels.dart';
 import 'package:ilms/shared/models/general_model.dart';
 import 'package:ilms/shared/ui/feedback/app_dialog.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
+import 'package:ilms/shared/ui/lists/app_list_view.dart';
 import 'package:ilms/shared/ui/media/scanner/app_barcode_scanner_page.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
+import 'package:ilms/shared/ui/sheets/app_option_picker_sheet.dart';
 import 'package:ilms/shared/ui/forms/app_text_field.dart';
 
 /// Opens the add/edit sheet for a single [PremiseLicense]. Pass [index] and
@@ -123,7 +125,65 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
     super.dispose();
   }
 
-  void _selectStatus(GeneralModel item) => setState(() => _selectedStatus = item);
+  Future<void> _pickLicenseStatus() async {
+    final picked = await showAppAsyncOptionPicker<GeneralModel>(
+      context: context,
+      title: 'Status',
+      loadOptions: () => ref.read(premiseBusinessLicenseStatusesProvider.future),
+      label: generalLookupLabel,
+      isSelected: (item) => _statusController.text.trim() == generalLookupLabel(item).trim(),
+      empty: const AppListEmptyConfig(
+        icon: Icons.task_alt_outlined,
+        title: 'No statuses found',
+        subtitle: 'Lookup data may still be loading on the server. Try again later.',
+      ),
+    );
+    if (picked == null) return;
+    setState(() {
+      _selectedStatus = picked;
+      _statusController.text = generalLookupLabel(picked);
+    });
+  }
+
+  Future<void> _pickActivityBusinessType() async {
+    final picked = await showAppAsyncOptionPicker<GeneralModel>(
+      context: context,
+      title: 'Business Type',
+      loadOptions: () => ref.read(premiseBusinessTypesProvider.future),
+      label: generalLookupLabel,
+      isSelected: (item) => _actBusinessTypeController.text.trim() == generalLookupLabel(item).trim(),
+      empty: const AppListEmptyConfig(
+        icon: Icons.storefront_outlined,
+        title: 'No business types found',
+        subtitle: 'Lookup data may still be loading on the server. Try again later.',
+      ),
+    );
+    if (picked == null) return;
+    setState(() {
+      _actSelectedBusinessType = picked;
+      _actBusinessTypeController.text = generalLookupLabel(picked);
+    });
+  }
+
+  Future<void> _pickActivityStatus() async {
+    final picked = await showAppAsyncOptionPicker<GeneralModel>(
+      context: context,
+      title: 'Status',
+      loadOptions: () => ref.read(premiseBusinessLicenseStatusesProvider.future),
+      label: generalLookupLabel,
+      isSelected: (item) => _actStatusController.text.trim() == generalLookupLabel(item).trim(),
+      empty: const AppListEmptyConfig(
+        icon: Icons.task_alt_outlined,
+        title: 'No statuses found',
+        subtitle: 'Lookup data may still be loading on the server. Try again later.',
+      ),
+    );
+    if (picked == null) return;
+    setState(() {
+      _actSelectedStatus = picked;
+      _actStatusController.text = generalLookupLabel(picked);
+    });
+  }
 
   Future<void> _pickDate({required bool isFrom}) async {
     final initialDate = (isFrom ? _validFrom : _validTo) ?? DateTime.now();
@@ -327,8 +387,6 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final statuses = ref.watch(premiseBusinessLicenseStatusesProvider).value ?? const <GeneralModel>[];
-    final businessTypes = ref.watch(premiseBusinessTypesProvider).value ?? const <GeneralModel>[];
 
     return Form(
       key: _formKey,
@@ -350,25 +408,15 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
             ],
           ),
           const SizedBox(height: 4),
-          AppTextField(
-            label: 'License No.',
-            controller: _licenseNoController,
-            uppercase: true,
-          ),
+          AppTextField(label: 'License No.', controller: _licenseNoController, uppercase: true),
           const SizedBox(height: 12),
-          AppTextField(
-            label: 'License File No.',
-            controller: _licenseFileNoController,
-            uppercase: true,
-          ),
+          AppTextField(label: 'License File No.', controller: _licenseFileNoController, uppercase: true),
           const SizedBox(height: 12),
           AppPickerField<GeneralModel>(
             label: 'Status',
             controller: _statusController,
-            options: statuses,
-            optionLabel: generalLookupLabel,
             sheetSubtitle: 'Select license status',
-            onOptionSelected: _selectStatus,
+            onTap: _pickLicenseStatus,
           ),
           const SizedBox(height: 12),
           Row(
@@ -432,10 +480,8 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
                 AppPickerField<GeneralModel>(
                   label: 'Business Type',
                   controller: _actBusinessTypeController,
-                  options: businessTypes,
-                  optionLabel: generalLookupLabel,
                   sheetSubtitle: 'Select business type',
-                  onOptionSelected: (item) => setState(() => _actSelectedBusinessType = item),
+                  onTap: _pickActivityBusinessType,
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
@@ -448,10 +494,8 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
                 AppPickerField<GeneralModel>(
                   label: 'Status',
                   controller: _actStatusController,
-                  options: statuses,
-                  optionLabel: generalLookupLabel,
                   sheetSubtitle: 'Select status',
-                  onOptionSelected: (item) => setState(() => _actSelectedStatus = item),
+                  onTap: _pickActivityStatus,
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
@@ -465,9 +509,7 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
                   padding: const EdgeInsets.only(top: 4),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: Text('Save to Business Activity', style: textTheme.bodySmall),
-                      ),
+                      Expanded(child: Text('Save to Business Activity', style: textTheme.bodySmall)),
                       Switch.adaptive(
                         value: _actSaveToBusiness,
                         onChanged: (v) => setState(() => _actSaveToBusiness = v),

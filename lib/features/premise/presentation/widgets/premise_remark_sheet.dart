@@ -8,7 +8,9 @@ import 'package:ilms/features/premise/presentation/providers/premise_providers.d
 import 'package:ilms/shared/lookups/lookup_labels.dart';
 import 'package:ilms/shared/models/general_model.dart';
 import 'package:ilms/shared/ui/feedback/app_dialog.dart';
+import 'package:ilms/shared/ui/lists/app_list_view.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
+import 'package:ilms/shared/ui/sheets/app_option_picker_sheet.dart';
 import 'package:ilms/shared/ui/forms/app_text_field.dart';
 
 /// Opens the add/edit sheet for a single [PremiseRemark]. Pass [index] and
@@ -83,8 +85,24 @@ class _PremiseRemarkSheetBodyState extends ConsumerState<_PremiseRemarkSheetBody
 
   bool get _isOther => (_selectedType?.desc ?? '').toLowerCase() == 'other';
 
-  void _selectType(GeneralModel item) {
-    setState(() => _selectedType = item);
+  Future<void> _pickType() async {
+    final picked = await showAppAsyncOptionPicker<GeneralModel>(
+      context: context,
+      title: 'Remark Type',
+      loadOptions: () => ref.read(premiseRemarksProvider.future),
+      label: generalLookupLabel,
+      isSelected: (item) => _typeController.text.trim() == generalLookupLabel(item).trim(),
+      empty: const AppListEmptyConfig(
+        icon: Icons.sticky_note_2_outlined,
+        title: 'No remark types found',
+        subtitle: 'Lookup data may still be loading on the server. Try again later.',
+      ),
+    );
+    if (picked == null) return;
+    setState(() {
+      _selectedType = picked;
+      _typeController.text = generalLookupLabel(picked);
+    });
   }
 
   void save() {
@@ -126,8 +144,6 @@ class _PremiseRemarkSheetBodyState extends ConsumerState<_PremiseRemarkSheetBody
 
   @override
   Widget build(BuildContext context) {
-    final remarkTypes = ref.watch(premiseRemarksProvider).value ?? const <GeneralModel>[];
-
     return Form(
       key: _formKey,
       child: Column(
@@ -138,19 +154,12 @@ class _PremiseRemarkSheetBodyState extends ConsumerState<_PremiseRemarkSheetBody
           AppPickerField<GeneralModel>(
             label: 'Remark Type',
             controller: _typeController,
-            options: remarkTypes,
-            optionLabel: generalLookupLabel,
             sheetSubtitle: 'Select remark type',
-            onOptionSelected: _selectType,
+            onTap: _pickType,
           ),
           if (_isOther) ...[
             const SizedBox(height: 12),
-            AppTextField(
-              label: 'Description',
-              controller: _descriptionController,
-              maxLines: 4,
-              uppercase: true,
-            ),
+            AppTextField(label: 'Description', controller: _descriptionController, maxLines: 4, uppercase: true),
           ],
         ],
       ),

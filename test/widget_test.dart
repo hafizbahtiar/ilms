@@ -26,6 +26,9 @@ class _NoSessionAuthRepository implements AuthRepository {
 
   @override
   Future<void> logout() async {}
+
+  @override
+  Future<String?> getForgotPasswordUrl() async => null;
 }
 
 void main() {

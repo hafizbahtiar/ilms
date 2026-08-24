@@ -21,6 +21,7 @@ class PremiseHomeSection extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
+    final accent = Theme.of(context).colorScheme.primary;
     final draftCount = ref.watch(premiseDraftCountProvider).valueOrNull ?? 0;
     final unsavedEditCount = ref.watch(premiseEditSessionCountProvider).valueOrNull ?? 0;
     // The Drafts button opens a page that now lists both new-entry drafts
@@ -31,40 +32,36 @@ class PremiseHomeSection extends ConsumerWidget {
     return HomeModuleGroup(
       title: _module.title,
       icon: _module.icon,
-      color: _module.color,
+      color: accent,
       prefix: const Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _PremiseHomePrefixRow(),
-          SizedBox(height: 12),
-          PremiseStatusSummaryChart(),
-        ],
+        children: [_PremiseHomePrefixRow(), SizedBox(height: 12), PremiseStatusSummaryChart()],
       ),
       buttons: [
         HomeModuleButton(
           label: 'View All',
           icon: Icons.list_alt_outlined,
-          accentColor: _module.color,
+          accentColor: accent,
           badgeCount: unsavedEditCount > 0 ? unsavedEditCount : null,
           onTap: () => context.push(AppRoutes.module('premise')),
         ),
         HomeModuleButton(
           label: 'New',
           icon: Icons.add_circle_outline,
-          accentColor: _module.color,
+          accentColor: accent,
           onTap: () => context.push(AppRoutes.premiseFormNewEntry()),
         ),
         HomeModuleButton(
           label: 'Drafts',
           icon: Icons.drafts_outlined,
-          accentColor: _module.color,
+          accentColor: accent,
           badgeCount: draftsPageCount > 0 ? draftsPageCount : null,
           onTap: () => context.push(AppRoutes.premiseDrafts),
         ),
         HomeModuleButton(
           label: 'Duplicate',
           icon: Icons.copy_all_outlined,
-          accentColor: _module.color,
+          accentColor: accent,
           onTap: () => context.push(AppRoutes.premiseDuplicate),
         ),
       ],
@@ -97,8 +94,6 @@ class _PremiseHomePrefixRow extends ConsumerWidget {
 class _PremiseLastDraftCard extends ConsumerWidget {
   const _PremiseLastDraftCard();
 
-  static final _module = homeModulesById['premise']!;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final draft = ref.watch(premiseLatestDraftProvider).valueOrNull;
@@ -106,12 +101,13 @@ class _PremiseLastDraftCard extends ConsumerWidget {
 
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final accent = cs.primary;
 
     return Material(
-      color: _module.color.withValues(alpha: 0.08),
+      color: accent.withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: _module.color.withValues(alpha: 0.18)),
+        side: BorderSide(color: accent.withValues(alpha: 0.18)),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -124,10 +120,10 @@ class _PremiseLastDraftCard extends ConsumerWidget {
                 width: HomeModuleButton.iconBoxSize,
                 height: HomeModuleButton.iconBoxSize,
                 decoration: BoxDecoration(
-                  color: _module.color.withValues(alpha: 0.12),
+                  color: accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(Icons.drafts_outlined, color: _module.color),
+                child: Icon(Icons.drafts_outlined, color: accent),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -136,7 +132,7 @@ class _PremiseLastDraftCard extends ConsumerWidget {
                   children: [
                     Text(
                       'Last draft',
-                      style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: _module.color),
+                      style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: accent),
                     ),
                     const SizedBox(height: 2),
                     Text(

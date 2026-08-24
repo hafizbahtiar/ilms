@@ -37,6 +37,12 @@ const premiseFormSections = <PremiseFormSectionDef>[
     headerTitle: 'Business Activities',
     builder: _buildBusinessActivitySection,
   ),
+  PremiseFormSectionDef(
+    id: 'address',
+    tabLabel: 'Address',
+    headerTitle: 'Premise Address',
+    builder: _buildPremiseAddressSection,
+  ),
   PremiseFormSectionDef(id: 'remarks', tabLabel: 'Remarks', headerTitle: 'Remarks', builder: _buildRemarksSection),
   PremiseFormSectionDef(
     id: 'images',
@@ -56,12 +62,6 @@ const premiseFormSections = <PremiseFormSectionDef>[
     tabLabel: 'Details',
     headerTitle: 'Premise Details',
     builder: _buildPremiseDetailsSection,
-  ),
-  PremiseFormSectionDef(
-    id: 'address',
-    tabLabel: 'Address',
-    headerTitle: 'Premise Address',
-    builder: _buildPremiseAddressSection,
   ),
 ];
 

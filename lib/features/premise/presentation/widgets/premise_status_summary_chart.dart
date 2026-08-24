@@ -54,9 +54,23 @@ class PremiseStatusSummaryChart extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Today's Status Summary",
-            style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: _module.color),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  "Today's Status Summary",
+                  style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: cs.primary),
+                ),
+              ),
+              // Data is cached locally once fetched — this is the only way
+              // to pull a fresh count without leaving the page, so it needs
+              // to be reachable from every state (data, empty, error), not
+              // just tucked into the error retry.
+              _RefreshButton(
+                isRefreshing: summaryAsync.isRefreshing,
+                onPressed: () => ref.invalidate(premiseStatusSummaryProvider),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           summaryAsync.when(
@@ -67,6 +81,36 @@ class PremiseStatusSummaryChart extends ConsumerWidget {
             error: (error, _) => _ErrorState(cs: cs, textTheme: textTheme),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RefreshButton extends StatelessWidget {
+  const _RefreshButton({required this.isRefreshing, required this.onPressed});
+
+  final bool isRefreshing;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      width: 28,
+      height: 28,
+      child: IconButton(
+        padding: EdgeInsets.zero,
+        iconSize: 18,
+        tooltip: 'Refresh',
+        onPressed: isRefreshing ? null : onPressed,
+        icon: isRefreshing
+            ? SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary.withValues(alpha: 0.6)),
+              )
+            : Icon(Icons.refresh_rounded, color: cs.primary),
       ),
     );
   }
@@ -120,11 +164,24 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 80,
+      height: 100,
       child: Center(
-        child: Text(
-          'No data yet',
-          style: textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.6)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.bar_chart_rounded, size: 26, color: cs.onSurface.withValues(alpha: 0.35)),
+            const SizedBox(height: 6),
+            Text(
+              'No visits recorded today',
+              style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: cs.onSurface.withValues(alpha: 0.7)),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Status counts will show up here once a census is submitted.',
+              textAlign: TextAlign.center,
+              style: textTheme.labelSmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.5)),
+            ),
+          ],
         ),
       ),
     );

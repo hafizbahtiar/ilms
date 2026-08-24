@@ -15,6 +15,7 @@ Future<T?> showAppOptionPicker<T>({
   bool Function(T option)? isSelected,
   AppBottomSheetPreset preset = AppBottomSheetPreset.auto,
   AppListEmptyConfig? empty,
+  bool searchable = false,
 }) {
   if (options.isEmpty) {
     return showAppBottomSheet<T>(
@@ -45,6 +46,7 @@ Future<T?> showAppOptionPicker<T>({
         label: label,
         isSelected: isSelected,
         scrollController: scrollController,
+        searchable: searchable,
       );
     },
   );
@@ -65,6 +67,7 @@ Future<T?> showAppAsyncOptionPicker<T>({
   AppBottomSheetPreset preset = AppBottomSheetPreset.scrollable,
   AppListEmptyConfig? empty,
   String? loadingMessage,
+  bool searchable = false,
 }) {
   return showAppBottomSheet<T>(
     context: context,
@@ -79,6 +82,7 @@ Future<T?> showAppAsyncOptionPicker<T>({
         scrollController: scrollController,
         empty: empty ?? _defaultEmptyConfig(title),
         loadingMessage: loadingMessage ?? 'Loading options…',
+        searchable: searchable,
       );
     },
   );
@@ -100,6 +104,7 @@ class _AsyncOptionPickerBody<T> extends StatefulWidget {
     required this.empty,
     required this.loadingMessage,
     this.scrollController,
+    this.searchable = false,
   });
 
   final Future<List<T>> Function() loadOptions;
@@ -108,6 +113,7 @@ class _AsyncOptionPickerBody<T> extends StatefulWidget {
   final ScrollController? scrollController;
   final AppListEmptyConfig empty;
   final String loadingMessage;
+  final bool searchable;
 
   @override
   State<_AsyncOptionPickerBody<T>> createState() => _AsyncOptionPickerBodyState<T>();
@@ -154,6 +160,7 @@ class _AsyncOptionPickerBodyState<T> extends State<_AsyncOptionPickerBody<T>> {
         label: widget.label,
         isSelected: widget.isSelected,
         scrollController: widget.scrollController,
+        searchable: widget.searchable,
       );
     }
 
@@ -173,46 +180,172 @@ class _AsyncOptionPickerBodyState<T> extends State<_AsyncOptionPickerBody<T>> {
   }
 }
 
-class _OptionPickerList<T> extends StatelessWidget {
+class _OptionPickerList<T> extends StatefulWidget {
   const _OptionPickerList({
     required this.options,
     required this.label,
     required this.isSelected,
     this.scrollController,
+    this.searchable = false,
   });
 
   final List<T> options;
   final String Function(T option) label;
   final bool Function(T option)? isSelected;
   final ScrollController? scrollController;
+  final bool searchable;
+
+  @override
+  State<_OptionPickerList<T>> createState() => _OptionPickerListState<T>();
+}
+
+class _OptionPickerListState<T> extends State<_OptionPickerList<T>> {
+  final _searchController = TextEditingController();
+  var _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<T> get _filtered {
+    if (_query.isEmpty) return widget.options;
+    final needle = _query.toLowerCase();
+    return widget.options.where((option) => widget.label(option).toLowerCase().contains(needle)).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final filtered = _filtered;
     final tiles = [
-      for (final option in options)
+      for (final option in filtered)
         _OptionTile<T>(
-          label: label(option),
-          selected: isSelected?.call(option) ?? false,
+          label: widget.label(option),
+          selected: widget.isSelected?.call(option) ?? false,
           onTap: () => Navigator.of(context).pop(option),
         ),
     ];
 
-    if (scrollController != null) {
-      return ListView.separated(
-        controller: scrollController,
-        itemCount: tiles.length,
-        padding: const EdgeInsets.only(top: 10),
-        separatorBuilder: (_, _) => const SizedBox(height: 4),
-        itemBuilder: (context, index) => tiles[index],
+    final searchField = widget.searchable
+        ? _SearchField(controller: _searchController, onChanged: _onQueryChanged)
+        : null;
+
+    // AnimatedSwitcher gives the empty/results swap a soft cross-fade
+    // instead of an abrupt jump-cut as the user types.
+    final resultsChild = filtered.isEmpty
+        ? _NoMatchesState(key: const ValueKey('empty'), query: _query)
+        : (widget.scrollController != null
+              ? ListView.separated(
+                  key: const ValueKey('list'),
+                  controller: widget.scrollController,
+                  itemCount: tiles.length,
+                  padding: const EdgeInsets.only(top: 10),
+                  separatorBuilder: (_, _) => const SizedBox(height: 4),
+                  itemBuilder: (context, index) => tiles[index],
+                )
+              : Column(
+                  key: const ValueKey('list'),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 10),
+                    for (var i = 0; i < tiles.length; i++) ...[if (i > 0) const SizedBox(height: 4), tiles[i]],
+                  ],
+                ));
+
+    final animatedResults = AnimatedSwitcher(duration: const Duration(milliseconds: 180), child: resultsChild);
+
+    if (searchField == null) return resultsChild;
+
+    // With a scrollController (DraggableScrollableSheet path) the results
+    // list scrolls the whole sheet, so the search field has to sit outside
+    // it as a fixed header. Without one (compact path), everything already
+    // shrink-wraps together.
+    if (widget.scrollController != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(padding: const EdgeInsets.only(top: 10), child: searchField),
+          Expanded(child: animatedResults),
+        ],
       );
     }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      children: [
-        const SizedBox(height: 10),
-        for (var i = 0; i < tiles.length; i++) ...[if (i > 0) const SizedBox(height: 4), tiles[i]],
-      ],
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [const SizedBox(height: 10), searchField, animatedResults],
+    );
+  }
+
+  void _onQueryChanged(String value) => setState(() => _query = value);
+}
+
+class _SearchField extends StatelessWidget {
+  const _SearchField({required this.controller, required this.onChanged});
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: 'Search…',
+        prefixIcon: const Icon(Icons.search_rounded),
+        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (context, value, _) {
+            if (value.text.isEmpty) return const SizedBox.shrink();
+            return IconButton(
+              icon: const Icon(Icons.close_rounded),
+              tooltip: 'Clear',
+              onPressed: () {
+                controller.clear();
+                onChanged('');
+              },
+            );
+          },
+        ),
+        filled: true,
+        fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+      ),
+    );
+  }
+}
+
+class _NoMatchesState extends StatelessWidget {
+  const _NoMatchesState({super.key, required this.query});
+
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return SizedBox(
+      height: 120,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off_rounded, size: 28, color: cs.onSurface.withValues(alpha: 0.35)),
+            const SizedBox(height: 8),
+            Text(
+              'No matches for "$query"',
+              style: textTheme.bodyMedium?.copyWith(color: cs.onSurface.withValues(alpha: 0.6)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ilms/app/theme/theme_mode_controller.dart';
 import 'package:ilms/core/config/app_flavor.dart';
+import 'package:ilms/shared/ui/app_version_label.dart';
 import 'package:ilms/features/auth/presentation/providers/auth_providers.dart';
 import 'package:ilms/flavors.dart' as flavors;
 import 'package:ilms/shared/ui/controls/environment_switcher.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
+import 'package:ilms/shared/ui/web/app_webview_page.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -21,6 +23,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberMe = false;
+  bool _isForgotPasswordLoading = false;
 
   @override
   void dispose() {
@@ -37,8 +40,30 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         .login(username: _usernameController.text.trim(), password: _passwordController.text);
   }
 
-  void _onForgotPassword() {
-    AppSnackbar.info(context, 'Reset link sent to your email.');
+  Future<void> _onForgotPassword() async {
+    if (_isForgotPasswordLoading) return;
+    setState(() => _isForgotPasswordLoading = true);
+
+    try {
+      final url = await ref.read(authRepositoryProvider).getForgotPasswordUrl();
+      if (!mounted) return;
+
+      if (url == null) {
+        AppSnackbar.error(context, 'Forgot password link is unavailable right now.');
+        return;
+      }
+
+      await AppWebViewPage.open<void>(
+        context,
+        url: url,
+        title: 'Forgot Password',
+        closeWhenUrlDoesNotContain: 'forgot-password',
+      );
+    } catch (_) {
+      if (mounted) AppSnackbar.error(context, 'Failed to open forgot password page.');
+    } finally {
+      if (mounted) setState(() => _isForgotPasswordLoading = false);
+    }
   }
 
   @override
@@ -152,12 +177,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   ),
                                 ),
                                 TextButton(
-                                  onPressed: _onForgotPassword,
+                                  onPressed: _isForgotPasswordLoading ? null : _onForgotPassword,
                                   style: TextButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                     minimumSize: Size.zero,
                                   ),
-                                  child: const Text('Forgot password?'),
+                                  child: _isForgotPasswordLoading
+                                      ? SizedBox(
+                                          height: 16,
+                                          width: 16,
+                                          child: CircularProgressIndicator.adaptive(
+                                            valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+                                          ),
+                                        )
+                                      : const Text('Forgot password?'),
                                 ),
                               ],
                             ),
@@ -179,27 +212,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                     : const Text('Login'),
                               ),
                             ),
-                            if (AppFlavor.fromName(flavors.appFlavor) != AppFlavor.prod) ...[
+                            // Only the dev build can repoint itself at
+                            // another backend — a stg build silently letting
+                            // testers switch to prod (or vice versa) is
+                            // exactly the kind of thing this gate exists to
+                            // prevent.
+                            if (AppFlavor.fromName(flavors.appFlavor) == AppFlavor.dev) ...[
                               const SizedBox(height: 16),
                               const EnvironmentSwitcher(),
                             ],
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: cs.secondary.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            'Demo: admin / admin123456',
-                            style: TextStyle(fontSize: 12, color: cs.secondary.withValues(alpha: 0.9)),
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 20),
+                      const AppVersionLabel(),
                     ],
                   ),
                 ),

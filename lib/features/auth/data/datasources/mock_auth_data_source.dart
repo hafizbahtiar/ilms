@@ -41,4 +41,10 @@ class MockAuthDataSource implements AuthDataSource {
   Future<void> logout() async {
     await Future<void>.delayed(const Duration(milliseconds: 200));
   }
+
+  @override
+  Future<String?> getForgotPasswordUrl() async {
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    return 'https://example.com/forgot-password';
+  }
 }

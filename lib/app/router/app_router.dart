@@ -3,19 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ilms/features/auth/presentation/pages/login_page.dart';
 import 'package:ilms/features/auth/presentation/providers/auth_providers.dart';
-import 'package:ilms/features/billboard/presentation/pages/billboard_page.dart';
 import 'package:ilms/features/change_password/presentation/pages/change_password_page.dart';
 import 'package:ilms/shared/constants/home_modules.dart';
 import 'package:ilms/features/home/presentation/pages/home_page.dart';
 import 'package:ilms/features/home/presentation/pages/module_placeholder_page.dart';
-import 'package:ilms/features/investigation/presentation/pages/investigation_page.dart';
 import 'package:ilms/features/premise/presentation/controllers/premise_form_state.dart';
 import 'package:ilms/features/premise/presentation/pages/premise_detail_page.dart';
 import 'package:ilms/features/premise/presentation/pages/premise_duplicate_page.dart';
 import 'package:ilms/features/premise/presentation/pages/premise_drafts_page.dart';
 import 'package:ilms/features/premise/presentation/pages/premise_form_page.dart';
 import 'package:ilms/features/premise/presentation/pages/premise_list_page.dart';
-import 'package:ilms/features/profile/presentation/pages/profile_page.dart';
 
 import 'app_routes.dart';
 
@@ -58,7 +55,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: AppRoutes.login, builder: (context, state) => const LoginPage()),
       GoRoute(path: AppRoutes.home, builder: (context, state) => const HomePage()),
-      GoRoute(path: AppRoutes.profile, builder: (context, state) => const ProfilePage()),
       GoRoute(path: AppRoutes.changePassword, builder: (context, state) => const ChangePasswordPage()),
       GoRoute(
         path: AppRoutes.premiseForm,
@@ -92,10 +88,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final moduleId = state.pathParameters['moduleId'];
           final module = homeModulesById[moduleId] ?? homeModules.first;
+          // Premise Census is the only module built so far — everything
+          // else gets the shared "coming soon" placeholder.
           return switch (moduleId) {
             'premise' => PremiseListPage(module: module),
-            'billboard' => BillboardPage(module: module),
-            'investigation' => InvestigationPage(module: module),
             _ => ModulePlaceholderPage(module: module),
           };
         },

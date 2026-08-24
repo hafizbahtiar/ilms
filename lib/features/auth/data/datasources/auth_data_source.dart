@@ -6,4 +6,8 @@ abstract class AuthDataSource {
   Future<LoginDataModel> autoLogin();
 
   Future<void> logout();
+
+  /// The hosted forgot-password page URL, or `null` if the backend didn't
+  /// provide one.
+  Future<String?> getForgotPasswordUrl();
 }

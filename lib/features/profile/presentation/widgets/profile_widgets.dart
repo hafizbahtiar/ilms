@@ -111,11 +111,6 @@ class ProfilePermissionChip extends StatelessWidget {
   }
 }
 
-String profileDisplayNameFromAuth(AuthUser user) {
-  if (user.name.trim().isNotEmpty) return user.name.trim();
-  return user.email.trim().isNotEmpty ? user.email : user.id;
-}
-
 String profileDisplayNameFromProfile(ProfileUser profile) {
   if (profile.name.trim().isNotEmpty) return profile.name.trim();
   return profile.email.trim().isNotEmpty ? profile.email : '-';

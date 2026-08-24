@@ -6,12 +6,13 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'tables/crash_log_entries.dart';
 import 'tables/key_value_entries.dart';
 import 'tables/premise_draft_entries.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [KeyValueEntries, PremiseDraftEntries])
+@DriftDatabase(tables: [KeyValueEntries, PremiseDraftEntries, CrashLogEntries])
 class AppDatabase extends _$AppDatabase {
   AppDatabase._(super.executor);
 
@@ -38,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -51,6 +52,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await m.addColumn(premiseDraftEntries, premiseDraftEntries.draftType);
+      }
+      if (from < 4) {
+        await m.createTable(crashLogEntries);
       }
     },
   );

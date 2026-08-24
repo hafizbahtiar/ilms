@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ilms/core/local/local_storage_providers.dart';
+import 'package:ilms/core/services/crash_log/crash_log_providers.dart';
 import 'package:ilms/features/auth/data/datasources/api_auth_data_source.dart';
 import 'package:ilms/features/auth/data/datasources/auth_data_source.dart';
 import 'package:ilms/features/auth/data/repositories/auth_repository_impl.dart';
@@ -16,5 +17,8 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 });
 
 final authControllerProvider = StateNotifierProvider<AuthController, AuthState>((ref) {
-  return AuthController(ref.read(authRepositoryProvider));
+  return AuthController(
+    ref.read(authRepositoryProvider),
+    crashLogService: ref.read(crashLogServiceProvider),
+  );
 });

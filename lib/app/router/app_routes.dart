@@ -1,7 +1,6 @@
 abstract final class AppRoutes {
   static const login = '/login';
   static const home = '/home';
-  static const profile = '/profile';
   static const changePassword = '/change-password';
   static const premiseForm = '/premise/form';
   static const premiseDrafts = '/premise/drafts';

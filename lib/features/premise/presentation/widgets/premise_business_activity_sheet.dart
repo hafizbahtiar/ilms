@@ -8,7 +8,9 @@ import 'package:ilms/features/premise/presentation/providers/premise_providers.d
 import 'package:ilms/shared/lookups/lookup_labels.dart';
 import 'package:ilms/shared/models/general_model.dart';
 import 'package:ilms/shared/ui/feedback/app_dialog.dart';
+import 'package:ilms/shared/ui/lists/app_list_view.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
+import 'package:ilms/shared/ui/sheets/app_option_picker_sheet.dart';
 import 'package:ilms/shared/ui/forms/app_text_field.dart';
 
 /// Opens the add/edit sheet for a single [PremiseBusinessActivity]. Pass
@@ -123,9 +125,6 @@ class _PremiseBusinessActivitySheetBodyState extends ConsumerState<_PremiseBusin
 
   @override
   Widget build(BuildContext context) {
-    final businessTypes = ref.watch(premiseBusinessTypesProvider).value ?? const <GeneralModel>[];
-    final statuses = ref.watch(premiseBusinessActivityStatusesProvider).value ?? const <GeneralModel>[];
-
     return Form(
       key: _formKey,
       child: Column(
@@ -136,29 +135,60 @@ class _PremiseBusinessActivitySheetBodyState extends ConsumerState<_PremiseBusin
           AppPickerField<GeneralModel>(
             label: 'Business Type',
             controller: _businessTypeController,
-            options: businessTypes,
-            optionLabel: generalLookupLabel,
             sheetSubtitle: 'Select business type',
-            onOptionSelected: (item) => setState(() => _selectedBusinessType = item),
+            onTap: _pickBusinessType,
           ),
           const SizedBox(height: 12),
           AppPickerField<GeneralModel>(
             label: 'Status',
             controller: _statusController,
-            options: statuses,
-            optionLabel: generalLookupLabel,
             sheetSubtitle: 'Select status',
-            onOptionSelected: (item) => setState(() => _selectedStatus = item),
+            onTap: _pickStatus,
           ),
           const SizedBox(height: 12),
-          AppTextField(
-            label: 'Description',
-            controller: _descriptionController,
-            maxLines: 3,
-            uppercase: true,
-          ),
+          AppTextField(label: 'Description', controller: _descriptionController, maxLines: 3, uppercase: true),
         ],
       ),
     );
+  }
+
+  Future<void> _pickBusinessType() async {
+    final picked = await showAppAsyncOptionPicker<GeneralModel>(
+      context: context,
+      title: 'Business Type',
+      loadOptions: () => ref.read(premiseBusinessTypesProvider.future),
+      label: generalLookupLabel,
+      isSelected: (item) => _businessTypeController.text.trim() == generalLookupLabel(item).trim(),
+      empty: const AppListEmptyConfig(
+        icon: Icons.storefront_outlined,
+        title: 'No business types found',
+        subtitle: 'Lookup data may still be loading on the server. Try again later.',
+      ),
+    );
+    if (picked == null) return;
+    setState(() {
+      _selectedBusinessType = picked;
+      _businessTypeController.text = generalLookupLabel(picked);
+    });
+  }
+
+  Future<void> _pickStatus() async {
+    final picked = await showAppAsyncOptionPicker<GeneralModel>(
+      context: context,
+      title: 'Status',
+      loadOptions: () => ref.read(premiseBusinessActivityStatusesProvider.future),
+      label: generalLookupLabel,
+      isSelected: (item) => _statusController.text.trim() == generalLookupLabel(item).trim(),
+      empty: const AppListEmptyConfig(
+        icon: Icons.task_alt_outlined,
+        title: 'No statuses found',
+        subtitle: 'Lookup data may still be loading on the server. Try again later.',
+      ),
+    );
+    if (picked == null) return;
+    setState(() {
+      _selectedStatus = picked;
+      _statusController.text = generalLookupLabel(picked);
+    });
   }
 }
