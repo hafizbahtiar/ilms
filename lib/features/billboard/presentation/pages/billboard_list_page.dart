@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ilms/app/router/app_routes.dart';
 import 'package:ilms/features/billboard/presentation/controllers/billboard_list_controller.dart';
-import 'package:ilms/features/billboard/presentation/widgets/billboard_action_sheet.dart';
+import 'package:ilms/features/billboard/presentation/providers/billboard_draft_providers.dart';
 import 'package:ilms/features/billboard/presentation/widgets/billboard_search_filter_sheet.dart';
 import 'package:ilms/features/billboard/presentation/widgets/billboard_tile.dart';
 import 'package:ilms/shared/constants/home_modules.dart';
@@ -11,8 +11,7 @@ import 'package:ilms/shared/ui/app_bars/app_search_app_bar.dart';
 import 'package:ilms/shared/ui/lists/app_list_view.dart';
 
 /// Single-list billboard search page — unlike premise there's no
-/// Today/History split, since billboard has no offline drafts to
-/// distinguish "today" from "history".
+/// Today/History split.
 class BillboardListPage extends ConsumerStatefulWidget {
   const BillboardListPage({super.key, required this.module});
 
@@ -60,22 +59,11 @@ class _BillboardListPageState extends ConsumerState<BillboardListPage> {
     }
   }
 
-  Future<void> _openActionSheet(String billboardNo) async {
-    final action = await showBillboardActionSheet(context);
-    if (!mounted || action == null) return;
-
-    switch (action) {
-      case BillboardAction.view:
-        context.push(AppRoutes.billboardFormView(billboardNo));
-      case BillboardAction.update:
-        context.push(AppRoutes.billboardFormEdit(billboardNo));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final searchState = ref.watch(billboardListControllerProvider);
     final chips = searchState.filter.activeChipLabels;
+    final editSessionBillboardNos = ref.watch(billboardEditSessionBillboardNosProvider).valueOrNull ?? const {};
 
     return Scaffold(
       appBar: AppSearchAppBar(
@@ -110,7 +98,8 @@ class _BillboardListPageState extends ConsumerState<BillboardListPage> {
           return BillboardTile(
             record: record,
             accentColor: widget.module.color,
-            onTap: () => _openActionSheet(record.billboardNo),
+            hasUnsavedEdit: editSessionBillboardNos.contains(record.billboardNo),
+            onTap: () => context.push(AppRoutes.billboardFormView(record.billboardNo)),
           );
         },
       ),

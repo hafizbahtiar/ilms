@@ -61,7 +61,10 @@ class _AppMapFieldState extends State<AppMapField> {
           Text.rich(
             TextSpan(
               text: widget.label,
-              style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: widget.readOnly ? cs.onSurface.withValues(alpha: 0.6) : null,
+              ),
               children: [
                 if (widget.required)
                   TextSpan(

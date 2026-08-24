@@ -4,11 +4,21 @@ import 'package:ilms/shared/models/app_image_item.dart';
 import 'package:ilms/shared/ui/media/app_image_source.dart';
 
 class BillboardTile extends StatelessWidget {
-  const BillboardTile({super.key, required this.record, required this.accentColor, this.onTap});
+  const BillboardTile({
+    super.key,
+    required this.record,
+    required this.accentColor,
+    this.onTap,
+    this.hasUnsavedEdit = false,
+  });
 
   final BillboardSearchRecord record;
   final Color accentColor;
   final VoidCallback? onTap;
+
+  /// True when a local edit-session draft is pending for this record — see
+  /// `billboardEditSessionBillboardNosProvider`.
+  final bool hasUnsavedEdit;
 
   /// Stable per-item palette pick (hashed from [billboardNo]) so a failed
   /// image load reads as "this item's color" instead of flickering a
@@ -49,6 +59,7 @@ class BillboardTile extends StatelessWidget {
                 title: record.displayTitle,
                 subtitle: record.billboardNo,
                 fallbackColor: _fallbackColorFor(record.billboardNo),
+                hasUnsavedEdit: hasUnsavedEdit,
               )
             else
               Padding(
@@ -56,11 +67,18 @@ class BillboardTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      record.displayTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            record.displayTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        if (hasUnsavedEdit) ...[const SizedBox(width: 8), const _UnsavedTag()],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -108,12 +126,14 @@ class _ImageHeader extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.fallbackColor,
+    this.hasUnsavedEdit = false,
   });
 
   final String previewImage;
   final String title;
   final String subtitle;
   final Color fallbackColor;
+  final bool hasUnsavedEdit;
 
   static const _height = 160.0;
 
@@ -147,11 +167,18 @@ class _ImageHeader extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        if (hasUnsavedEdit) ...[const SizedBox(width: 8), const _UnsavedTag()],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(subtitle, style: textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.85))),
@@ -183,6 +210,24 @@ class _InfoRow extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(child: Text(label, style: Theme.of(context).textTheme.bodySmall)),
         ],
+      ),
+    );
+  }
+}
+
+class _UnsavedTag extends StatelessWidget {
+  const _UnsavedTag();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: cs.errorContainer, borderRadius: BorderRadius.circular(8)),
+      child: Text(
+        'Unsaved',
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(fontWeight: FontWeight.w700, color: cs.onErrorContainer),
       ),
     );
   }

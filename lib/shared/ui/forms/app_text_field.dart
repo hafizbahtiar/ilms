@@ -65,10 +65,65 @@ class AppTextField extends StatelessWidget {
   final AutovalidateMode autovalidateMode;
   final TextCapitalization textCapitalization;
 
+  /// A field that's `readOnly` with no [onTap] has no possible interaction
+  /// at all — a plain view-mode display field, as opposed to a `readOnly`
+  /// field that opens a picker/date-sheet on tap (still an active control).
+  /// Only the former gets the muted "view" treatment; a tappable picker
+  /// stays visually normal until the caller explicitly sets `enabled: false`.
+  bool get _isStaticView => readOnly && onTap == null;
+
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final isStaticView = _isStaticView;
+
+    Widget field = TextFormField(
+      controller: controller,
+      initialValue: initialValue,
+      focusNode: focusNode,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      obscureText: obscureText,
+      readOnly: readOnly,
+      enabled: enabled,
+      maxLines: maxLines,
+      maxLength: maxLength,
+      validator: validator,
+      onChanged: onChanged,
+      onTap: onTap,
+      onFieldSubmitted: onFieldSubmitted,
+      onEditingComplete: onEditingComplete,
+      autovalidateMode: autovalidateMode,
+      textCapitalization: uppercase ? TextCapitalization.characters : textCapitalization,
+      inputFormatters: [if (uppercase) const UppercaseTextFormatter(), ...?inputFormatters],
+      style: isStaticView ? textTheme.bodyLarge?.copyWith(color: cs.onSurface.withValues(alpha: 0.75)) : null,
+      cursorColor: isStaticView ? Colors.transparent : null,
+      decoration: InputDecoration(
+        hintText: hintText,
+        counterText: maxLength != null ? '' : null,
+        prefixIcon: prefixWidget ?? (prefixIcon != null ? Icon(prefixIcon, color: _iconColor(cs, isStaticView)) : null),
+        suffixIcon: suffixWidget ?? (suffixIcon != null ? Icon(suffixIcon, color: _iconColor(cs, isStaticView)) : null),
+      ),
+    );
+
+    if (isStaticView) {
+      // Reuses the theme's already-defined `disabledBorder`/muted fill so a
+      // view-mode field reads as "not editable" at a glance, without
+      // actually disabling the field (text stays selectable/copyable).
+      final baseInputTheme = theme.inputDecorationTheme;
+      field = Theme(
+        data: theme.copyWith(
+          inputDecorationTheme: baseInputTheme.copyWith(
+            fillColor: cs.surfaceContainerLow,
+            enabledBorder: baseInputTheme.disabledBorder,
+            focusedBorder: baseInputTheme.disabledBorder,
+          ),
+        ),
+        child: field,
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -80,7 +135,7 @@ class AppTextField extends StatelessWidget {
               text: label,
               style: textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: cs.onSurface.withValues(alpha: 0.85),
+                color: cs.onSurface.withValues(alpha: isStaticView ? 0.6 : 0.85),
               ),
               children: [
                 if (required)
@@ -93,35 +148,12 @@ class AppTextField extends StatelessWidget {
           ),
           const SizedBox(height: 6),
         ],
-        TextFormField(
-          controller: controller,
-          initialValue: initialValue,
-          focusNode: focusNode,
-          keyboardType: keyboardType,
-          textInputAction: textInputAction,
-          obscureText: obscureText,
-          readOnly: readOnly,
-          enabled: enabled,
-          maxLines: maxLines,
-          maxLength: maxLength,
-          validator: validator,
-          onChanged: onChanged,
-          onTap: onTap,
-          onFieldSubmitted: onFieldSubmitted,
-          onEditingComplete: onEditingComplete,
-          autovalidateMode: autovalidateMode,
-          textCapitalization: uppercase ? TextCapitalization.characters : textCapitalization,
-          inputFormatters: [if (uppercase) const UppercaseTextFormatter(), ...?inputFormatters],
-          decoration: InputDecoration(
-            hintText: hintText,
-            counterText: maxLength != null ? '' : null,
-            prefixIcon: prefixWidget ?? (prefixIcon != null ? Icon(prefixIcon) : null),
-            suffixIcon: suffixWidget ?? (suffixIcon != null ? Icon(suffixIcon) : null),
-          ),
-        ),
+        field,
       ],
     );
   }
+
+  Color? _iconColor(ColorScheme cs, bool isStaticView) => isStaticView ? cs.onSurface.withValues(alpha: 0.4) : null;
 }
 
 /// Read-only field that opens an option picker bottom sheet on tap.

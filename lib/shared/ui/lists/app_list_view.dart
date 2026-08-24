@@ -99,7 +99,7 @@ class AppListView extends StatelessWidget {
       body = RefreshIndicator.adaptive(onRefresh: onRefresh!, child: body);
     }
 
-    return body;
+    return SafeArea(child: body);
   }
 
   Widget _buildList(ScrollPhysics? resolvedPhysics) {

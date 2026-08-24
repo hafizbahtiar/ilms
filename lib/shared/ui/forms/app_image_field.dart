@@ -79,7 +79,10 @@ class AppImageField extends StatelessWidget {
           Text.rich(
             TextSpan(
               text: labelText,
-              style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: readOnly ? cs.onSurface.withValues(alpha: 0.6) : null,
+              ),
               children: [
                 if (required)
                   TextSpan(

@@ -1384,6 +1384,1062 @@ class CrashLogEntriesCompanion extends UpdateCompanion<CrashLogEntry> {
   }
 }
 
+class $InvestigationDraftEntriesTable extends InvestigationDraftEntries
+    with TableInfo<$InvestigationDraftEntriesTable, InvestigationDraftEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $InvestigationDraftEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _investigationNoMeta = const VerificationMeta(
+    'investigationNo',
+  );
+  @override
+  late final GeneratedColumn<String> investigationNo = GeneratedColumn<String>(
+    'investigation_no',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _applicantNameMeta = const VerificationMeta(
+    'applicantName',
+  );
+  @override
+  late final GeneratedColumn<String> applicantName = GeneratedColumn<String>(
+    'applicant_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _formPayloadMeta = const VerificationMeta(
+    'formPayload',
+  );
+  @override
+  late final GeneratedColumn<String> formPayload = GeneratedColumn<String>(
+    'form_payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    investigationNo,
+    applicantName,
+    formPayload,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'investigation_draft_entries';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<InvestigationDraftEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('investigation_no')) {
+      context.handle(
+        _investigationNoMeta,
+        investigationNo.isAcceptableOrUnknown(
+          data['investigation_no']!,
+          _investigationNoMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_investigationNoMeta);
+    }
+    if (data.containsKey('applicant_name')) {
+      context.handle(
+        _applicantNameMeta,
+        applicantName.isAcceptableOrUnknown(
+          data['applicant_name']!,
+          _applicantNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('form_payload')) {
+      context.handle(
+        _formPayloadMeta,
+        formPayload.isAcceptableOrUnknown(
+          data['form_payload']!,
+          _formPayloadMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_formPayloadMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  InvestigationDraftEntry map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return InvestigationDraftEntry(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      investigationNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}investigation_no'],
+      )!,
+      applicantName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}applicant_name'],
+      )!,
+      formPayload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}form_payload'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $InvestigationDraftEntriesTable createAlias(String alias) {
+    return $InvestigationDraftEntriesTable(attachedDatabase, alias);
+  }
+}
+
+class InvestigationDraftEntry extends DataClass
+    implements Insertable<InvestigationDraftEntry> {
+  final int id;
+  final String investigationNo;
+  final String applicantName;
+
+  /// JSON payload — full form fields incl. pending photo bytes.
+  final String formPayload;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const InvestigationDraftEntry({
+    required this.id,
+    required this.investigationNo,
+    required this.applicantName,
+    required this.formPayload,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['investigation_no'] = Variable<String>(investigationNo);
+    map['applicant_name'] = Variable<String>(applicantName);
+    map['form_payload'] = Variable<String>(formPayload);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  InvestigationDraftEntriesCompanion toCompanion(bool nullToAbsent) {
+    return InvestigationDraftEntriesCompanion(
+      id: Value(id),
+      investigationNo: Value(investigationNo),
+      applicantName: Value(applicantName),
+      formPayload: Value(formPayload),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory InvestigationDraftEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return InvestigationDraftEntry(
+      id: serializer.fromJson<int>(json['id']),
+      investigationNo: serializer.fromJson<String>(json['investigationNo']),
+      applicantName: serializer.fromJson<String>(json['applicantName']),
+      formPayload: serializer.fromJson<String>(json['formPayload']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'investigationNo': serializer.toJson<String>(investigationNo),
+      'applicantName': serializer.toJson<String>(applicantName),
+      'formPayload': serializer.toJson<String>(formPayload),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  InvestigationDraftEntry copyWith({
+    int? id,
+    String? investigationNo,
+    String? applicantName,
+    String? formPayload,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => InvestigationDraftEntry(
+    id: id ?? this.id,
+    investigationNo: investigationNo ?? this.investigationNo,
+    applicantName: applicantName ?? this.applicantName,
+    formPayload: formPayload ?? this.formPayload,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  InvestigationDraftEntry copyWithCompanion(
+    InvestigationDraftEntriesCompanion data,
+  ) {
+    return InvestigationDraftEntry(
+      id: data.id.present ? data.id.value : this.id,
+      investigationNo: data.investigationNo.present
+          ? data.investigationNo.value
+          : this.investigationNo,
+      applicantName: data.applicantName.present
+          ? data.applicantName.value
+          : this.applicantName,
+      formPayload: data.formPayload.present
+          ? data.formPayload.value
+          : this.formPayload,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InvestigationDraftEntry(')
+          ..write('id: $id, ')
+          ..write('investigationNo: $investigationNo, ')
+          ..write('applicantName: $applicantName, ')
+          ..write('formPayload: $formPayload, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    investigationNo,
+    applicantName,
+    formPayload,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is InvestigationDraftEntry &&
+          other.id == this.id &&
+          other.investigationNo == this.investigationNo &&
+          other.applicantName == this.applicantName &&
+          other.formPayload == this.formPayload &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class InvestigationDraftEntriesCompanion
+    extends UpdateCompanion<InvestigationDraftEntry> {
+  final Value<int> id;
+  final Value<String> investigationNo;
+  final Value<String> applicantName;
+  final Value<String> formPayload;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const InvestigationDraftEntriesCompanion({
+    this.id = const Value.absent(),
+    this.investigationNo = const Value.absent(),
+    this.applicantName = const Value.absent(),
+    this.formPayload = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  InvestigationDraftEntriesCompanion.insert({
+    this.id = const Value.absent(),
+    required String investigationNo,
+    this.applicantName = const Value.absent(),
+    required String formPayload,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) : investigationNo = Value(investigationNo),
+       formPayload = Value(formPayload),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<InvestigationDraftEntry> custom({
+    Expression<int>? id,
+    Expression<String>? investigationNo,
+    Expression<String>? applicantName,
+    Expression<String>? formPayload,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (investigationNo != null) 'investigation_no': investigationNo,
+      if (applicantName != null) 'applicant_name': applicantName,
+      if (formPayload != null) 'form_payload': formPayload,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  InvestigationDraftEntriesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? investigationNo,
+    Value<String>? applicantName,
+    Value<String>? formPayload,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return InvestigationDraftEntriesCompanion(
+      id: id ?? this.id,
+      investigationNo: investigationNo ?? this.investigationNo,
+      applicantName: applicantName ?? this.applicantName,
+      formPayload: formPayload ?? this.formPayload,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (investigationNo.present) {
+      map['investigation_no'] = Variable<String>(investigationNo.value);
+    }
+    if (applicantName.present) {
+      map['applicant_name'] = Variable<String>(applicantName.value);
+    }
+    if (formPayload.present) {
+      map['form_payload'] = Variable<String>(formPayload.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InvestigationDraftEntriesCompanion(')
+          ..write('id: $id, ')
+          ..write('investigationNo: $investigationNo, ')
+          ..write('applicantName: $applicantName, ')
+          ..write('formPayload: $formPayload, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $BillboardDraftEntriesTable extends BillboardDraftEntries
+    with TableInfo<$BillboardDraftEntriesTable, BillboardDraftEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BillboardDraftEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _mediaClientNameMeta = const VerificationMeta(
+    'mediaClientName',
+  );
+  @override
+  late final GeneratedColumn<String> mediaClientName = GeneratedColumn<String>(
+    'media_client_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _isEditSessionMeta = const VerificationMeta(
+    'isEditSession',
+  );
+  @override
+  late final GeneratedColumn<bool> isEditSession = GeneratedColumn<bool>(
+    'is_edit_session',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_edit_session" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _billboardNoMeta = const VerificationMeta(
+    'billboardNo',
+  );
+  @override
+  late final GeneratedColumn<String> billboardNo = GeneratedColumn<String>(
+    'billboard_no',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _formPayloadMeta = const VerificationMeta(
+    'formPayload',
+  );
+  @override
+  late final GeneratedColumn<String> formPayload = GeneratedColumn<String>(
+    'form_payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    mediaClientName,
+    description,
+    isSynced,
+    isActive,
+    isEditSession,
+    billboardNo,
+    formPayload,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'billboard_draft_entries';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BillboardDraftEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('media_client_name')) {
+      context.handle(
+        _mediaClientNameMeta,
+        mediaClientName.isAcceptableOrUnknown(
+          data['media_client_name']!,
+          _mediaClientNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+      );
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    if (data.containsKey('is_edit_session')) {
+      context.handle(
+        _isEditSessionMeta,
+        isEditSession.isAcceptableOrUnknown(
+          data['is_edit_session']!,
+          _isEditSessionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('billboard_no')) {
+      context.handle(
+        _billboardNoMeta,
+        billboardNo.isAcceptableOrUnknown(
+          data['billboard_no']!,
+          _billboardNoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('form_payload')) {
+      context.handle(
+        _formPayloadMeta,
+        formPayload.isAcceptableOrUnknown(
+          data['form_payload']!,
+          _formPayloadMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_formPayloadMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  BillboardDraftEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BillboardDraftEntry(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      mediaClientName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}media_client_name'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
+      )!,
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+      isEditSession: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_edit_session'],
+      )!,
+      billboardNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}billboard_no'],
+      ),
+      formPayload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}form_payload'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $BillboardDraftEntriesTable createAlias(String alias) {
+    return $BillboardDraftEntriesTable(attachedDatabase, alias);
+  }
+}
+
+class BillboardDraftEntry extends DataClass
+    implements Insertable<BillboardDraftEntry> {
+  final int id;
+  final String mediaClientName;
+  final String description;
+  final bool isSynced;
+  final bool isActive;
+  final bool isEditSession;
+  final String? billboardNo;
+
+  /// JSON payload — form fields + toggles + gps + remark codes + faces + photos.
+  final String formPayload;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const BillboardDraftEntry({
+    required this.id,
+    required this.mediaClientName,
+    required this.description,
+    required this.isSynced,
+    required this.isActive,
+    required this.isEditSession,
+    this.billboardNo,
+    required this.formPayload,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['media_client_name'] = Variable<String>(mediaClientName);
+    map['description'] = Variable<String>(description);
+    map['is_synced'] = Variable<bool>(isSynced);
+    map['is_active'] = Variable<bool>(isActive);
+    map['is_edit_session'] = Variable<bool>(isEditSession);
+    if (!nullToAbsent || billboardNo != null) {
+      map['billboard_no'] = Variable<String>(billboardNo);
+    }
+    map['form_payload'] = Variable<String>(formPayload);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  BillboardDraftEntriesCompanion toCompanion(bool nullToAbsent) {
+    return BillboardDraftEntriesCompanion(
+      id: Value(id),
+      mediaClientName: Value(mediaClientName),
+      description: Value(description),
+      isSynced: Value(isSynced),
+      isActive: Value(isActive),
+      isEditSession: Value(isEditSession),
+      billboardNo: billboardNo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(billboardNo),
+      formPayload: Value(formPayload),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory BillboardDraftEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BillboardDraftEntry(
+      id: serializer.fromJson<int>(json['id']),
+      mediaClientName: serializer.fromJson<String>(json['mediaClientName']),
+      description: serializer.fromJson<String>(json['description']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      isEditSession: serializer.fromJson<bool>(json['isEditSession']),
+      billboardNo: serializer.fromJson<String?>(json['billboardNo']),
+      formPayload: serializer.fromJson<String>(json['formPayload']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'mediaClientName': serializer.toJson<String>(mediaClientName),
+      'description': serializer.toJson<String>(description),
+      'isSynced': serializer.toJson<bool>(isSynced),
+      'isActive': serializer.toJson<bool>(isActive),
+      'isEditSession': serializer.toJson<bool>(isEditSession),
+      'billboardNo': serializer.toJson<String?>(billboardNo),
+      'formPayload': serializer.toJson<String>(formPayload),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  BillboardDraftEntry copyWith({
+    int? id,
+    String? mediaClientName,
+    String? description,
+    bool? isSynced,
+    bool? isActive,
+    bool? isEditSession,
+    Value<String?> billboardNo = const Value.absent(),
+    String? formPayload,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => BillboardDraftEntry(
+    id: id ?? this.id,
+    mediaClientName: mediaClientName ?? this.mediaClientName,
+    description: description ?? this.description,
+    isSynced: isSynced ?? this.isSynced,
+    isActive: isActive ?? this.isActive,
+    isEditSession: isEditSession ?? this.isEditSession,
+    billboardNo: billboardNo.present ? billboardNo.value : this.billboardNo,
+    formPayload: formPayload ?? this.formPayload,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  BillboardDraftEntry copyWithCompanion(BillboardDraftEntriesCompanion data) {
+    return BillboardDraftEntry(
+      id: data.id.present ? data.id.value : this.id,
+      mediaClientName: data.mediaClientName.present
+          ? data.mediaClientName.value
+          : this.mediaClientName,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      isEditSession: data.isEditSession.present
+          ? data.isEditSession.value
+          : this.isEditSession,
+      billboardNo: data.billboardNo.present
+          ? data.billboardNo.value
+          : this.billboardNo,
+      formPayload: data.formPayload.present
+          ? data.formPayload.value
+          : this.formPayload,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BillboardDraftEntry(')
+          ..write('id: $id, ')
+          ..write('mediaClientName: $mediaClientName, ')
+          ..write('description: $description, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isActive: $isActive, ')
+          ..write('isEditSession: $isEditSession, ')
+          ..write('billboardNo: $billboardNo, ')
+          ..write('formPayload: $formPayload, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    mediaClientName,
+    description,
+    isSynced,
+    isActive,
+    isEditSession,
+    billboardNo,
+    formPayload,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BillboardDraftEntry &&
+          other.id == this.id &&
+          other.mediaClientName == this.mediaClientName &&
+          other.description == this.description &&
+          other.isSynced == this.isSynced &&
+          other.isActive == this.isActive &&
+          other.isEditSession == this.isEditSession &&
+          other.billboardNo == this.billboardNo &&
+          other.formPayload == this.formPayload &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class BillboardDraftEntriesCompanion
+    extends UpdateCompanion<BillboardDraftEntry> {
+  final Value<int> id;
+  final Value<String> mediaClientName;
+  final Value<String> description;
+  final Value<bool> isSynced;
+  final Value<bool> isActive;
+  final Value<bool> isEditSession;
+  final Value<String?> billboardNo;
+  final Value<String> formPayload;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const BillboardDraftEntriesCompanion({
+    this.id = const Value.absent(),
+    this.mediaClientName = const Value.absent(),
+    this.description = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.isEditSession = const Value.absent(),
+    this.billboardNo = const Value.absent(),
+    this.formPayload = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  BillboardDraftEntriesCompanion.insert({
+    this.id = const Value.absent(),
+    this.mediaClientName = const Value.absent(),
+    this.description = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.isEditSession = const Value.absent(),
+    this.billboardNo = const Value.absent(),
+    required String formPayload,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) : formPayload = Value(formPayload),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<BillboardDraftEntry> custom({
+    Expression<int>? id,
+    Expression<String>? mediaClientName,
+    Expression<String>? description,
+    Expression<bool>? isSynced,
+    Expression<bool>? isActive,
+    Expression<bool>? isEditSession,
+    Expression<String>? billboardNo,
+    Expression<String>? formPayload,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (mediaClientName != null) 'media_client_name': mediaClientName,
+      if (description != null) 'description': description,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (isActive != null) 'is_active': isActive,
+      if (isEditSession != null) 'is_edit_session': isEditSession,
+      if (billboardNo != null) 'billboard_no': billboardNo,
+      if (formPayload != null) 'form_payload': formPayload,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  BillboardDraftEntriesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? mediaClientName,
+    Value<String>? description,
+    Value<bool>? isSynced,
+    Value<bool>? isActive,
+    Value<bool>? isEditSession,
+    Value<String?>? billboardNo,
+    Value<String>? formPayload,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return BillboardDraftEntriesCompanion(
+      id: id ?? this.id,
+      mediaClientName: mediaClientName ?? this.mediaClientName,
+      description: description ?? this.description,
+      isSynced: isSynced ?? this.isSynced,
+      isActive: isActive ?? this.isActive,
+      isEditSession: isEditSession ?? this.isEditSession,
+      billboardNo: billboardNo ?? this.billboardNo,
+      formPayload: formPayload ?? this.formPayload,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (mediaClientName.present) {
+      map['media_client_name'] = Variable<String>(mediaClientName.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (isEditSession.present) {
+      map['is_edit_session'] = Variable<bool>(isEditSession.value);
+    }
+    if (billboardNo.present) {
+      map['billboard_no'] = Variable<String>(billboardNo.value);
+    }
+    if (formPayload.present) {
+      map['form_payload'] = Variable<String>(formPayload.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BillboardDraftEntriesCompanion(')
+          ..write('id: $id, ')
+          ..write('mediaClientName: $mediaClientName, ')
+          ..write('description: $description, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('isActive: $isActive, ')
+          ..write('isEditSession: $isEditSession, ')
+          ..write('billboardNo: $billboardNo, ')
+          ..write('formPayload: $formPayload, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1395,6 +2451,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CrashLogEntriesTable crashLogEntries = $CrashLogEntriesTable(
     this,
   );
+  late final $InvestigationDraftEntriesTable investigationDraftEntries =
+      $InvestigationDraftEntriesTable(this);
+  late final $BillboardDraftEntriesTable billboardDraftEntries =
+      $BillboardDraftEntriesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1403,6 +2463,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     keyValueEntries,
     premiseDraftEntries,
     crashLogEntries,
+    investigationDraftEntries,
+    billboardDraftEntries,
   ];
 }
 
@@ -2140,6 +3202,562 @@ typedef $$CrashLogEntriesTableProcessedTableManager =
       CrashLogEntry,
       PrefetchHooks Function()
     >;
+typedef $$InvestigationDraftEntriesTableCreateCompanionBuilder =
+    InvestigationDraftEntriesCompanion Function({
+      Value<int> id,
+      required String investigationNo,
+      Value<String> applicantName,
+      required String formPayload,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+    });
+typedef $$InvestigationDraftEntriesTableUpdateCompanionBuilder =
+    InvestigationDraftEntriesCompanion Function({
+      Value<int> id,
+      Value<String> investigationNo,
+      Value<String> applicantName,
+      Value<String> formPayload,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+
+class $$InvestigationDraftEntriesTableFilterComposer
+    extends Composer<_$AppDatabase, $InvestigationDraftEntriesTable> {
+  $$InvestigationDraftEntriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get investigationNo => $composableBuilder(
+    column: $table.investigationNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get applicantName => $composableBuilder(
+    column: $table.applicantName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get formPayload => $composableBuilder(
+    column: $table.formPayload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$InvestigationDraftEntriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $InvestigationDraftEntriesTable> {
+  $$InvestigationDraftEntriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get investigationNo => $composableBuilder(
+    column: $table.investigationNo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get applicantName => $composableBuilder(
+    column: $table.applicantName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get formPayload => $composableBuilder(
+    column: $table.formPayload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$InvestigationDraftEntriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $InvestigationDraftEntriesTable> {
+  $$InvestigationDraftEntriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get investigationNo => $composableBuilder(
+    column: $table.investigationNo,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get applicantName => $composableBuilder(
+    column: $table.applicantName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get formPayload => $composableBuilder(
+    column: $table.formPayload,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$InvestigationDraftEntriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $InvestigationDraftEntriesTable,
+          InvestigationDraftEntry,
+          $$InvestigationDraftEntriesTableFilterComposer,
+          $$InvestigationDraftEntriesTableOrderingComposer,
+          $$InvestigationDraftEntriesTableAnnotationComposer,
+          $$InvestigationDraftEntriesTableCreateCompanionBuilder,
+          $$InvestigationDraftEntriesTableUpdateCompanionBuilder,
+          (
+            InvestigationDraftEntry,
+            BaseReferences<
+              _$AppDatabase,
+              $InvestigationDraftEntriesTable,
+              InvestigationDraftEntry
+            >,
+          ),
+          InvestigationDraftEntry,
+          PrefetchHooks Function()
+        > {
+  $$InvestigationDraftEntriesTableTableManager(
+    _$AppDatabase db,
+    $InvestigationDraftEntriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$InvestigationDraftEntriesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$InvestigationDraftEntriesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$InvestigationDraftEntriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> investigationNo = const Value.absent(),
+                Value<String> applicantName = const Value.absent(),
+                Value<String> formPayload = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => InvestigationDraftEntriesCompanion(
+                id: id,
+                investigationNo: investigationNo,
+                applicantName: applicantName,
+                formPayload: formPayload,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String investigationNo,
+                Value<String> applicantName = const Value.absent(),
+                required String formPayload,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+              }) => InvestigationDraftEntriesCompanion.insert(
+                id: id,
+                investigationNo: investigationNo,
+                applicantName: applicantName,
+                formPayload: formPayload,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$InvestigationDraftEntriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $InvestigationDraftEntriesTable,
+      InvestigationDraftEntry,
+      $$InvestigationDraftEntriesTableFilterComposer,
+      $$InvestigationDraftEntriesTableOrderingComposer,
+      $$InvestigationDraftEntriesTableAnnotationComposer,
+      $$InvestigationDraftEntriesTableCreateCompanionBuilder,
+      $$InvestigationDraftEntriesTableUpdateCompanionBuilder,
+      (
+        InvestigationDraftEntry,
+        BaseReferences<
+          _$AppDatabase,
+          $InvestigationDraftEntriesTable,
+          InvestigationDraftEntry
+        >,
+      ),
+      InvestigationDraftEntry,
+      PrefetchHooks Function()
+    >;
+typedef $$BillboardDraftEntriesTableCreateCompanionBuilder =
+    BillboardDraftEntriesCompanion Function({
+      Value<int> id,
+      Value<String> mediaClientName,
+      Value<String> description,
+      Value<bool> isSynced,
+      Value<bool> isActive,
+      Value<bool> isEditSession,
+      Value<String?> billboardNo,
+      required String formPayload,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+    });
+typedef $$BillboardDraftEntriesTableUpdateCompanionBuilder =
+    BillboardDraftEntriesCompanion Function({
+      Value<int> id,
+      Value<String> mediaClientName,
+      Value<String> description,
+      Value<bool> isSynced,
+      Value<bool> isActive,
+      Value<bool> isEditSession,
+      Value<String?> billboardNo,
+      Value<String> formPayload,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+
+class $$BillboardDraftEntriesTableFilterComposer
+    extends Composer<_$AppDatabase, $BillboardDraftEntriesTable> {
+  $$BillboardDraftEntriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mediaClientName => $composableBuilder(
+    column: $table.mediaClientName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isEditSession => $composableBuilder(
+    column: $table.isEditSession,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get billboardNo => $composableBuilder(
+    column: $table.billboardNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get formPayload => $composableBuilder(
+    column: $table.formPayload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BillboardDraftEntriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $BillboardDraftEntriesTable> {
+  $$BillboardDraftEntriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mediaClientName => $composableBuilder(
+    column: $table.mediaClientName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isEditSession => $composableBuilder(
+    column: $table.isEditSession,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get billboardNo => $composableBuilder(
+    column: $table.billboardNo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get formPayload => $composableBuilder(
+    column: $table.formPayload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BillboardDraftEntriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BillboardDraftEntriesTable> {
+  $$BillboardDraftEntriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get mediaClientName => $composableBuilder(
+    column: $table.mediaClientName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<bool> get isEditSession => $composableBuilder(
+    column: $table.isEditSession,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get billboardNo => $composableBuilder(
+    column: $table.billboardNo,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get formPayload => $composableBuilder(
+    column: $table.formPayload,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$BillboardDraftEntriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BillboardDraftEntriesTable,
+          BillboardDraftEntry,
+          $$BillboardDraftEntriesTableFilterComposer,
+          $$BillboardDraftEntriesTableOrderingComposer,
+          $$BillboardDraftEntriesTableAnnotationComposer,
+          $$BillboardDraftEntriesTableCreateCompanionBuilder,
+          $$BillboardDraftEntriesTableUpdateCompanionBuilder,
+          (
+            BillboardDraftEntry,
+            BaseReferences<
+              _$AppDatabase,
+              $BillboardDraftEntriesTable,
+              BillboardDraftEntry
+            >,
+          ),
+          BillboardDraftEntry,
+          PrefetchHooks Function()
+        > {
+  $$BillboardDraftEntriesTableTableManager(
+    _$AppDatabase db,
+    $BillboardDraftEntriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BillboardDraftEntriesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$BillboardDraftEntriesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$BillboardDraftEntriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> mediaClientName = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<bool> isEditSession = const Value.absent(),
+                Value<String?> billboardNo = const Value.absent(),
+                Value<String> formPayload = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => BillboardDraftEntriesCompanion(
+                id: id,
+                mediaClientName: mediaClientName,
+                description: description,
+                isSynced: isSynced,
+                isActive: isActive,
+                isEditSession: isEditSession,
+                billboardNo: billboardNo,
+                formPayload: formPayload,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> mediaClientName = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<bool> isEditSession = const Value.absent(),
+                Value<String?> billboardNo = const Value.absent(),
+                required String formPayload,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+              }) => BillboardDraftEntriesCompanion.insert(
+                id: id,
+                mediaClientName: mediaClientName,
+                description: description,
+                isSynced: isSynced,
+                isActive: isActive,
+                isEditSession: isEditSession,
+                billboardNo: billboardNo,
+                formPayload: formPayload,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BillboardDraftEntriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BillboardDraftEntriesTable,
+      BillboardDraftEntry,
+      $$BillboardDraftEntriesTableFilterComposer,
+      $$BillboardDraftEntriesTableOrderingComposer,
+      $$BillboardDraftEntriesTableAnnotationComposer,
+      $$BillboardDraftEntriesTableCreateCompanionBuilder,
+      $$BillboardDraftEntriesTableUpdateCompanionBuilder,
+      (
+        BillboardDraftEntry,
+        BaseReferences<
+          _$AppDatabase,
+          $BillboardDraftEntriesTable,
+          BillboardDraftEntry
+        >,
+      ),
+      BillboardDraftEntry,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2150,4 +3768,11 @@ class $AppDatabaseManager {
       $$PremiseDraftEntriesTableTableManager(_db, _db.premiseDraftEntries);
   $$CrashLogEntriesTableTableManager get crashLogEntries =>
       $$CrashLogEntriesTableTableManager(_db, _db.crashLogEntries);
+  $$InvestigationDraftEntriesTableTableManager get investigationDraftEntries =>
+      $$InvestigationDraftEntriesTableTableManager(
+        _db,
+        _db.investigationDraftEntries,
+      );
+  $$BillboardDraftEntriesTableTableManager get billboardDraftEntries =>
+      $$BillboardDraftEntriesTableTableManager(_db, _db.billboardDraftEntries);
 }

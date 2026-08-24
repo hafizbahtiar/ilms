@@ -2,6 +2,8 @@ import 'dart:developer' as dev;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ilms/features/billboard/data/mappers/billboard_draft_mapper.dart';
+import 'package:ilms/features/billboard/data/models/billboard_draft_payload_model.dart';
 import 'package:ilms/features/billboard/domain/entities/billboard_asset_owner.dart';
 import 'package:ilms/features/billboard/domain/entities/billboard_face.dart';
 import 'package:ilms/features/billboard/domain/entities/billboard_form.dart';
@@ -10,7 +12,9 @@ import 'package:ilms/features/billboard/domain/entities/billboard_license.dart';
 import 'package:ilms/features/billboard/domain/entities/billboard_media_owner.dart';
 import 'package:ilms/features/billboard/domain/entities/billboard_photo.dart';
 import 'package:ilms/features/billboard/domain/exceptions/billboard_exception.dart';
+import 'package:ilms/features/billboard/domain/repositories/billboard_draft_repository.dart';
 import 'package:ilms/features/billboard/presentation/controllers/billboard_form_state.dart';
+import 'package:ilms/features/billboard/presentation/providers/billboard_draft_providers.dart';
 import 'package:ilms/features/billboard/presentation/providers/billboard_providers.dart';
 import 'package:ilms/features/billboard/presentation/sections/billboard_form_sections.dart';
 import 'package:ilms/shared/models/general_model.dart';
@@ -18,6 +22,7 @@ import 'package:latlong2/latlong.dart';
 
 class BillboardFormController extends FamilyNotifier<BillboardFormState, BillboardFormSession> {
   late final BillboardFormFields fields;
+  BillboardDraftPayloadModel _baselinePayload = BillboardDraftMapper.emptyPayload();
 
   /// Set when [submit] fails — read by the page right after `submit()`
   /// resolves so it can show the real error message.
@@ -27,23 +32,73 @@ class BillboardFormController extends FamilyNotifier<BillboardFormState, Billboa
   BillboardFormState build(BillboardFormSession session) {
     fields = BillboardFormFields();
     ref.onDispose(fields.dispose);
-    return BillboardFormState(mode: session.mode, billboardNo: session.billboardNo);
+    return BillboardFormState(mode: session.mode, localDraftId: session.localDraftId, billboardNo: session.billboardNo);
   }
 
   BillboardFormFields get formFields => fields;
+
+  BillboardDraftPayloadModel _currentPayload() => BillboardDraftMapper.toPayload(fields: fields, state: state);
+
+  bool get hasUnsavedChanges => !BillboardDraftMapper.payloadsEqual(_baselinePayload, _currentPayload());
+
+  bool get hasDraftContent => !BillboardDraftMapper.isEmptyPayload(_currentPayload());
+
+  void _syncBaseline() {
+    _baselinePayload = _currentPayload();
+  }
 
   /// Returns `false` only when a server-backed session (opened via
   /// [BillboardFormSession.billboardNo]) failed to load — the page uses that
   /// to bail out instead of showing a form with nothing in it.
   Future<bool> initialize(BillboardFormSession session) async {
-    final billboardNo = session.billboardNo;
-    if (billboardNo == null) return true;
+    if (session.localDraftId != null) {
+      await _loadDraft(session.localDraftId!);
+      return true;
+    }
 
+    final billboardNo = session.billboardNo;
+    if (billboardNo != null) {
+      // A pending local unsaved edit for this exact record takes priority
+      // over a fresh server fetch — otherwise re-opening the same item
+      // after saving locally would silently discard the saved edit.
+      final existingEdit = await ref.read(billboardDraftRepositoryProvider).loadEditSession(billboardNo);
+      if (existingEdit != null) {
+        return _resumeEditSession(existingEdit);
+      }
+      return _loadFromServer(billboardNo, mode: session.mode);
+    }
+
+    if (session.mode == BillboardFormMode.create) {
+      _syncBaseline();
+    }
+    return true;
+  }
+
+  Future<bool> _resumeEditSession(BillboardDraftLoadResult loaded) async {
+    state = state.copyWith(isLoading: true);
+    BillboardDraftMapper.applyPayload(
+      fields: fields,
+      payload: loaded.payload,
+      currentState: state,
+      updateState: (next) => state = next,
+    );
+    state = state.copyWith(
+      isLoading: false,
+      mode: BillboardFormMode.edit,
+      localDraftId: loaded.localDraftId,
+      billboardNo: loaded.billboardNo,
+    );
+    _syncBaseline();
+    return true;
+  }
+
+  Future<bool> _loadFromServer(String billboardNo, {required BillboardFormMode mode}) async {
     state = state.copyWith(isLoading: true);
     try {
       final form = await ref.read(billboardDetailRepositoryProvider).getDetail(billboardNo);
-      _applyForm(form, mode: session.mode);
+      _applyForm(form, mode: mode);
       state = state.copyWith(isLoading: false);
+      _syncBaseline();
       return true;
     } catch (e, st) {
       dev.log(
@@ -55,6 +110,30 @@ class BillboardFormController extends FamilyNotifier<BillboardFormState, Billboa
       state = state.copyWith(isLoading: false);
       return false;
     }
+  }
+
+  Future<void> _loadDraft(int localDraftId) async {
+    state = state.copyWith(isLoading: true);
+    final loaded = await ref.read(billboardDraftRepositoryProvider).loadDraft(localDraftId);
+    if (loaded == null) {
+      state = state.copyWith(isLoading: false);
+      return;
+    }
+
+    BillboardDraftMapper.applyPayload(
+      fields: fields,
+      payload: loaded.payload,
+      currentState: state,
+      updateState: (next) => state = next,
+    );
+
+    state = state.copyWith(
+      localDraftId: loaded.localDraftId,
+      isLoading: false,
+      mode: BillboardFormMode.draft,
+      billboardNo: loaded.billboardNo,
+    );
+    _syncBaseline();
   }
 
   void _applyForm(BillboardForm form, {required BillboardFormMode mode}) {
@@ -252,6 +331,85 @@ class BillboardFormController extends FamilyNotifier<BillboardFormState, Billboa
     );
   }
 
+  // ---- Drafts ----
+
+  Future<bool> saveDraft({bool silent = false}) async {
+    if (state.isReadOnly) return false;
+
+    if (!hasDraftContent) {
+      if (state.localDraftId != null) {
+        await deleteDraft();
+      }
+      return true;
+    }
+
+    if (!silent) {
+      state = state.copyWith(isDraftSaving: true);
+    }
+    try {
+      final payload = BillboardDraftMapper.toPayload(fields: fields, state: state);
+      final id = await ref
+          .read(billboardDraftRepositoryProvider)
+          .saveDraft(
+            localDraftId: state.localDraftId,
+            payload: payload,
+            mediaClientName: BillboardDraftMapper.displayMediaClientName(fields),
+            description: BillboardDraftMapper.displayDescription(fields),
+            billboardNo: state.billboardNo,
+            isEditSession: state.mode == BillboardFormMode.edit,
+          );
+      state = state.copyWith(
+        localDraftId: id,
+        isDraftSaving: silent ? state.isDraftSaving : false,
+        mode: state.mode == BillboardFormMode.edit ? state.mode : BillboardFormMode.draft,
+      );
+      _syncBaseline();
+      return true;
+    } catch (e, st) {
+      dev.log('saveDraft() failed: $e', name: 'BillboardFormController', error: e, stackTrace: st);
+      if (!silent) {
+        state = state.copyWith(isDraftSaving: false);
+      }
+      return false;
+    }
+  }
+
+  Future<bool> saveDraftOnExit() async {
+    if (!hasDraftContent) {
+      if (state.localDraftId != null) {
+        await deleteDraft();
+      }
+      return true;
+    }
+    return saveDraft(silent: true);
+  }
+
+  Future<void> deleteDraft() async {
+    final draftId = state.localDraftId;
+    if (draftId != null) {
+      await ref.read(billboardDraftRepositoryProvider).deleteDraft(draftId);
+    }
+    state = state.copyWith(clearLocalDraftId: true);
+    _syncBaseline();
+  }
+
+  /// Deletes the pending local edit for this record and reloads the current
+  /// server version in its place, discarding any unsaved local changes and
+  /// returning to read-only view mode.
+  Future<bool> discardEditSession() async {
+    if (state.mode != BillboardFormMode.edit) return false;
+
+    final billboardNo = state.billboardNo;
+    final draftId = state.localDraftId;
+    if (draftId != null) {
+      await ref.read(billboardDraftRepositoryProvider).deleteDraft(draftId);
+    }
+    state = state.copyWith(clearLocalDraftId: true);
+
+    if (billboardNo == null) return true;
+    return _loadFromServer(billboardNo, mode: BillboardFormMode.view);
+  }
+
   // ---- Submit ----
 
   Future<bool> submit() async {
@@ -294,7 +452,16 @@ class BillboardFormController extends FamilyNotifier<BillboardFormState, Billboa
         );
       }
 
-      state = state.copyWith(isSubmitting: false, billboardNo: result.billboardNo);
+      // Submit uploads photos synchronously (no separate upload sheet like
+      // premise), so the record is fully synced the moment this resolves —
+      // any local draft/edit-session row for it is now stale and removed.
+      final draftId = state.localDraftId;
+      if (draftId != null) {
+        await ref.read(billboardDraftRepositoryProvider).deleteDraft(draftId);
+      }
+
+      state = state.copyWith(isSubmitting: false, billboardNo: result.billboardNo, clearLocalDraftId: true);
+      _syncBaseline();
       return true;
     } catch (e, st) {
       dev.log('submit() failed: $e', name: 'BillboardFormController', error: e, stackTrace: st);

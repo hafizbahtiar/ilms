@@ -8,6 +8,10 @@ abstract final class AppRoutes {
   static const premiseDetail = '/premise/detail';
   static const billboardList = '/billboard/list';
   static const billboardForm = '/billboard/form';
+  static const billboardDrafts = '/billboard/drafts';
+  static const investigationList = '/investigation/list';
+  static const investigationForm = '/investigation/form';
+  static const investigationDrafts = '/investigation/drafts';
 
   static String module(String id) => '/module/$id';
   static String premiseFormWithMode(String mode) => '$premiseForm?mode=$mode';
@@ -20,8 +24,16 @@ abstract final class AppRoutes {
   static String premiseDetailView(String visitNo) => '$premiseDetail?visitNo=${Uri.encodeQueryComponent(visitNo)}';
 
   static String billboardFormNewEntry() => '$billboardForm?mode=create&i=${DateTime.now().microsecondsSinceEpoch}';
+  static String billboardFormDraft(int localId) => '$billboardForm?mode=draft&localId=$localId';
   static String billboardFormView(String billboardNo) =>
       '$billboardForm?mode=view&billboardNo=${Uri.encodeQueryComponent(billboardNo)}';
   static String billboardFormEdit(String billboardNo) =>
       '$billboardForm?mode=edit&billboardNo=${Uri.encodeQueryComponent(billboardNo)}';
+
+  static String investigationListSearch() => '$investigationList?mode=search';
+  static String investigationListHistory() => '$investigationList?mode=history';
+  static String investigationFormView(String investigationNo) =>
+      '$investigationForm?mode=view&investigationNo=${Uri.encodeQueryComponent(investigationNo)}';
+  static String investigationFormEdit(String investigationNo) =>
+      '$investigationForm?mode=edit&investigationNo=${Uri.encodeQueryComponent(investigationNo)}';
 }

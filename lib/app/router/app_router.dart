@@ -14,8 +14,14 @@ import 'package:ilms/features/premise/presentation/pages/premise_drafts_page.dar
 import 'package:ilms/features/premise/presentation/pages/premise_form_page.dart';
 import 'package:ilms/features/premise/presentation/pages/premise_list_page.dart';
 import 'package:ilms/features/billboard/presentation/controllers/billboard_form_state.dart';
+import 'package:ilms/features/billboard/presentation/pages/billboard_drafts_page.dart';
 import 'package:ilms/features/billboard/presentation/pages/billboard_form_page.dart';
 import 'package:ilms/features/billboard/presentation/pages/billboard_list_page.dart';
+import 'package:ilms/features/investigation/presentation/controllers/investigation_form_state.dart';
+import 'package:ilms/features/investigation/presentation/controllers/investigation_list_controller.dart';
+import 'package:ilms/features/investigation/presentation/pages/investigation_drafts_page.dart';
+import 'package:ilms/features/investigation/presentation/pages/investigation_form_page.dart';
+import 'package:ilms/features/investigation/presentation/pages/investigation_list_page.dart';
 
 import 'app_routes.dart';
 
@@ -94,12 +100,43 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.billboardForm,
         builder: (context, state) {
           final mode = BillboardFormModeX.fromQuery(state.uri.queryParameters['mode']);
+          final localId = int.tryParse(state.uri.queryParameters['localId'] ?? '');
           final instanceKey = state.uri.queryParameters['i'];
           final billboardNo = state.uri.queryParameters['billboardNo'];
-          final session = BillboardFormSession(mode: mode, instanceKey: instanceKey, billboardNo: billboardNo);
+          final session = BillboardFormSession(
+            mode: mode,
+            localDraftId: localId,
+            instanceKey: instanceKey,
+            billboardNo: billboardNo,
+          );
           return BillboardFormPage(session: session);
         },
       ),
+      GoRoute(path: AppRoutes.billboardDrafts, builder: (context, state) => const BillboardDraftsPage()),
+      GoRoute(
+        path: AppRoutes.investigationList,
+        builder: (context, state) {
+          final mode = state.uri.queryParameters['mode'] == 'history'
+              ? InvestigationListMode.history
+              : InvestigationListMode.search;
+          return InvestigationListPage(module: homeModulesById['investigation']!, mode: mode);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.investigationForm,
+        builder: (context, state) {
+          final mode = InvestigationFormModeX.fromQuery(state.uri.queryParameters['mode']);
+          final instanceKey = state.uri.queryParameters['i'];
+          final investigationNo = state.uri.queryParameters['investigationNo'] ?? '';
+          final session = InvestigationFormSession(
+            mode: mode,
+            instanceKey: instanceKey,
+            investigationNo: investigationNo,
+          );
+          return InvestigationFormPage(session: session);
+        },
+      ),
+      GoRoute(path: AppRoutes.investigationDrafts, builder: (context, state) => const InvestigationDraftsPage()),
       GoRoute(
         path: '/module/:moduleId',
         builder: (context, state) {

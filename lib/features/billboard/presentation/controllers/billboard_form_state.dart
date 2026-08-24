@@ -9,15 +9,14 @@ import 'package:ilms/features/billboard/domain/entities/billboard_media_owner.da
 import 'package:ilms/features/billboard/domain/entities/billboard_photo.dart';
 import 'package:ilms/features/billboard/domain/entities/billboard_remark.dart';
 
-/// No `draft`/`duplicate` — billboard has no offline-draft precedent
-/// (see the feature design doc's non-goals).
-enum BillboardFormMode { create, view, edit }
+enum BillboardFormMode { create, draft, view, edit }
 
 extension BillboardFormModeX on BillboardFormMode {
   bool get isReadOnly => this == BillboardFormMode.view;
 
   static BillboardFormMode fromQuery(String? value) {
     return switch (value) {
+      'draft' => BillboardFormMode.draft,
       'view' => BillboardFormMode.view,
       'edit' => BillboardFormMode.edit,
       _ => BillboardFormMode.create,
@@ -27,9 +26,13 @@ extension BillboardFormModeX on BillboardFormMode {
 
 @immutable
 class BillboardFormSession {
-  const BillboardFormSession({required this.mode, this.instanceKey, this.billboardNo});
+  const BillboardFormSession({required this.mode, this.localDraftId, this.instanceKey, this.billboardNo});
 
   final BillboardFormMode mode;
+
+  /// Local draft row id to resume from — distinct from [billboardNo], which
+  /// loads straight from the server.
+  final int? localDraftId;
 
   /// Distinguishes fresh "New Entry" opens so Riverpod does not reuse stale form state.
   final String? instanceKey;
@@ -43,19 +46,22 @@ class BillboardFormSession {
       identical(this, other) ||
       other is BillboardFormSession &&
           other.mode == mode &&
+          other.localDraftId == localDraftId &&
           other.instanceKey == instanceKey &&
           other.billboardNo == billboardNo;
 
   @override
-  int get hashCode => Object.hash(mode, instanceKey, billboardNo);
+  int get hashCode => Object.hash(mode, localDraftId, instanceKey, billboardNo);
 }
 
 class BillboardFormState {
   const BillboardFormState({
     required this.mode,
+    this.localDraftId,
     this.activeSectionIndex = 0,
     this.isSubmitting = false,
     this.isLoading = false,
+    this.isDraftSaving = false,
     this.billboardNo,
     this.details = const BillboardDetails(),
     this.location = const BillboardLocation(),
@@ -69,11 +75,14 @@ class BillboardFormState {
   });
 
   final BillboardFormMode mode;
+  final int? localDraftId;
   final int activeSectionIndex;
   final bool isSubmitting;
 
-  /// True while loading an existing record from the server (view/edit).
+  /// True while loading an existing record or a local draft (view/edit/draft).
   final bool isLoading;
+
+  final bool isDraftSaving;
 
   /// Server-assigned billboard number, set once a create/update succeeds.
   final String? billboardNo;
@@ -92,9 +101,12 @@ class BillboardFormState {
 
   BillboardFormState copyWith({
     BillboardFormMode? mode,
+    int? localDraftId,
+    bool clearLocalDraftId = false,
     int? activeSectionIndex,
     bool? isSubmitting,
     bool? isLoading,
+    bool? isDraftSaving,
     String? billboardNo,
     BillboardDetails? details,
     BillboardLocation? location,
@@ -108,9 +120,11 @@ class BillboardFormState {
   }) {
     return BillboardFormState(
       mode: mode ?? this.mode,
+      localDraftId: clearLocalDraftId ? null : (localDraftId ?? this.localDraftId),
       activeSectionIndex: activeSectionIndex ?? this.activeSectionIndex,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isLoading: isLoading ?? this.isLoading,
+      isDraftSaving: isDraftSaving ?? this.isDraftSaving,
       billboardNo: billboardNo ?? this.billboardNo,
       details: details ?? this.details,
       location: location ?? this.location,

@@ -132,8 +132,6 @@ class _DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final visibleModules = homeModulesForPermissions(user.permissions);
 
     return SingleChildScrollView(
@@ -141,12 +139,6 @@ class _DashboardTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Welcome back', style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          Text(
-            'Here is your account overview.',
-            style: textTheme.bodyMedium?.copyWith(color: cs.onSurface.withValues(alpha: 0.6)),
-          ),
           if (visibleModules.isNotEmpty) ...[
             const SizedBox(height: 16),
             const PremiseHomeSection(),

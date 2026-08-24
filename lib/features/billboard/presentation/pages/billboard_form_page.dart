@@ -5,17 +5,15 @@ import 'package:go_router/go_router.dart';
 import 'package:ilms/features/billboard/presentation/controllers/billboard_form_state.dart';
 import 'package:ilms/features/billboard/presentation/providers/billboard_form_providers.dart';
 import 'package:ilms/features/billboard/presentation/sections/billboard_form_sections.dart';
+import 'package:ilms/features/billboard/presentation/widgets/billboard_form_exit_sheet.dart';
 import 'package:ilms/features/billboard/presentation/widgets/billboard_form_tab_bar.dart';
 import 'package:ilms/features/billboard/presentation/widgets/billboard_section_header.dart';
 import 'package:ilms/shared/ui/feedback/app_dialog.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
 
 /// Single-scroll + sticky-tab-bar form, mirroring `PremiseFormPage`'s
-/// structure but drastically simplified: no draft/vacant/visit-status
-/// flows — billboard has no offline drafts (design doc non-goal). Back
-/// navigation still guards against losing unsaved edits with a plain
-/// confirm dialog, since that's a reasonable minimum UX even without a
-/// draft to save.
+/// structure — including its offline-draft system (Save & Exit, resumable
+/// new-entry drafts, edit-session drafts for in-progress edits).
 class BillboardFormPage extends ConsumerStatefulWidget {
   const BillboardFormPage({super.key, required this.session});
 
@@ -211,21 +209,93 @@ class _BillboardFormPageState extends ConsumerState<BillboardFormPage> {
 
     FocusScope.of(context).unfocus();
     final formState = ref.read(billboardFormControllerProvider(_session));
+    final controller = ref.read(billboardFormControllerProvider(_session).notifier);
 
     if (formState.isReadOnly || formState.isSubmitting || formState.isLoading) {
       _popForm();
       return;
     }
 
+    if (!controller.hasUnsavedChanges) {
+      _popForm();
+      return;
+    }
+
+    final isEditSession = formState.mode == BillboardFormMode.edit;
+    final choice = await showBillboardFormExitSheet(
+      context,
+      showDeleteDraft: formState.localDraftId != null,
+      isEditSession: isEditSession,
+    );
+    if (!mounted || choice == null) return;
+
+    switch (choice) {
+      case BillboardFormExitChoice.saveAndExit:
+        final ok = await controller.saveDraftOnExit();
+        if (!mounted) return;
+        if (ok) {
+          _popForm();
+        } else {
+          AppSnackbar.error(context, 'Failed to save draft.');
+        }
+      case BillboardFormExitChoice.deleteDraft:
+        await controller.deleteDraft();
+        if (!mounted) return;
+        AppSnackbar.success(context, isEditSession ? 'Changes discarded.' : 'Draft deleted.');
+        _popForm();
+      case BillboardFormExitChoice.exitWithoutSaving:
+        _popForm();
+    }
+  }
+
+  Future<void> _onSaveDraft() async {
+    FocusScope.of(context).unfocus();
+    final controller = ref.read(billboardFormControllerProvider(_session).notifier);
+
+    if (!controller.hasUnsavedChanges) {
+      AppSnackbar.info(context, 'No changes to save.');
+      return;
+    }
+
+    final ok = await controller.saveDraft();
+    if (!mounted) return;
+
+    if (ok) {
+      AppSnackbar.success(context, 'Draft saved.');
+    } else {
+      AppSnackbar.error(context, 'Failed to save draft.');
+    }
+  }
+
+  Future<void> _onDiscardChanges() async {
     final confirmed = await confirmAppDialog(
       context: context,
       title: 'Discard unsaved changes?',
-      message: 'Your edits have not been submitted yet. Leaving now will discard them.',
-      confirmLabel: 'Leave',
+      message: 'Your local edits will be removed and this billboard will reload its current saved version.',
+      confirmLabel: 'Discard',
       confirmStyle: AppDialogActionStyle.destructive,
     );
     if (!mounted || !confirmed) return;
-    _popForm();
+
+    final controller = ref.read(billboardFormControllerProvider(_session).notifier);
+    final ok = await controller.discardEditSession();
+    if (!mounted) return;
+
+    if (!ok) {
+      AppSnackbar.error(context, 'Failed to discard changes.');
+      return;
+    }
+
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
+    setState(() {
+      _activeSectionIndex = 0;
+      _offsetsReady = false;
+    });
+    _scheduleOffsetMeasure();
+
+    AppSnackbar.success(context, 'Changes discarded.');
   }
 
   Future<void> _onSubmit() async {
@@ -268,9 +338,35 @@ class _BillboardFormPageState extends ConsumerState<BillboardFormPage> {
         session: _session,
         child: Scaffold(
           appBar: AppBar(
-            title: const Text('Billboard Census'),
+            title: formState.mode == BillboardFormMode.edit && formState.localDraftId != null
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Billboard Census'),
+                      Text(
+                        'Unsaved changes restored',
+                        style: Theme.of(context).textTheme.labelSmall
+                            ?.copyWith(color: cs.onPrimary.withValues(alpha: 0.75)),
+                      ),
+                    ],
+                  )
+                : const Text('Billboard Census'),
             centerTitle: false,
             actions: [
+              if (!formState.isReadOnly)
+                TextButton(
+                  onPressed: formState.isDraftSaving ? null : _onSaveDraft,
+                  child: formState.isDraftSaving
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator.adaptive(
+                            valueColor: AlwaysStoppedAnimation<Color>(cs.onPrimary),
+                          ),
+                        )
+                      : Text('Save', style: TextStyle(color: cs.onPrimary)),
+                ),
               if (formState.mode == BillboardFormMode.view)
                 TextButton(
                   onPressed: () => ref.read(billboardFormControllerProvider(_session).notifier).switchToEditMode(),
@@ -315,18 +411,36 @@ class _BillboardFormPageState extends ConsumerState<BillboardFormPage> {
               : SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: cs.tertiary,
-                        foregroundColor: cs.onTertiary,
-                        disabledBackgroundColor: cs.tertiary.withValues(alpha: 0.38),
-                        disabledForegroundColor: cs.onTertiary.withValues(alpha: 0.72),
-                        minimumSize: const Size.fromHeight(48),
-                      ),
-                      onPressed: formState.isSubmitting ? null : _onSubmit,
-                      child: formState.isSubmitting
-                          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator.adaptive())
-                          : const Text('Submit'),
+                    child: Row(
+                      children: [
+                        if (formState.mode == BillboardFormMode.edit && formState.localDraftId != null) ...[
+                          Flexible(
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: cs.error,
+                                side: BorderSide(color: cs.error.withValues(alpha: 0.5)),
+                              ),
+                              onPressed: formState.isSubmitting ? null : _onDiscardChanges,
+                              child: const Text('Discard'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        Expanded(
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: cs.tertiary,
+                              foregroundColor: cs.onTertiary,
+                              disabledBackgroundColor: cs.tertiary.withValues(alpha: 0.38),
+                              disabledForegroundColor: cs.onTertiary.withValues(alpha: 0.72),
+                            ),
+                            onPressed: formState.isSubmitting ? null : _onSubmit,
+                            child: formState.isSubmitting
+                                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator.adaptive())
+                                : const Text('Submit'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
