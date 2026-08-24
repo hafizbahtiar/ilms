@@ -8,9 +8,7 @@ Future<void> _pumpField(WidgetTester tester, Widget field) {
   return tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
-        body: SingleChildScrollView(
-          child: SizedBox(width: 360, child: field),
-        ),
+        body: SingleChildScrollView(child: SizedBox(width: 360, child: field)),
       ),
     ),
   );
@@ -18,39 +16,41 @@ Future<void> _pumpField(WidgetTester tester, Widget field) {
 
 void main() {
   group('AppMapField', () {
-    testWidgets('shows empty placeholder when no location is set', (tester) async {
-      await _pumpField(
-        tester,
-        AppMapField(
-          label: 'Map Location',
-          onChanged: (_) {},
-        ),
-      );
+    testWidgets('shows empty actions when no location is set', (tester) async {
+      await _pumpField(tester, AppMapField(label: 'Map Location', onChanged: (_) {}));
 
       expect(find.text('Map Location'), findsOneWidget);
-      expect(find.text('Tap to pick location on map'), findsOneWidget);
+      expect(find.text('Tap here or use the buttons below'), findsOneWidget);
+      expect(find.text('Pick on Map'), findsOneWidget);
+      expect(find.text('Current Location'), findsOneWidget);
     });
 
-    testWidgets('read-only empty state does not mention pick action', (tester) async {
-      await _pumpField(
-        tester,
-        const AppMapField(
-          label: 'Map Location',
-          readOnly: true,
+    testWidgets('read-only empty state hides action buttons', (tester) async {
+      await _pumpField(tester, const AppMapField(label: 'Map Location', readOnly: true));
+
+      expect(find.text('No location marked.'), findsOneWidget);
+      expect(find.text('Pick on Map'), findsNothing);
+      expect(find.text('Current Location'), findsNothing);
+    });
+
+    testWidgets('current location button resolves coordinates without opening map', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(child: SizedBox(width: 360, child: _LocationHarness())),
+          ),
         ),
       );
 
-      expect(find.text('No location marked.'), findsOneWidget);
+      await tester.tap(find.text('Current Location'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('3.120000, 101.680000'), findsOneWidget);
+      expect(find.byType(FlutterMap), findsOneWidget);
     });
 
     testWidgets('shows coordinate preview when location is set', (tester) async {
-      await _pumpField(
-        tester,
-        const AppMapField(
-          label: 'Map Location',
-          location: LatLng(3.139012, 101.686901),
-        ),
-      );
+      await _pumpField(tester, const AppMapField(label: 'Map Location', location: LatLng(3.139012, 101.686901)));
 
       expect(find.text('3.139012, 101.686901'), findsOneWidget);
       expect(find.byType(FlutterMap), findsOneWidget);
@@ -61,11 +61,7 @@ void main() {
 
       await _pumpField(
         tester,
-        AppMapField(
-          label: 'Map Location',
-          location: current,
-          onChanged: (picked) => current = picked,
-        ),
+        AppMapField(label: 'Map Location', location: current, onChanged: (picked) => current = picked),
       );
 
       await tester.tap(find.byIcon(Icons.close));
@@ -73,5 +69,31 @@ void main() {
 
       expect(current, isNull);
     });
+
+    testWidgets('can hide individual empty-state actions', (tester) async {
+      await _pumpField(tester, AppMapField(label: 'Map Location', showPickOnMapAction: false, onChanged: (_) {}));
+
+      expect(find.text('Pick on Map'), findsNothing);
+      expect(find.text('Current Location'), findsOneWidget);
+    });
   });
+}
+
+class _LocationHarness extends StatefulWidget {
+  @override
+  State<_LocationHarness> createState() => _LocationHarnessState();
+}
+
+class _LocationHarnessState extends State<_LocationHarness> {
+  LatLng? _location;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppMapField(
+      label: 'Map Location',
+      location: _location,
+      onChanged: (picked) => setState(() => _location = picked),
+      currentLocationResolver: () async => const LatLng(3.12, 101.68),
+    );
+  }
 }

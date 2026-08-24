@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:ilms/shared/ui/map/app_current_location.dart';
 import 'package:ilms/shared/ui/map/app_map_tile_layer.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -75,31 +75,11 @@ class _AppLocationPickerPageState extends State<AppLocationPickerPage> {
     });
 
     try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        throw const _LocationUnavailable('Location services are turned off.');
-      }
-
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-        throw const _LocationUnavailable('Location permission was denied.');
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-      );
+      final here = await resolveAppCurrentLocation();
       if (!mounted) return;
-
-      final here = LatLng(position.latitude, position.longitude);
       _mapController.move(here, 16);
-    } on _LocationUnavailable catch (e) {
-      // Silent on the automatic open-time attempt — the map still opens
-      // fine centered on the fallback, no need to alarm the user for
-      // something they didn't explicitly ask for yet.
-      if (!silent && mounted) setState(() => _locationError = e.message);
+    } on AppLocationFailure catch (error) {
+      if (!silent && mounted) setState(() => _locationError = error.message);
     } catch (_) {
       if (!silent && mounted) setState(() => _locationError = 'Unable to get your current location.');
     } finally {
@@ -320,9 +300,4 @@ class _BottomPanel extends StatelessWidget {
       ),
     );
   }
-}
-
-class _LocationUnavailable implements Exception {
-  const _LocationUnavailable(this.message);
-  final String message;
 }
