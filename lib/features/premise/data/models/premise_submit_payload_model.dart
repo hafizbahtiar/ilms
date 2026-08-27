@@ -4,6 +4,7 @@ import 'package:ilms/features/premise/domain/entities/premise_form.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license_activity.dart';
 import 'package:ilms/features/premise/domain/entities/premise_remark.dart';
+import 'package:ilms/features/premise/presentation/utils/premise_license_file_no.dart';
 import 'package:ilms/shared/formatters/app_date_format.dart';
 
 /// Request model for `/api/premiseCensus/create|update`, mirroring legacy
@@ -289,15 +290,14 @@ class PremiseBusinessActivityRequest {
   final String? statusDesc;
   final String? description;
 
-  factory PremiseBusinessActivityRequest.fromDomain(PremiseBusinessActivity activity) =>
-      PremiseBusinessActivityRequest(
-        id: activity.id,
-        businessType: activity.businessType,
-        businessTypeDesc: activity.businessTypeDesc,
-        status: activity.status,
-        statusDesc: activity.statusDesc,
-        description: activity.description,
-      );
+  factory PremiseBusinessActivityRequest.fromDomain(PremiseBusinessActivity activity) => PremiseBusinessActivityRequest(
+    id: activity.id,
+    businessType: activity.businessType,
+    businessTypeDesc: activity.businessTypeDesc,
+    status: activity.status,
+    statusDesc: activity.statusDesc,
+    description: activity.description,
+  );
 
   Map<String, dynamic> toJson() => {
     if (id != null) 'id': id,
@@ -396,7 +396,7 @@ class PremiseLicenseRequest {
   factory PremiseLicenseRequest.fromDomain(PremiseLicense license) => PremiseLicenseRequest(
     id: license.id,
     licenseNo: license.licenseNo,
-    fileNo: license.licenseFileNo,
+    fileNo: PremiseLicenseFileNo.formatForSubmit(license.licenseFileNo),
     licenseFrom: license.validFrom,
     licenseTo: license.validTo,
     status: license.status,
@@ -405,7 +405,8 @@ class PremiseLicenseRequest {
 
   Map<String, dynamic> toJson() => {
     if (id != null) 'id': id,
-    'license_no': licenseNo,
+    if (licenseNo != null && licenseNo!.isNotEmpty) 'license_no': licenseNo,
+    'license_file_no': fileNo,
     'file_no': fileNo,
     'license_from': licenseFrom,
     'license_to': licenseTo,

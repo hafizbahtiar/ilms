@@ -29,7 +29,7 @@ class MockGeneralLookupDataSource implements GeneralLookupDataSource {
   }
 
   @override
-  Future<List<GeneralModel>> fetchStreets(String areaCode) async {
+  Future<List<GeneralModel>> fetchStreets(String areaCode, {String? search}) async {
     return GeneralLookupCatalog.filterByParent(GeneralLookupCatalog.streets, areaCode);
   }
 

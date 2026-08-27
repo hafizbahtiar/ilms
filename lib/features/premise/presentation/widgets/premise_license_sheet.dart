@@ -1,3 +1,5 @@
+import 'dart:developer' as dev;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +13,7 @@ import 'package:ilms/features/premise/presentation/utils/premise_form_focus.dart
 import 'package:ilms/features/premise/presentation/providers/premise_form_providers.dart';
 import 'package:ilms/features/premise/presentation/providers/premise_license_qr_providers.dart';
 import 'package:ilms/features/premise/presentation/providers/premise_providers.dart';
+import 'package:ilms/features/premise/presentation/utils/premise_license_file_no.dart';
 import 'package:ilms/shared/formatters/app_date_format.dart';
 import 'package:ilms/shared/lookups/lookup_labels.dart';
 import 'package:ilms/shared/models/general_model.dart';
@@ -72,7 +75,6 @@ class _PremiseLicenseSheetBody extends ConsumerStatefulWidget {
 
 class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBody> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _licenseNoController;
   late final TextEditingController _licenseFileNoController;
   late final TextEditingController _statusController;
   late final TextEditingController _validFromController;
@@ -104,8 +106,7 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
     _validTo = parseDdMmYyyy(initial?.validTo);
     _items = List.of(initial?.businessActivities ?? const []);
 
-    _licenseNoController = TextEditingController(text: initial?.licenseNo ?? '');
-    _licenseFileNoController = TextEditingController(text: initial?.licenseFileNo ?? '');
+    _licenseFileNoController = TextEditingController(text: PremiseLicenseFileNo.removePrefix(initial?.licenseFileNo));
     _statusController = TextEditingController(text: initial?.statusDesc ?? '');
     _validFromController = TextEditingController(text: formatDdMmYyyy(_validFrom));
     _validToController = TextEditingController(text: formatDdMmYyyy(_validTo));
@@ -113,7 +114,6 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
 
   @override
   void dispose() {
-    _licenseNoController.dispose();
     _licenseFileNoController.dispose();
     _statusController.dispose();
     _validFromController.dispose();
@@ -151,6 +151,7 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
       title: 'Business Type',
       loadOptions: () => ref.read(premiseBusinessTypesProvider.future),
       label: generalLookupLabel,
+      searchable: true,
       isSelected: (item) => _actBusinessTypeController.text.trim() == generalLookupLabel(item).trim(),
       empty: const AppListEmptyConfig(
         icon: Icons.storefront_outlined,
@@ -212,7 +213,7 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
     final code = await AppBarcodeScannerPage.open(
       context,
       title: 'Scan License QR',
-      subtitle: 'Align the license QR/barcode within the frame',
+      subtitle: 'Scan with camera or choose a photo from your gallery',
     );
     if (code == null || !mounted) return;
 
@@ -221,11 +222,21 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
       return;
     }
 
+    dev.log('License QR scanned link: $code', name: 'PremiseLicenseQr');
+
     setState(() => _isScanningQr = true);
     try {
       final data = await ref.read(premiseLicenseQrRepositoryProvider).fetchByLink(code);
       if (!mounted) return;
+      dev.log(
+        'License QR mapped: fileNo=${data.licenseFileNo}, status=${data.licenseStatus}, '
+        'grade=${data.licenseGrade}, holder=${data.licenseHolderName}, '
+        'category=${data.licenseCategory}, address=${data.premiseAddress}, '
+        'regNo=${data.companyRegistrationNo}, from=${data.licenseDateFrom}, to=${data.licenseDateTo}',
+        name: 'PremiseLicenseQr',
+      );
       _applyQrData(data);
+      ref.read(premiseFormControllerProvider(widget.session).notifier).applyCompanyFromLicenseQr(data);
     } on ApiResponseException catch (e) {
       if (mounted) AppSnackbar.error(context, e.message);
     } catch (_) {
@@ -243,7 +254,7 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
     setState(() {
       final fileNo = data.licenseFileNo;
       if (fileNo != null && fileNo.isNotEmpty) {
-        _licenseFileNoController.text = fileNo;
+        _licenseFileNoController.text = PremiseLicenseFileNo.removePrefix(fileNo);
       }
 
       final status = data.licenseStatus;
@@ -344,6 +355,12 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
   }
 
   void save() {
+    if (!_formKey.currentState!.validate()) return;
+    if (_items.isEmpty) {
+      AppSnackbar.warning(context, 'Please add at least one business activity.');
+      return;
+    }
+
     final status = _selectedStatus;
 
     _mirrorFlaggedToBusiness();
@@ -351,8 +368,7 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
     final license = PremiseLicense(
       id: widget.initial?.id,
       localId: widget.initial?.localId,
-      licenseNo: _licenseNoController.text.trim(),
-      licenseFileNo: _licenseFileNoController.text.trim(),
+      licenseFileNo: PremiseLicenseFileNo.formatForSubmit(_licenseFileNoController.text.trim()),
       validFrom: formatDdMmYyyy(_validFrom),
       validTo: formatDdMmYyyy(_validTo),
       status: status?.code,
@@ -408,9 +424,16 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
             ],
           ),
           const SizedBox(height: 4),
-          AppTextField(label: 'License No.', controller: _licenseNoController, uppercase: true),
-          const SizedBox(height: 12),
-          AppTextField(label: 'License File No.', controller: _licenseFileNoController, uppercase: true),
+          AppTextField(
+            label: 'File No.',
+            controller: _licenseFileNoController,
+            hintText: PremiseLicenseFileNo.hint,
+            required: true,
+            uppercase: true,
+            prefixWidget: const Padding(padding: EdgeInsets.only(left: 12, top: 14), child: Text('DBKL.JPPP/ ')),
+            inputFormatters: [LicenseFileNoMaskFormatter()],
+            validator: PremiseLicenseFileNo.validateMasked,
+          ),
           const SizedBox(height: 12),
           AppPickerField<GeneralModel>(
             label: 'Status',

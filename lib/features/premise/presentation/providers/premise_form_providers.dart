@@ -9,6 +9,7 @@ import 'package:ilms/features/premise/domain/entities/premise_address.dart';
 import 'package:ilms/features/premise/domain/entities/premise_business_activity.dart';
 import 'package:ilms/features/premise/domain/entities/premise_census_image.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license.dart';
+import 'package:ilms/features/premise/domain/entities/premise_license_qr_data.dart';
 import 'package:ilms/features/premise/domain/entities/premise_remark.dart';
 import 'package:ilms/features/premise/domain/exceptions/premise_exception.dart';
 import 'package:ilms/features/premise/domain/entities/premise_draft_summary.dart';
@@ -19,7 +20,7 @@ import 'package:ilms/features/premise/presentation/providers/premise_draft_provi
 import 'package:ilms/features/premise/presentation/providers/premise_providers.dart';
 import 'package:ilms/features/premise/presentation/sections/premise_form_sections.dart';
 import 'package:ilms/shared/constants/app_image_limits.dart';
-import 'package:ilms/shared/lookups/lookup_labels.dart';
+import 'package:ilms/shared/lookups/providers/general_lookup_providers.dart';
 import 'package:ilms/shared/models/general_model.dart';
 
 /// Result of a successful [PremiseFormController.submit] — enough for the
@@ -262,6 +263,11 @@ class PremiseFormController extends FamilyNotifier<PremiseFormState, PremiseForm
     state = state.copyWith(licenses: next);
   }
 
+  void setAddresses(List<PremiseAddress> addresses) {
+    if (state.isReadOnly) return;
+    state = state.copyWith(addresses: addresses);
+  }
+
   void addAddress(PremiseAddress address) {
     if (state.isReadOnly) return;
     state = state.copyWith(addresses: [...state.addresses, address]);
@@ -425,6 +431,75 @@ class PremiseFormController extends FamilyNotifier<PremiseFormState, PremiseForm
   void selectCompanyArea(GeneralModel item) {
     if (state.isReadOnly) return;
     applyGeneralLookupSelection(controller: fields.area, item: item);
+  }
+
+  /// Prefills Company & Contact from a license QR lookup — mirrors legacy
+  /// `_mapQrToInputModel` mapping of holder name and registration no.
+  void applyCompanyFromLicenseQr(PremiseLicenseQrData data) {
+    if (state.isReadOnly) return;
+
+    final holder = data.licenseHolderName?.trim();
+    if (holder != null && holder.isNotEmpty) {
+      fields.companyName.text = holder;
+    }
+
+    final regNo = data.companyRegistrationNo?.trim();
+    if (regNo != null && regNo.isNotEmpty) {
+      fields.registerNumber.text = regNo;
+    }
+  }
+
+  /// Copies a selected premise address into the Company Address fields
+  /// (Section 1) — used by the "Set as Company Address" action on address tiles.
+  Future<void> applyCompanyAddressFromPremise(PremiseAddress address) async {
+    if (state.isReadOnly) return;
+
+    fields.unit.text = address.unitNo ?? '';
+    fields.building.text = address.building ?? '';
+    fields.street1.text = address.streetName ?? '';
+    fields.street2.clear();
+
+    final repository = ref.read(generalLookupRepositoryProvider);
+
+    if (address.state != null && address.state!.trim().isNotEmpty) {
+      final states = await repository.getStates();
+      final stateItem =
+          _lookupByCode(states, address.state!.trim()) ?? GeneralModel(code: address.state, desc: address.state);
+      selectCompanyState(stateItem);
+    }
+
+    if (address.postcode != null && address.postcode!.trim().isNotEmpty && state.companyStateCode != null) {
+      final postcodes = await repository.getPostcodes(stateCode: state.companyStateCode);
+      final postcodeItem =
+          _lookupByCode(postcodes, address.postcode!.trim()) ??
+          GeneralModel(code: address.postcode, desc: address.postcode);
+      selectCompanyPostcode(postcodeItem);
+    }
+
+    if (address.area != null && address.area!.trim().isNotEmpty && state.companyStateCode != null) {
+      final areas = await repository.getAreas(stateCode: state.companyStateCode, postcode: state.companyPostcode);
+      final areaCode = address.area!.trim();
+      final areaItem =
+          _lookupByCode(areas, areaCode) ??
+          _lookupByDesc(areas, areaCode) ??
+          GeneralModel(code: areaCode, desc: areaCode);
+      selectCompanyArea(areaItem);
+    }
+  }
+
+  GeneralModel? _lookupByCode(List<GeneralModel> items, String code) {
+    for (final item in items) {
+      if (item.code == code) return item;
+    }
+    return null;
+  }
+
+  GeneralModel? _lookupByDesc(List<GeneralModel> items, String desc) {
+    final normalized = desc.toLowerCase();
+    for (final item in items) {
+      if (item.desc?.toLowerCase() == normalized) return item;
+    }
+    return null;
   }
 
   void selectBusinessType(GeneralModel item) {

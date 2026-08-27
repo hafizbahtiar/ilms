@@ -11,7 +11,7 @@ abstract class GeneralLookupDataSource {
 
   Future<List<GeneralModel>> fetchAreasByParliament(String parliamentCode);
 
-  Future<List<GeneralModel>> fetchStreets(String areaCode);
+  Future<List<GeneralModel>> fetchStreets(String areaCode, {String? search});
 
   Future<List<GeneralModel>> fetchBuildings(String streetCode);
 

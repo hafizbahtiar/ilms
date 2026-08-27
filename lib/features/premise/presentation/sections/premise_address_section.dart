@@ -4,10 +4,10 @@ import 'package:ilms/features/premise/domain/entities/premise_address.dart';
 import 'package:ilms/features/premise/presentation/controllers/premise_form_state.dart';
 import 'package:ilms/features/premise/presentation/providers/premise_form_providers.dart';
 import 'package:ilms/features/premise/presentation/utils/premise_address_location.dart';
-import 'package:ilms/features/premise/presentation/widgets/premise_address_sheet.dart';
+import 'package:ilms/features/premise/presentation/widgets/premise_address_search_sheet.dart';
+import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
 import 'package:ilms/shared/ui/feedback/app_dialog.dart';
 import 'package:ilms/shared/ui/map/app_location_picker_page.dart';
-import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
 
 class PremiseAddressSection extends ConsumerWidget {
   const PremiseAddressSection({super.key});
@@ -38,7 +38,7 @@ class PremiseAddressSection extends ConsumerWidget {
                 Text('No premise address added', style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 Text(
-                  'No premise address added yet.',
+                  'Tap Add to pick addresses from the listing.',
                   textAlign: TextAlign.center,
                   style: textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.6)),
                 ),
@@ -63,9 +63,9 @@ class PremiseAddressSection extends ConsumerWidget {
         if (!readOnly) ...[
           const SizedBox(height: 16),
           OutlinedButton.icon(
-            onPressed: () => showPremiseAddressSheet(context, session: session),
-            icon: const Icon(Icons.add_location_alt_outlined),
-            label: const Text('Add Address'),
+            onPressed: () => showPremiseAddressSearchSheet(context, session: session),
+            icon: const Icon(Icons.add),
+            label: const Text('Add'),
           ),
         ],
       ],
@@ -85,46 +85,23 @@ class PremiseAddressSection extends ConsumerWidget {
       return;
     }
 
-    final action = await showAppBottomSheet<_AddressAction>(
-      context: context,
-      preset: AppBottomSheetPreset.compact,
-      title: 'Premise Address',
-      subtitle: 'Choose an action for this address',
-      itemCount: 3,
-      builder: (context, scrollController) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: const Text('Edit Address'),
-              onTap: () => Navigator.of(context).pop(_AddressAction.edit),
-            ),
-            ListTile(
-              leading: const Icon(Icons.map_outlined),
-              title: const Text('Pick Location on Map'),
-              onTap: () => Navigator.of(context).pop(_AddressAction.pickLocation),
-            ),
-            ListTile(
-              leading: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
-              title: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
-              onTap: () => Navigator.of(context).pop(_AddressAction.delete),
-            ),
-          ],
-        );
-      },
+    await showPremiseAddressActionSheet(
+      context,
+      onSetAsCompanyAddress: () => _setAsCompanyAddress(context, ref, session: session, address: address),
+      onPickLocation: () => _pickAddressLocation(context, ref, session: session, index: index, address: address),
+      onDelete: () => _deleteAddress(context, ref, session: session, index: index),
     );
+  }
 
-    if (!context.mounted || action == null) return;
-
-    switch (action) {
-      case _AddressAction.edit:
-        await showPremiseAddressSheet(context, session: session, index: index, initial: address);
-      case _AddressAction.pickLocation:
-        await _pickAddressLocation(context, ref, session: session, index: index, address: address);
-      case _AddressAction.delete:
-        await _deleteAddress(context, ref, session: session, index: index);
-    }
+  Future<void> _setAsCompanyAddress(
+    BuildContext context,
+    WidgetRef ref, {
+    required PremiseFormSession session,
+    required PremiseAddress address,
+  }) async {
+    await ref.read(premiseFormControllerProvider(session).notifier).applyCompanyAddressFromPremise(address);
+    if (!context.mounted) return;
+    AppSnackbar.success(context, 'Company address updated from this premise address.');
   }
 
   Future<void> _viewAddressLocation(BuildContext context, PremiseAddress address) async {
@@ -170,8 +147,6 @@ class PremiseAddressSection extends ConsumerWidget {
   }
 }
 
-enum _AddressAction { edit, pickLocation, delete }
-
 class _AddressTile extends StatelessWidget {
   const _AddressTile({required this.address, this.onTap});
 
@@ -183,12 +158,6 @@ class _AddressTile extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final hasLocation = premiseAddressHasLocation(address);
-
-    final line = [
-      address.unitNo,
-      address.building,
-      address.streetName,
-    ].where((v) => v != null && v.isNotEmpty).join(', ');
 
     return Material(
       color: cs.surfaceContainerLow,
@@ -209,10 +178,12 @@ class _AddressTile extends StatelessWidget {
                   children: [
                     Row(
                       children: [
+                        Icon(Icons.location_on, size: 16, color: cs.primary),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            line.isEmpty ? '-' : line,
-                            style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+                            'Premise Address',
+                            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                           ),
                         ),
                         if (hasLocation) ...[
@@ -225,13 +196,11 @@ class _AddressTile extends StatelessWidget {
                         ],
                       ],
                     ),
-                    if (address.postcode != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        address.postcode!,
-                        style: textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.6)),
-                      ),
-                    ],
+                    const SizedBox(height: 10),
+                    _DetailRow(label: 'Unit', value: address.unitNo),
+                    _DetailRow(label: 'Street', value: address.streetName),
+                    _DetailRow(label: 'State', value: address.state),
+                    if (address.postcode != null) _DetailRow(label: 'Postcode', value: address.postcode),
                     if (hasLocation) ...[
                       const SizedBox(height: 4),
                       Text(
@@ -246,6 +215,34 @@ class _AddressTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+
+  final String label;
+  final String? value;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: textTheme.bodySmall)),
+          Expanded(
+            child: Text(
+              value == null || value!.isEmpty ? '-' : value!,
+              textAlign: TextAlign.right,
+              style: textTheme.bodySmall,
+            ),
+          ),
+        ],
       ),
     );
   }

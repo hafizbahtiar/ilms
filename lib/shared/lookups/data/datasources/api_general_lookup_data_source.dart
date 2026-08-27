@@ -29,8 +29,11 @@ class ApiGeneralLookupDataSource implements GeneralLookupDataSource {
   }
 
   @override
-  Future<List<GeneralModel>> fetchStreets(String areaCode) {
-    return _search('/api/searchStreetByArea', {'area': areaCode});
+  Future<List<GeneralModel>> fetchStreets(String areaCode, {String? search}) {
+    return _search('/api/searchStreetByArea', {
+      'area': areaCode,
+      if (search != null && search.isNotEmpty) 'search': search,
+    });
   }
 
   @override

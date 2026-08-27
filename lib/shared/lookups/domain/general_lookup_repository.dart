@@ -12,7 +12,7 @@ abstract class GeneralLookupRepository {
 
   Future<List<GeneralModel>> getAreasByParliament(String parliamentCode);
 
-  Future<List<GeneralModel>> getStreets(String areaCode);
+  Future<List<GeneralModel>> getStreets(String areaCode, {String? search});
 
   Future<List<GeneralModel>> getBuildings(String streetCode);
 

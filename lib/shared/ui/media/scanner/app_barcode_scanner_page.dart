@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:ilms/shared/ui/media/camera/camera_status.dart';
 import 'package:ilms/shared/ui/media/camera/camera_status_view.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -8,16 +9,28 @@ import 'package:permission_handler/permission_handler.dart';
 /// Full-screen barcode/QR scanner (sticker no., license QR, etc).
 ///
 /// Returns the scanned raw value, or `null` when cancelled.
+///
+/// Set [allowGallery] to `false` to hide the "Choose from gallery" action.
 class AppBarcodeScannerPage extends StatefulWidget {
-  const AppBarcodeScannerPage({super.key, this.title = 'Scan Code', this.subtitle = 'Align the code within the frame'});
+  const AppBarcodeScannerPage({
+    super.key,
+    this.title = 'Scan Code',
+    this.subtitle = 'Align the code within the frame',
+    this.allowGallery = true,
+  });
 
   final String title;
   final String subtitle;
+
+  /// When `true` (default), shows a gallery picker that decodes QR/barcodes
+  /// from a saved photo via [MobileScannerController.analyzeImage].
+  final bool allowGallery;
 
   static Future<String?> open(
     BuildContext context, {
     String title = 'Scan Code',
     String subtitle = 'Align the code within the frame',
+    bool allowGallery = true,
   }) {
     return Navigator.of(context).push<String>(
       PageRouteBuilder<String>(
@@ -26,7 +39,7 @@ class AppBarcodeScannerPage extends StatefulWidget {
         transitionDuration: const Duration(milliseconds: 280),
         reverseTransitionDuration: const Duration(milliseconds: 220),
         pageBuilder: (context, animation, secondaryAnimation) =>
-            AppBarcodeScannerPage(title: title, subtitle: subtitle),
+            AppBarcodeScannerPage(title: title, subtitle: subtitle, allowGallery: allowGallery),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
@@ -46,6 +59,7 @@ class _AppBarcodeScannerPageState extends State<AppBarcodeScannerPage> {
   // on app background/foreground — no need to observe lifecycle ourselves.
   late final MobileScannerController _controller;
   var _handled = false;
+  var _isAnalyzingImage = false;
 
   @override
   void initState() {
@@ -65,6 +79,41 @@ class _AppBarcodeScannerPageState extends State<AppBarcodeScannerPage> {
   }
 
   void _close() => Navigator.of(context).pop();
+
+  Future<void> _pickFromGallery() async {
+    if (_handled || _isAnalyzingImage) return;
+
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 100);
+    if (!mounted || picked == null) return;
+
+    setState(() => _isAnalyzingImage = true);
+    try {
+      final capture = await _controller.analyzeImage(picked.path);
+      final value = capture?.barcodes.isEmpty ?? true ? null : capture!.barcodes.first.rawValue;
+      if (value == null || value.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('No QR or barcode found in the selected image.')));
+        }
+        return;
+      }
+
+      _handled = true;
+      HapticFeedback.mediumImpact();
+      if (mounted) Navigator.of(context).pop(value);
+    } on MobileScannerBarcodeException {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('No QR or barcode found in the selected image.')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not read code from image: $error')));
+      }
+    } finally {
+      if (mounted) setState(() => _isAnalyzingImage = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -126,11 +175,34 @@ class _AppBarcodeScannerPageState extends State<AppBarcodeScannerPage> {
                 const Spacer(),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
-                  child: Text(
-                    widget.subtitle,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.labelLarge
-                        ?.copyWith(color: Colors.white.withValues(alpha: 0.85), fontWeight: FontWeight.w600),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.subtitle,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.labelLarge
+                            ?.copyWith(color: Colors.white.withValues(alpha: 0.85), fontWeight: FontWeight.w600),
+                      ),
+                      if (widget.allowGallery) ...[
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: _isAnalyzingImage ? null : _pickFromGallery,
+                          icon: _isAnalyzingImage
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Icon(Icons.photo_library_outlined),
+                          label: Text(_isAnalyzingImage ? 'Reading image…' : 'Choose from gallery'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: BorderSide(color: Colors.white.withValues(alpha: 0.35)),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],

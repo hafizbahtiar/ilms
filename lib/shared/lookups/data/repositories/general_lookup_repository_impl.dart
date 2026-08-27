@@ -45,7 +45,10 @@ class GeneralLookupRepositoryImpl implements GeneralLookupRepository {
   }
 
   @override
-  Future<List<GeneralModel>> getStreets(String areaCode) {
+  Future<List<GeneralModel>> getStreets(String areaCode, {String? search}) {
+    if (search != null && search.isNotEmpty) {
+      return _dataSource.fetchStreets(areaCode, search: search);
+    }
     return _readOrFetch(GeneralLookupCacheKeys.streets(areaCode), () => _dataSource.fetchStreets(areaCode));
   }
 

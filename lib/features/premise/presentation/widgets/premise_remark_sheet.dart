@@ -91,6 +91,7 @@ class _PremiseRemarkSheetBodyState extends ConsumerState<_PremiseRemarkSheetBody
       title: 'Remark Type',
       loadOptions: () => ref.read(premiseRemarksProvider.future),
       label: generalLookupLabel,
+      searchable: true,
       isSelected: (item) => _typeController.text.trim() == generalLookupLabel(item).trim(),
       empty: const AppListEmptyConfig(
         icon: Icons.sticky_note_2_outlined,

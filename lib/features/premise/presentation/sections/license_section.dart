@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license.dart';
 import 'package:ilms/features/premise/presentation/providers/premise_form_providers.dart';
+import 'package:ilms/features/premise/presentation/utils/premise_license_file_no.dart';
 import 'package:ilms/features/premise/presentation/widgets/premise_license_sheet.dart';
 
 class LicenseSection extends ConsumerWidget {
@@ -75,29 +76,37 @@ class _LicenseTile extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.badge_outlined, color: cs.primary),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: cs.primary.withValues(alpha: 0.15),
+                ),
+                child: Icon(Icons.description_outlined, size: 28, color: cs.primary),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text('License Type', style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
                     Text(
-                      license.licenseNo ?? '-',
-                      style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+                      PremiseLicenseFileNo.display(license.licenseFileNo),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
-                      license.licenseFileNo ?? '-',
-                      style: textTheme.bodyMedium?.copyWith(color: cs.onSurface.withValues(alpha: 0.72)),
+                      '${license.businessActivities.length} business activity(s)',
+                      style: textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.72)),
                     ),
                     if (license.statusDesc != null) ...[
                       const SizedBox(height: 4),
                       Text(
                         license.statusDesc!,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: cs.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: textTheme.bodySmall?.copyWith(color: cs.primary, fontWeight: FontWeight.w600),
                       ),
                     ],
                     if (hasPeriod) ...[
@@ -107,11 +116,17 @@ class _LicenseTile extends StatelessWidget {
                         style: textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.6)),
                       ),
                     ],
-                    const SizedBox(height: 4),
-                    Text(
-                      '${license.businessActivities.length} business activity(s)  •  '
-                      'Total: RM ${license.totalAmount.toStringAsFixed(2)}',
-                      style: textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.6)),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        color: cs.primary.withValues(alpha: 0.15),
+                      ),
+                      child: Text(
+                        'Total: RM ${license.totalAmount.toStringAsFixed(2)}',
+                        style: textTheme.labelSmall?.copyWith(color: cs.primary, fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ],
                 ),
