@@ -61,25 +61,25 @@ class _PremiseAddressSearchFilterBody extends ConsumerWidget {
       children: [
         _FilterSection(
           title: 'Parliament',
-          value: filter.parliament?.desc ?? filter.parliament?.code,
+          value: generalLookupDisplay(filter.parliament),
           onClear: () => controller.setParliament(null),
           onTap: () => _pickParliament(context, ref, filter.parliament),
         ),
         _FilterSection(
           title: 'Area',
-          value: filter.area?.desc ?? filter.area?.code,
+          value: generalLookupDisplay(filter.area),
           onClear: () => controller.setArea(null),
           onTap: () => _pickArea(context, ref, filter),
         ),
         _FilterSection(
           title: 'Street',
-          value: filter.street?.desc ?? filter.street?.code,
+          value: generalLookupDisplay(filter.street),
           onClear: () => controller.setStreet(null),
           onTap: () => _pickStreet(context, ref, filter),
         ),
         _FilterSection(
           title: 'Building Name',
-          value: filter.building?.desc ?? filter.building?.code,
+          value: generalLookupDisplay(filter.building),
           onClear: () => controller.setBuilding(null),
           onTap: () => _pickBuilding(context, ref, filter),
         ),

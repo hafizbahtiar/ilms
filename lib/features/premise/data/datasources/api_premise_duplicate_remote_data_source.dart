@@ -11,10 +11,19 @@ import 'package:ilms/shared/models/general_response_model.dart';
 
 class ApiPremiseDuplicateRemoteDataSource implements PremiseDuplicateRemoteDataSource {
   ApiPremiseDuplicateRemoteDataSource(this._client, {FormDataBuilder? formDataBuilder})
-      : _formDataBuilder = formDataBuilder ?? const FormDataBuilder();
+    : _formDataBuilder = formDataBuilder ?? const FormDataBuilder();
 
   final DioClient _client;
   final FormDataBuilder _formDataBuilder;
+  CancelToken? _searchCancelToken;
+
+  @override
+  void cancelSearch() {
+    final token = _searchCancelToken;
+    if (token == null || token.isCancelled) return;
+    token.cancel('Duplicate search cancelled');
+    _searchCancelToken = null;
+  }
 
   @override
   Future<PremiseDuplicateCheck> checkCanDuplicate(String visitNo) async {
@@ -33,16 +42,11 @@ class ApiPremiseDuplicateRemoteDataSource implements PremiseDuplicateRemoteDataS
       final isCurrentPhase = data is Map ? data['is_current_phase'] as bool? : null;
       final canDuplicate = (isCurrentPhase ?? true) == false;
 
-      return PremiseDuplicateCheck(
-        canDuplicate: canDuplicate,
-        message: payload['message']?.toString(),
-      );
+      return PremiseDuplicateCheck(canDuplicate: canDuplicate, message: payload['message']?.toString());
     } on ApiResponseException {
       rethrow;
     } on DioException catch (error) {
-      throw ApiResponseException(
-        extractDioErrorMessage(error) ?? 'Unable to verify duplicate eligibility.',
-      );
+      throw ApiResponseException(extractDioErrorMessage(error) ?? 'Unable to verify duplicate eligibility.');
     }
   }
 
@@ -53,6 +57,7 @@ class ApiPremiseDuplicateRemoteDataSource implements PremiseDuplicateRemoteDataS
       final response = await _client.dio.post<Map<String, dynamic>>(
         '/api/premiseCensus/detail',
         data: formData,
+        options: FormDataBuilder.multipartOptions,
       );
 
       final payload = response.data;
@@ -81,12 +86,17 @@ class ApiPremiseDuplicateRemoteDataSource implements PremiseDuplicateRemoteDataS
     required int page,
     int perPage = 15,
   }) async {
+    cancelSearch();
+    final cancelToken = CancelToken();
+    _searchCancelToken = cancelToken;
+
     try {
-      final formData = await _formDataBuilder.fromMap(filter.toJson());
       final response = await _client.dio.post<Map<String, dynamic>>(
         '/api/premiseCensus/searchPrevPhase',
         queryParameters: {'page': page, 'per_page': perPage},
-        data: formData,
+        data: FormDataBuilder.flatFields(filter.toJson()),
+        options: FormDataBuilder.multipartOptions,
+        cancelToken: cancelToken,
       );
 
       final payload = response.data;
@@ -99,17 +109,16 @@ class ApiPremiseDuplicateRemoteDataSource implements PremiseDuplicateRemoteDataS
       final rawItems = payload['data'];
       final items = rawItems is List
           ? rawItems
-              .whereType<Map>()
-              .map((item) => PremiseDuplicateRecordDto.fromJson(Map<String, dynamic>.from(item)))
-              .toList()
+                .whereType<Map>()
+                .map((item) => PremiseDuplicateRecordDto.fromJson(Map<String, dynamic>.from(item)))
+                .toList()
           : <PremiseDuplicateRecordDto>[];
 
       final pagination = Pagination.fromJson(
         payload['pagination'] is Map ? Map<String, dynamic>.from(payload['pagination'] as Map) : {},
       );
       final currentPage = pagination.currentPage ?? page;
-      final hasNextPage =
-          pagination.nextPageUrl != null && pagination.nextPageUrl.toString().trim().isNotEmpty;
+      final hasNextPage = pagination.nextPageUrl != null && pagination.nextPageUrl.toString().trim().isNotEmpty;
 
       return PremiseDuplicateResultDto(
         items: items,
@@ -119,9 +128,12 @@ class ApiPremiseDuplicateRemoteDataSource implements PremiseDuplicateRemoteDataS
     } on ApiResponseException {
       rethrow;
     } on DioException catch (error) {
-      throw ApiResponseException(
-        extractDioErrorMessage(error) ?? 'Unable to load duplicate search results.',
-      );
+      if (CancelToken.isCancel(error)) rethrow;
+      throw ApiResponseException(extractDioErrorMessage(error) ?? 'Unable to load duplicate search results.');
+    } finally {
+      if (identical(_searchCancelToken, cancelToken)) {
+        _searchCancelToken = null;
+      }
     }
   }
 }

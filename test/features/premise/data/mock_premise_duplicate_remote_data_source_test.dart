@@ -7,29 +7,29 @@ void main() {
     test('matches parliament and area only', () {
       const record = PremiseDuplicateRecordDto(
         visitNo: 'VN-1',
-        parliament: 'Bukit Bintang',
-        area: 'Bukit Bintang',
+        parliament: 'P118',
+        area: 'N35',
       );
 
-      expect(record.matches(const PremiseDuplicateFilterDto(parliament: 'Bukit Bintang')), isTrue);
-      expect(record.matches(const PremiseDuplicateFilterDto(parliament: 'Subang')), isFalse);
+      expect(record.matches(const PremiseDuplicateFilterDto(parliament: 'P118')), isTrue);
+      expect(record.matches(const PremiseDuplicateFilterDto(parliament: 'P107')), isFalse);
     });
 
     test('matches full address cascade', () {
       const record = PremiseDuplicateRecordDto(
         visitNo: 'VN-1',
-        parliament: 'Petaling Jaya',
-        area: 'Kelana Jaya',
+        parliament: 'P108',
+        area: 'N27',
         street: 'Jalan SS7/26',
-        building: 'Kelana Square',
+        building: 'BL-KS',
         unit: 'Lot 3',
       );
 
       const filter = PremiseDuplicateFilterDto(
-        parliament: 'Petaling Jaya',
-        area: 'Kelana Jaya',
+        parliament: 'P108',
+        area: 'N27',
         street: 'Jalan SS7/26',
-        building: 'Kelana Square',
+        building: 'BL-KS',
         unit: 'Lot 3',
       );
 
@@ -43,10 +43,10 @@ void main() {
     test('searchPreviousPhase returns records for Bukit Bintang filter', () async {
       final page = await dataSource.searchPreviousPhase(
         filter: const PremiseDuplicateFilterDto(
-          parliament: 'Bukit Bintang',
-          area: 'Bukit Bintang',
+          parliament: 'P118',
+          area: 'N35',
           street: 'Jalan Bukit Bintang',
-          building: 'Plaza BB',
+          building: 'BL-PBB',
           unit: 'G-12',
         ),
         page: 1,

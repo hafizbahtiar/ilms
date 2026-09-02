@@ -43,7 +43,7 @@ class ApiGeneralLookupDataSource implements GeneralLookupDataSource {
 
   @override
   Future<List<GeneralModel>> fetchUnits({String? buildingCode, String? streetCode}) {
-    return _search('/api/searchUnitByBuilding', {'building': buildingCode ?? '', 'street': streetCode ?? ''});
+    return _search('/api/searchUnitByBuildingOrStreet', {'building': buildingCode ?? '', 'street': streetCode ?? ''});
   }
 
   @override
@@ -72,6 +72,15 @@ class ApiGeneralLookupDataSource implements GeneralLookupDataSource {
 
   @override
   Future<List<GeneralModel>> fetchPhases() => _fetch('/api/listPhase');
+
+  @override
+  Future<List<GeneralModel>> fetchPhasesByBillboard() => _fetch('/api/listPhaseByBillboard');
+
+  @override
+  Future<List<GeneralModel>> fetchBillboardTypes() => _fetch('/api/listBillboardType');
+
+  @override
+  Future<List<GeneralModel>> fetchAssetOwnerTypes() => _fetch('/api/listAssetOwnerType');
 
   @override
   Future<List<GeneralModel>> getYesNo() async => _yesNo;

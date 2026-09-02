@@ -147,8 +147,8 @@ class BillboardFormFields {
     phase = TextEditingController();
     description = TextEditingController();
     billboardType = TextEditingController();
-    hordingStartDate = TextEditingController();
-    hordingCompleteDate = TextEditingController();
+    hoardingStartDate = TextEditingController();
+    hoardingCompleteDate = TextEditingController();
 
     // Location
     mediaClientName = TextEditingController();
@@ -177,8 +177,8 @@ class BillboardFormFields {
   late final TextEditingController phase;
   late final TextEditingController description;
   late final TextEditingController billboardType;
-  late final TextEditingController hordingStartDate;
-  late final TextEditingController hordingCompleteDate;
+  late final TextEditingController hoardingStartDate;
+  late final TextEditingController hoardingCompleteDate;
 
   late final TextEditingController mediaClientName;
   late final TextEditingController mediaClientTel;
@@ -203,8 +203,8 @@ class BillboardFormFields {
       phase,
       description,
       billboardType,
-      hordingStartDate,
-      hordingCompleteDate,
+      hoardingStartDate,
+      hoardingCompleteDate,
       mediaClientName,
       mediaClientTel,
       unit,

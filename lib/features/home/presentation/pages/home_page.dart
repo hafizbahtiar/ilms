@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:ilms/features/auth/domain/entities/auth_user.dart';
 import 'package:ilms/features/auth/presentation/providers/auth_providers.dart';
 import 'package:ilms/features/billboard/presentation/widgets/billboard_home_section.dart';
@@ -43,6 +42,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
     }
 
     final cs = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       body: NestedScrollView(
@@ -69,7 +69,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
               },
               child: Text(
                 'ILMS',
-                style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
+                style: textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
               ),
             ),
             flexibleSpace: FlexibleSpaceBar(

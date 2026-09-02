@@ -90,9 +90,10 @@ class PremiseSubmitPayloadModel {
       'company_details': companyDetails.toJson(),
       'contact_person': contactPerson.toJson(),
       'premise_details': premiseDetails.toJson(),
-      if (premiseAddresses.isNotEmpty) 'premise_addresses': premiseAddresses.map((e) => e.toJson()).toList(),
-      if (businessActivities.isNotEmpty) 'business_activities': businessActivities.map((e) => e.toJson()).toList(),
-      if (remarks.isNotEmpty) 'remarks': remarks.map((e) => e.toJson()).toList(),
+      if (premiseAddresses.isNotEmpty) 'premise_addresses': premiseAddresses.map((e) => e.toCreateJson()).toList(),
+      if (businessActivities.isNotEmpty)
+        'business_activities': businessActivities.map((e) => e.toCreateJson()).toList(),
+      if (remarks.isNotEmpty) 'remarks': remarks.map((e) => e.toCreateJson()).toList(),
       if (licenseInformation.isNotEmpty) 'license_information': licenseInformation.map((e) => e.toJson()).toList(),
     };
   }
@@ -255,6 +256,21 @@ class PremiseAddressRequest {
     longitude: address.longitude,
   );
 
+  Map<String, dynamic> toCreateJson() => {
+    if (premiseAddressId != null) 'paid': premiseAddressId,
+    'unit_no': unitNo,
+    'floor': floor,
+    'block_no': blockNo,
+    'building': building,
+    'street_name': streetName,
+    'area': area,
+    'parliament': parliament,
+    'postcode': postcode,
+    'state': state,
+    'latitude': latitude,
+    'longitude': longitude,
+  };
+
   Map<String, dynamic> toJson() => {
     if (premiseAddressId != null) 'paid': premiseAddressId,
     if (visitPremiseAddressId != null) 'vpa_id': visitPremiseAddressId,
@@ -299,6 +315,14 @@ class PremiseBusinessActivityRequest {
     description: activity.description,
   );
 
+  Map<String, dynamic> toCreateJson() => {
+    'business_type': businessType,
+    'business_type_desc': businessTypeDesc,
+    'status': status,
+    'status_desc': statusDesc,
+    'description': description,
+  };
+
   Map<String, dynamic> toJson() => {
     if (id != null) 'id': id,
     'business_type': businessType,
@@ -326,6 +350,13 @@ class PremiseRemarkRequest {
     remarkType: remark.remarkType,
     description: remark.description,
   );
+
+  Map<String, dynamic> toCreateJson() => {
+    'code': code,
+    'remark': remark,
+    'remark_type': remarkType,
+    'description': description,
+  };
 
   Map<String, dynamic> toJson() => {
     if (id != null) 'id': id,

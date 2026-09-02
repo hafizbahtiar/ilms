@@ -51,7 +51,19 @@ Duplicate search exposes **address criteria only** (legacy hides company/trader/
 4. Building (requires street)
 5. Unit No. (requires building or street)
 
-Filter sends **description** values to API (`GeneralModel.desc`), matching legacy `PremisSearchFilter`.
+Filter sends **lookup codes** to API (backend `SearchPrevPhaseController` matches DB columns):
+
+| UI picker | API field | Backend column | Value sent |
+|-----------|-----------|----------------|------------|
+| Parliament | `parliament` | `MSArea.AreaGroup` (exact) | `GeneralModel.code` |
+| Area | `area` | `PA_AreaCode` (LIKE) | `GeneralModel.code` |
+| Street | `street` | `PA_StreetName` (LIKE) | `GeneralModel.desc` |
+| Building | `building` | `PA_BuildingCode` (LIKE) | `GeneralModel.code` |
+| Unit No. | `unit` | `PAUnitNo` (LIKE) | `GeneralModel.desc` |
+
+Legacy Flutter sent `.desc` for all address fields; backend expects **codes** for parliament/area/building — mismatch caused empty/wrong results and heavy unfiltered queries.
+
+`license_no` / `license_file_no` in the FormData body are **not** read by this controller; use `search` for keyword-style matching (not wired in duplicate UI yet).
 
 Cascading lookups are fetched via shared lookup providers (`generalParliamentsProvider`, `generalStreetsProvider`, etc.) backed by `ApiGeneralLookupDataSource`.
 

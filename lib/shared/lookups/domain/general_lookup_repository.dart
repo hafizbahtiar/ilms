@@ -36,6 +36,12 @@ abstract class GeneralLookupRepository {
 
   Future<List<GeneralModel>> getPhases();
 
+  Future<List<GeneralModel>> getPhasesByBillboard();
+
+  Future<List<GeneralModel>> getBillboardTypes();
+
+  Future<List<GeneralModel>> getAssetOwnerTypes();
+
   Future<List<GeneralModel>> getYesNo();
 
   /// Clears cached entries and refetches from the remote/mock source.
@@ -72,6 +78,12 @@ abstract class GeneralLookupRepository {
   Future<List<GeneralModel>> refreshBusinessLicenseStatuses();
 
   Future<List<GeneralModel>> refreshPhases();
+
+  Future<List<GeneralModel>> refreshPhasesByBillboard();
+
+  Future<List<GeneralModel>> refreshBillboardTypes();
+
+  Future<List<GeneralModel>> refreshAssetOwnerTypes();
 
   Future<List<GeneralModel>> refreshYesNo();
 

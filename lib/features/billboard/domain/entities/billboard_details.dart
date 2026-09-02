@@ -10,8 +10,8 @@ class BillboardDetails extends Equatable {
     this.isLedBoard = false,
     this.isLight = false,
     this.isPotential = false,
-    this.hordingStartDate,
-    this.hordingCompleteDate,
+    this.hoardingStartDate,
+    this.hoardingCompleteDate,
   });
 
   final String? phaseCode;
@@ -22,8 +22,8 @@ class BillboardDetails extends Equatable {
   final bool isLedBoard;
   final bool isLight;
   final bool isPotential;
-  final String? hordingStartDate;
-  final String? hordingCompleteDate;
+  final String? hoardingStartDate;
+  final String? hoardingCompleteDate;
 
   BillboardDetails copyWith({
     String? phaseCode,
@@ -34,8 +34,8 @@ class BillboardDetails extends Equatable {
     bool? isLedBoard,
     bool? isLight,
     bool? isPotential,
-    String? hordingStartDate,
-    String? hordingCompleteDate,
+    String? hoardingStartDate,
+    String? hoardingCompleteDate,
   }) {
     return BillboardDetails(
       phaseCode: phaseCode ?? this.phaseCode,
@@ -46,8 +46,8 @@ class BillboardDetails extends Equatable {
       isLedBoard: isLedBoard ?? this.isLedBoard,
       isLight: isLight ?? this.isLight,
       isPotential: isPotential ?? this.isPotential,
-      hordingStartDate: hordingStartDate ?? this.hordingStartDate,
-      hordingCompleteDate: hordingCompleteDate ?? this.hordingCompleteDate,
+      hoardingStartDate: hoardingStartDate ?? this.hoardingStartDate,
+      hoardingCompleteDate: hoardingCompleteDate ?? this.hoardingCompleteDate,
     );
   }
 
@@ -61,7 +61,7 @@ class BillboardDetails extends Equatable {
     isLedBoard,
     isLight,
     isPotential,
-    hordingStartDate,
-    hordingCompleteDate,
+    hoardingStartDate,
+    hoardingCompleteDate,
   ];
 }

@@ -4,6 +4,8 @@ import 'package:ilms/features/premise/domain/entities/premise_duplicate_check.da
 
 /// Low-level duplicate API access. Maps 1:1 to network endpoints — not used by UI directly.
 abstract class PremiseDuplicateRemoteDataSource {
+  void cancelSearch();
+
   Future<PremiseDuplicateResultDto> searchPreviousPhase({
     required PremiseDuplicateFilterDto filter,
     required int page,

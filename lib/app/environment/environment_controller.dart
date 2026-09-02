@@ -23,6 +23,8 @@ class EnvironmentController extends StateNotifier<AppFlavor> {
   Future<void> setFlavor(AppFlavor flavor) async {
     if (flavor == state) return;
 
+    final accessToken = DioClient.maybeInstance?.accessToken;
+
     await _preferences.setString(environmentOverridePrefsKey, flavor.name);
 
     AppConfig.reset();
@@ -30,6 +32,10 @@ class EnvironmentController extends StateNotifier<AppFlavor> {
 
     DioClient.reset();
     DioClient.create(AppConfig.instance);
+
+    if (accessToken != null && accessToken.isNotEmpty) {
+      DioClient.instance.setAccessToken(accessToken);
+    }
 
     state = flavor;
   }

@@ -8,6 +8,15 @@ import 'package:dio/dio.dart';
 class FormDataBuilder {
   const FormDataBuilder();
 
+  /// Flat string fields for legacy search/filter endpoints (`searchPrevPhase`, etc.).
+  /// Prefer this over [fromMap] when there are no nested maps or file uploads.
+  static FormData flatFields(Map<String, dynamic> fields) {
+    return FormData.fromMap({for (final entry in fields.entries) entry.key: entry.value?.toString() ?? ''});
+  }
+
+  /// Lets Dio set the multipart boundary instead of inheriting `application/json`.
+  static Options get multipartOptions => Options(headers: {Headers.contentTypeHeader: null});
+
   Future<FormData> fromMap(Map<String, dynamic> data) async {
     final formData = FormData();
     final tasks = <Future<void>>[];

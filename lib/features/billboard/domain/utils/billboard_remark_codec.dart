@@ -14,7 +14,7 @@ class BillboardRemarkOption {
   /// showing to the user — see `generalLookupLabel` / `GeneralModel.apiDisplay`.
   final String display;
 
-  bool get isOther => desc.trim().toLowerCase() == 'other';
+  bool get isOther => desc.trim().toLowerCase().contains('other');
 }
 
 /// Splits a legacy comma-joined remark string into known option codes plus

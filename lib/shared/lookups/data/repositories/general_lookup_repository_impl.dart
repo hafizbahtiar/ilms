@@ -94,6 +94,21 @@ class GeneralLookupRepositoryImpl implements GeneralLookupRepository {
   }
 
   @override
+  Future<List<GeneralModel>> getPhasesByBillboard() {
+    return _readOrFetch(GeneralLookupCacheKeys.phasesByBillboard(), _dataSource.fetchPhasesByBillboard);
+  }
+
+  @override
+  Future<List<GeneralModel>> getBillboardTypes() {
+    return _readOrFetch(GeneralLookupCacheKeys.billboardTypes(), _dataSource.fetchBillboardTypes);
+  }
+
+  @override
+  Future<List<GeneralModel>> getAssetOwnerTypes() {
+    return _readOrFetch(GeneralLookupCacheKeys.assetOwnerTypes(), _dataSource.fetchAssetOwnerTypes);
+  }
+
+  @override
   Future<List<GeneralModel>> getPremiseTypes() {
     return _readOrFetch(GeneralLookupCacheKeys.premiseTypes(), _dataSource.fetchPremiseTypes);
   }
@@ -214,6 +229,21 @@ class GeneralLookupRepositoryImpl implements GeneralLookupRepository {
   @override
   Future<List<GeneralModel>> refreshPhases() {
     return _refresh(GeneralLookupCacheKeys.phases(), _dataSource.fetchPhases);
+  }
+
+  @override
+  Future<List<GeneralModel>> refreshPhasesByBillboard() {
+    return _refresh(GeneralLookupCacheKeys.phasesByBillboard(), _dataSource.fetchPhasesByBillboard);
+  }
+
+  @override
+  Future<List<GeneralModel>> refreshBillboardTypes() {
+    return _refresh(GeneralLookupCacheKeys.billboardTypes(), _dataSource.fetchBillboardTypes);
+  }
+
+  @override
+  Future<List<GeneralModel>> refreshAssetOwnerTypes() {
+    return _refresh(GeneralLookupCacheKeys.assetOwnerTypes(), _dataSource.fetchAssetOwnerTypes);
   }
 
   @override

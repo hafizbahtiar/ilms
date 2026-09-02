@@ -1,9 +1,10 @@
 import 'package:ilms/features/premise/domain/entities/premise_address.dart';
+import 'package:ilms/features/premise/domain/utils/premise_coordinate.dart';
 import 'package:latlong2/latlong.dart';
 
 LatLng? latLngFromPremiseAddress(PremiseAddress address) {
-  final lat = double.tryParse(address.latitude ?? '');
-  final lng = double.tryParse(address.longitude ?? '');
+  final lat = parsePremiseCoordinate(address.latitude);
+  final lng = parsePremiseCoordinate(address.longitude);
   if (lat == null || lng == null) return null;
   return LatLng(lat, lng);
 }

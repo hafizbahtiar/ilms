@@ -3,6 +3,8 @@ import 'package:ilms/features/premise/domain/entities/premise_duplicate_result.d
 
 /// Duplicate-from-previous-phase operations (`searchPrevPhase`, check, detail → draft).
 abstract class PremiseDuplicateRepository {
+  void cancelSearch();
+
   Future<PremiseDuplicateResult> searchPreviousPhase({
     required PremiseDuplicateFilter filter,
     required int page,

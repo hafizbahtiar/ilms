@@ -88,8 +88,8 @@ class BillboardDetailsRequest {
     required this.isLedBoard,
     required this.isLight,
     required this.isPotential,
-    this.hordingStartDate,
-    this.hordingCompleteDate,
+    this.hoardingStartDate,
+    this.hoardingCompleteDate,
   });
 
   final String? phase;
@@ -98,8 +98,8 @@ class BillboardDetailsRequest {
   final bool isLedBoard;
   final bool isLight;
   final bool isPotential;
-  final String? hordingStartDate;
-  final String? hordingCompleteDate;
+  final String? hoardingStartDate;
+  final String? hoardingCompleteDate;
 
   factory BillboardDetailsRequest.fromDomain(BillboardDetails details) => BillboardDetailsRequest(
     phase: details.phaseCode,
@@ -108,8 +108,8 @@ class BillboardDetailsRequest {
     isLedBoard: details.isLedBoard,
     isLight: details.isLight,
     isPotential: details.isPotential,
-    hordingStartDate: details.hordingStartDate,
-    hordingCompleteDate: details.hordingCompleteDate,
+    hoardingStartDate: details.hoardingStartDate,
+    hoardingCompleteDate: details.hoardingCompleteDate,
   );
 
   static String _yesNo(bool value) => value ? 'Y' : 'N';
@@ -121,8 +121,9 @@ class BillboardDetailsRequest {
     'is_led_board': _yesNo(isLedBoard),
     'is_light': _yesNo(isLight),
     'is_potential': _yesNo(isPotential),
-    'hording_start_date': hordingStartDate,
-    'hording_complete_date': hordingCompleteDate,
+    // Backend still uses the misspelled `hording_*` keys.
+    'hording_start_date': hoardingStartDate,
+    'hording_complete_date': hoardingCompleteDate,
   };
 }
 

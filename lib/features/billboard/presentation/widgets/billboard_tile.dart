@@ -20,95 +20,98 @@ class BillboardTile extends StatelessWidget {
   /// `billboardEditSessionBillboardNosProvider`.
   final bool hasUnsavedEdit;
 
-  /// Stable per-item palette pick (hashed from [billboardNo]) so a failed
-  /// image load reads as "this item's color" instead of flickering a
-  /// different random shade on every rebuild.
-  static const _fallbackPalette = [
-    Color(0xFF1565C0),
-    Color(0xFF2E7D32),
-    Color(0xFFEF6C00),
-    Color(0xFF6A1B9A),
-    Color(0xFFC62828),
-    Color(0xFF00838F),
-    Color(0xFFAD1457),
-    Color(0xFF616161),
-  ];
-
-  static Color _fallbackColorFor(String billboardNo) =>
-      _fallbackPalette[billboardNo.hashCode.abs() % _fallbackPalette.length];
+  static const _tileHeight = 180.0;
+  static const _defaultBannerAsset = 'assets/no_banner.jpeg';
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final previewImage = record.previewImage?.trim();
     final hasPreviewImage = previewImage != null && previewImage.isNotEmpty;
+    final clientName = _clean(record.mediaOwnerClient) ?? record.billboardNo;
+    final address = _clean(record.address);
+    final censusDate = _clean(record.billboardDate);
 
     return Material(
-      color: cs.surface,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (hasPreviewImage)
-              _ImageHeader(
-                previewImage: previewImage,
-                title: record.displayTitle,
-                subtitle: record.billboardNo,
-                fallbackColor: _fallbackColorFor(record.billboardNo),
-                hasUnsavedEdit: hasUnsavedEdit,
-              )
-            else
+        child: SizedBox(
+          height: _tileHeight,
+          width: double.infinity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (hasPreviewImage)
+                AppImageSource.thumbnail(
+                  AppImageItem(networkUrl: previewImage),
+                  failedAsset: _defaultBannerAsset,
+                )
+              else
+                Image.asset(_defaultBannerAsset, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0x33000000),
+                      Color(0x99000000),
+                      Color(0xD9000000),
+                    ],
+                    stops: [0, 0.45, 1],
+                  ),
+                ),
+              ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const Spacer(),
                     Row(
                       children: [
                         Expanded(
                           child: Text(
-                            record.displayTitle,
+                            clientName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
-                        if (hasUnsavedEdit) ...[const SizedBox(width: 8), const _UnsavedTag()],
+                        if (hasUnsavedEdit) ...[
+                          const SizedBox(width: 8),
+                          const _UnsavedTag(),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 2),
                     Text(
                       record.billboardNo,
-                      style: textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.55)),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.85),
+                      ),
                     ),
+                    if (address != null) ...[
+                      const SizedBox(height: 8),
+                      _InfoRow(icon: Icons.signpost_outlined, label: address),
+                    ],
+                    if (censusDate != null) ...[
+                      const SizedBox(height: 4),
+                      _InfoRow(icon: Icons.calendar_month_outlined, label: censusDate),
+                    ],
                   ],
                 ),
               ),
-            Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.35)),
-            if (_clean(record.location) case final location?)
-              _InfoRow(icon: Icons.location_on_outlined, label: location, color: accentColor),
-            if (_clean(record.address) case final address?)
-              _InfoRow(icon: Icons.signpost_outlined, label: address, color: accentColor),
-            if (_clean(record.billboardDate) case final date?)
-              _InfoRow(icon: Icons.calendar_month_outlined, label: date, color: accentColor),
-            if (_dateRangeLabel case final range?)
-              _InfoRow(icon: Icons.date_range_outlined, label: range, color: accentColor),
-            const SizedBox(height: 6),
-          ],
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  String? get _dateRangeLabel {
-    final start = _clean(record.startDate);
-    final complete = _clean(record.completeDate);
-    if (start == null && complete == null) return null;
-    return '${start ?? '-'} — ${complete ?? '-'}';
   }
 
   String? _clean(String? value) {
@@ -117,100 +120,29 @@ class BillboardTile extends StatelessWidget {
   }
 }
 
-/// Full-bleed image header (no padding/border) with the title/subtitle
-/// overlaid at the bottom via a scrim gradient, instead of separate text
-/// below the image.
-class _ImageHeader extends StatelessWidget {
-  const _ImageHeader({
-    required this.previewImage,
-    required this.title,
-    required this.subtitle,
-    required this.fallbackColor,
-    this.hasUnsavedEdit = false,
-  });
-
-  final String previewImage;
-  final String title;
-  final String subtitle;
-  final Color fallbackColor;
-  final bool hasUnsavedEdit;
-
-  static const _height = 160.0;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return SizedBox(
-      height: _height,
-      width: double.infinity,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          AppImageSource.thumbnail(AppImageItem(networkUrl: previewImage), failedColor: fallbackColor),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.72)],
-                  stops: const [0, 1],
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 40, 16, 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                        if (hasUnsavedEdit) ...[const SizedBox(width: 8), const _UnsavedTag()],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(subtitle, style: textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.85))),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.color});
+  const _InfoRow({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 10),
-          Expanded(child: Text(label, style: Theme.of(context).textTheme.bodySmall)),
-        ],
-      ),
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.white.withValues(alpha: 0.9)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

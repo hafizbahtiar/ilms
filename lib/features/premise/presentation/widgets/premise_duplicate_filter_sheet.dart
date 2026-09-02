@@ -1,3 +1,5 @@
+import 'dart:developer' as dev;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ilms/features/premise/presentation/controllers/premise_duplicate_controller.dart';
@@ -5,8 +7,10 @@ import 'package:ilms/shared/lookups/providers/general_lookup_providers.dart';
 import 'package:ilms/shared/models/general_model.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
 import 'package:ilms/shared/ui/forms/app_text_field.dart';
+import 'package:ilms/shared/ui/lists/app_list_view.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
 import 'package:ilms/shared/ui/sheets/app_option_picker_sheet.dart';
+import 'package:ilms/shared/ui/sheets/app_sheet_refresh_button.dart';
 
 Future<bool?> showPremiseDuplicateFilterSheet(BuildContext context, WidgetRef ref) {
   final snapshot = ref.read(premiseDuplicateControllerProvider.notifier).snapshotFilter();
@@ -19,16 +23,7 @@ Future<bool?> showPremiseDuplicateFilterSheet(BuildContext context, WidgetRef re
     isDismissible: false,
     enableDrag: true,
     itemCount: 9,
-    trailing: IconButton(
-      tooltip: 'Refresh lookups',
-      onPressed: () async {
-        await refreshAllGeneralLookups(ref);
-        if (context.mounted) {
-          AppSnackbar.success(context, 'Lookup data refreshed.');
-        }
-      },
-      icon: const Icon(Icons.refresh_rounded),
-    ),
+    trailing: const _PremiseDuplicateFilterRefreshTrailing(),
     bottomBar: AppBottomSheetActionBar(
       onSecondary: () => ref.read(premiseDuplicateControllerProvider.notifier).resetFilter(),
       onPrimary: () => Navigator.of(context).pop(true),
@@ -44,6 +39,35 @@ Future<bool?> showPremiseDuplicateFilterSheet(BuildContext context, WidgetRef re
     }
     return applied;
   });
+}
+
+class _PremiseDuplicateFilterRefreshTrailing extends ConsumerStatefulWidget {
+  const _PremiseDuplicateFilterRefreshTrailing();
+
+  @override
+  ConsumerState<_PremiseDuplicateFilterRefreshTrailing> createState() => _PremiseDuplicateFilterRefreshTrailingState();
+}
+
+class _PremiseDuplicateFilterRefreshTrailingState extends ConsumerState<_PremiseDuplicateFilterRefreshTrailing> {
+  var _isRefreshing = false;
+
+  Future<void> _refresh() async {
+    if (_isRefreshing) return;
+    setState(() => _isRefreshing = true);
+    try {
+      await Future.wait([refreshAllGeneralLookups(ref), Future<void>.delayed(const Duration(milliseconds: 600))]);
+      if (mounted) {
+        AppSnackbar.success(context, 'Lookup data refreshed.');
+      }
+    } finally {
+      if (mounted) setState(() => _isRefreshing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppSheetRefreshIconButton(isRefreshing: _isRefreshing, onPressed: _refresh);
+  }
 }
 
 class _PremiseDuplicateFilterBody extends ConsumerStatefulWidget {
@@ -105,46 +129,51 @@ class _PremiseDuplicateFilterBodyState extends ConsumerState<_PremiseDuplicateFi
         const SizedBox(height: 12),
         _FilterSection(
           title: 'Parliament',
-          value: filter.parliament?.desc,
+          value: generalLookupDisplay(filter.parliament),
           onClear: () => controller.setParliament(null),
-          onTap: () => _pickParliament(context, ref, filter.parliament),
+          onTap: () => _pickParliament(context, filter.parliament),
         ),
         _FilterSection(
           title: 'Area',
-          value: filter.area?.desc,
+          value: generalLookupDisplay(filter.area),
           onClear: () => controller.setArea(null),
-          onTap: () => _pickArea(context, ref, filter),
+          onTap: () => _pickArea(context, filter),
         ),
         _FilterSection(
           title: 'Street',
-          value: filter.street?.desc,
+          value: generalLookupDisplay(filter.street),
           onClear: () => controller.setStreet(null),
-          onTap: () => _pickStreet(context, ref, filter),
+          onTap: () => _pickStreet(context, filter),
         ),
         _FilterSection(
           title: 'Building Name',
-          value: filter.building?.desc,
+          value: generalLookupDisplay(filter.building),
           onClear: () => controller.setBuilding(null),
-          onTap: () => _pickBuilding(context, ref, filter),
+          onTap: () => _pickBuilding(context, filter),
         ),
         _FilterSection(
           title: 'Unit No.',
-          value: filter.unitNo?.desc,
+          value: generalLookupDisplay(filter.unitNo),
           onClear: () => controller.setUnitNo(null),
-          onTap: () => _pickUnit(context, ref, filter),
+          onTap: () => _pickUnit(context, filter),
         ),
       ],
     );
   }
 
-  Future<void> _pickParliament(BuildContext context, WidgetRef ref, GeneralModel? selected) async {
-    final options = await ref.read(generalParliamentsProvider(null).future);
-    if (!context.mounted) return;
-    final picked = await showAppOptionPicker<GeneralModel>(
+  Future<void> _pickParliament(BuildContext context, GeneralModel? selected) async {
+    final picked = await showAppAsyncOptionPicker<GeneralModel>(
       context: context,
       title: 'Parliament',
-      options: options,
-      label: (item) => item.desc ?? item.code ?? '-',
+      loadOptions: () async {
+        final options = await ref.read(generalParliamentsProvider(null).future);
+        dev.log(
+          'Parliament list (${options.length}): ${options.map((item) => '${item.code}|${item.desc}').join('; ')}',
+          name: 'PremiseDuplicateFilter',
+        );
+        return options;
+      },
+      label: generalLookupLabel,
       isSelected: (item) => item.code == selected?.code,
       preset: AppBottomSheetPreset.scrollable,
       searchable: true,
@@ -154,19 +183,25 @@ class _PremiseDuplicateFilterBodyState extends ConsumerState<_PremiseDuplicateFi
     }
   }
 
-  Future<void> _pickArea(BuildContext context, WidgetRef ref, PremiseDuplicateFilterSelection filter) async {
+  Future<void> _pickArea(BuildContext context, PremiseDuplicateFilterSelection filter) async {
     final parliament = filter.parliament;
     if (parliament?.code == null) {
-      AppSnackbar.warning(context, 'Please select parliament');
+      AppSnackbar.warning(context, 'Please select parliament first.');
       return;
     }
-    final options = await ref.read(generalAreasByParliamentProvider(parliament!.code!).future);
-    if (!context.mounted) return;
-    final picked = await showAppOptionPicker<GeneralModel>(
+    final parliamentCode = parliament!.code!;
+    final picked = await showAppAsyncOptionPicker<GeneralModel>(
       context: context,
       title: 'Area',
-      options: options,
-      label: (item) => item.desc ?? item.code ?? '-',
+      loadOptions: () async {
+        final options = await ref.read(generalAreasByParliamentProvider(parliamentCode).future);
+        dev.log(
+          'Area list for $parliamentCode (${options.length}): ${options.map((item) => '${item.code}|${item.desc}').join('; ')}',
+          name: 'PremiseDuplicateFilter',
+        );
+        return options;
+      },
+      label: generalLookupLabel,
       isSelected: (item) => item.code == filter.area?.code,
       preset: AppBottomSheetPreset.scrollable,
       searchable: true,
@@ -176,19 +211,17 @@ class _PremiseDuplicateFilterBodyState extends ConsumerState<_PremiseDuplicateFi
     }
   }
 
-  Future<void> _pickStreet(BuildContext context, WidgetRef ref, PremiseDuplicateFilterSelection filter) async {
+  Future<void> _pickStreet(BuildContext context, PremiseDuplicateFilterSelection filter) async {
     final area = filter.area;
     if (area?.code == null) {
-      AppSnackbar.warning(context, 'Please select area');
+      AppSnackbar.warning(context, 'Please select area first.');
       return;
     }
-    final options = await ref.read(generalStreetsProvider(area!.code!).future);
-    if (!context.mounted) return;
-    final picked = await showAppOptionPicker<GeneralModel>(
+    final picked = await showAppAsyncOptionPicker<GeneralModel>(
       context: context,
       title: 'Street',
-      options: options,
-      label: (item) => item.desc ?? item.code ?? '-',
+      loadOptions: () => ref.read(generalStreetsProvider(area!.code!).future),
+      label: generalLookupLabel,
       isSelected: (item) => item.code == filter.street?.code,
       preset: AppBottomSheetPreset.scrollable,
       searchable: true,
@@ -198,19 +231,17 @@ class _PremiseDuplicateFilterBodyState extends ConsumerState<_PremiseDuplicateFi
     }
   }
 
-  Future<void> _pickBuilding(BuildContext context, WidgetRef ref, PremiseDuplicateFilterSelection filter) async {
+  Future<void> _pickBuilding(BuildContext context, PremiseDuplicateFilterSelection filter) async {
     final street = filter.street;
     if (street?.code == null) {
-      AppSnackbar.warning(context, 'Please select street');
+      AppSnackbar.warning(context, 'Please select street first.');
       return;
     }
-    final options = await ref.read(generalBuildingsProvider(street!.code!).future);
-    if (!context.mounted) return;
-    final picked = await showAppOptionPicker<GeneralModel>(
+    final picked = await showAppAsyncOptionPicker<GeneralModel>(
       context: context,
       title: 'Building Name',
-      options: options,
-      label: (item) => item.desc ?? item.code ?? '-',
+      loadOptions: () => ref.read(generalBuildingsProvider(street!.code!).future),
+      label: generalLookupLabel,
       isSelected: (item) => item.code == filter.building?.code,
       preset: AppBottomSheetPreset.scrollable,
       searchable: true,
@@ -220,24 +251,28 @@ class _PremiseDuplicateFilterBodyState extends ConsumerState<_PremiseDuplicateFi
     }
   }
 
-  Future<void> _pickUnit(BuildContext context, WidgetRef ref, PremiseDuplicateFilterSelection filter) async {
+  Future<void> _pickUnit(BuildContext context, PremiseDuplicateFilterSelection filter) async {
     final building = filter.building;
     final street = filter.street;
     if (building?.code == null && street?.code == null) {
-      AppSnackbar.warning(context, 'Please select building or street');
+      AppSnackbar.warning(context, 'Please select building or street first.');
       return;
     }
-    final options = await ref.read(
-      generalUnitsProvider(GeneralUnitFilter(buildingCode: building?.code, streetCode: street?.code)).future,
-    );
-    if (!context.mounted) return;
-    final picked = await showAppOptionPicker<GeneralModel>(
+    final picked = await showAppAsyncOptionPicker<GeneralModel>(
       context: context,
       title: 'Unit No.',
-      options: options,
-      label: (item) => item.desc ?? item.code ?? '-',
+      loadOptions: () => ref.read(
+        generalUnitsProvider(GeneralUnitFilter(buildingCode: building?.code, streetCode: street?.code)).future,
+      ),
+      label: generalLookupLabel,
       isSelected: (item) => item.code == filter.unitNo?.code,
-      preset: AppBottomSheetPreset.compact,
+      preset: AppBottomSheetPreset.scrollable,
+      searchable: true,
+      empty: const AppListEmptyConfig(
+        icon: Icons.search_off_outlined,
+        title: 'No Unit No. found',
+        subtitle: 'Nothing matches the current street or building. Try a different selection above.',
+      ),
     );
     if (picked != null) {
       ref.read(premiseDuplicateControllerProvider.notifier).setUnitNo(picked);

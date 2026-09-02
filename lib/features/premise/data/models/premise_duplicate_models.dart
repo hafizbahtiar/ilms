@@ -3,26 +3,34 @@ import 'package:ilms/features/premise/domain/entities/premise_duplicate_record.d
 
 class PremiseDuplicateFilterDto {
   const PremiseDuplicateFilterDto({
-    this.parliament = '',
-    this.area = '',
-    this.street = '',
-    this.building = '',
+    this.keyword = '',
+    this.licenseFileNo = '',
+    this.licenseNo = '',
     this.unit = '',
+    this.floor = '',
+    this.block = '',
+    this.building = '',
+    this.street = '',
+    this.area = '',
+    this.parliament = '',
     this.companyName = '',
     this.traderName = '',
-    this.licenseNo = '',
-    this.licenseFileNo = '',
+    this.phase = '',
   });
 
-  final String parliament;
-  final String area;
-  final String street;
-  final String building;
+  final String keyword;
+  final String licenseFileNo;
+  final String licenseNo;
   final String unit;
+  final String floor;
+  final String block;
+  final String building;
+  final String street;
+  final String area;
+  final String parliament;
   final String companyName;
   final String traderName;
-  final String licenseNo;
-  final String licenseFileNo;
+  final String phase;
 
   factory PremiseDuplicateFilterDto.fromDomain(PremiseDuplicateFilter filter) {
     return PremiseDuplicateFilterDto(
@@ -38,17 +46,22 @@ class PremiseDuplicateFilterDto {
     );
   }
 
+  /// Matches legacy `PremisSearchFilter.toJson()` field names and order.
   Map<String, dynamic> toJson() {
     return {
-      'parliament': parliament,
-      'area': area,
-      'street': street,
-      'building': building,
+      'keyword': keyword,
+      'license_file_no': licenseFileNo,
+      'license_no': licenseNo,
       'unit': unit,
+      'floor': floor,
+      'block': block,
+      'building': building,
+      'street': street,
+      'area': area,
+      'parliament': parliament,
       'company_name': companyName,
       'trader_name': traderName,
-      'license_no': licenseNo,
-      'license_file_no': licenseFileNo,
+      'phase': phase,
     };
   }
 }
@@ -136,11 +149,7 @@ class PremiseDuplicateRecordDto {
 }
 
 class PremiseDuplicateResultDto {
-  const PremiseDuplicateResultDto({
-    required this.items,
-    required this.nextPage,
-    required this.hasNextPage,
-  });
+  const PremiseDuplicateResultDto({required this.items, required this.nextPage, required this.hasNextPage});
 
   final List<PremiseDuplicateRecordDto> items;
   final int nextPage;

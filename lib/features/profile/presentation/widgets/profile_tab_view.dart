@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ilms/app/router/app_routes.dart';
+import 'package:ilms/app/theme/text_scale.dart';
+import 'package:ilms/app/theme/text_scale_controller.dart';
 import 'package:ilms/app/theme/theme_mode_controller.dart';
 import 'package:ilms/core/config/app_config.dart';
 import 'package:ilms/shared/ui/app_version_label.dart';
@@ -217,6 +219,14 @@ class _ProfileContent extends ConsumerWidget {
                     trailing: themeModeLabel(ref.watch(themeModeControllerProvider)),
                     onTap: () => _showThemeBottomSheet(context, ref),
                   ),
+                  Divider(color: cs.outlineVariant),
+                  ProfileSettingTile(
+                    icon: Icons.format_size,
+                    title: 'Text size',
+                    subtitle: 'Adjust reading comfort',
+                    trailing: textScaleLabel(ref.watch(textScaleControllerProvider)),
+                    onTap: () => _showTextScaleBottomSheet(context, ref),
+                  ),
                 ],
               ),
             ),
@@ -271,6 +281,41 @@ class _ProfileContent extends ConsumerWidget {
     );
   }
 
+  Future<void> _showTextScaleBottomSheet(BuildContext context, WidgetRef ref) async {
+    final controller = ref.read(textScaleControllerProvider.notifier);
+    final current = ref.read(textScaleControllerProvider);
+
+    await showAppBottomSheet<void>(
+      context: context,
+      preset: AppBottomSheetPreset.compact,
+      title: 'Text size',
+      subtitle: 'Adjust reading comfort',
+      itemCount: textScaleOptions().length,
+      builder: (context, scrollController) {
+        return RadioGroup<AppTextScale>(
+          groupValue: current,
+          onChanged: (selected) {
+            if (selected != null) {
+              controller.setScale(selected);
+              Navigator.of(context).pop();
+            }
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final scale in textScaleOptions())
+                RadioListTile<AppTextScale>(
+                  value: scale,
+                  secondary: Icon(_textScaleIcon(scale)),
+                  title: Text(textScaleLabel(scale)),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _showLogoutBottomSheet(BuildContext context, WidgetRef ref) async {
     final shouldLogout = await showAppBottomSheet<bool>(
       context: context,
@@ -300,6 +345,15 @@ class _ProfileContent extends ConsumerWidget {
     if (shouldLogout == true && context.mounted) {
       ref.read(authControllerProvider.notifier).logout();
     }
+  }
+
+  IconData _textScaleIcon(AppTextScale scale) {
+    return switch (scale) {
+      AppTextScale.small => Icons.text_decrease_outlined,
+      AppTextScale.medium => Icons.text_fields_outlined,
+      AppTextScale.large => Icons.text_increase_outlined,
+      AppTextScale.extraLarge => Icons.format_size,
+    };
   }
 
   IconData _themeModeIcon(ThemeMode mode) {

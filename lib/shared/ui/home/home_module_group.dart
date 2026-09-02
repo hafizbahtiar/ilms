@@ -47,7 +47,12 @@ class HomeModuleGroup extends StatelessWidget {
               const SizedBox(width: 12),
             ],
             Expanded(
-              child: Text(title, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+              child: Text(
+                title,
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
           ],
         ),
@@ -57,7 +62,7 @@ class HomeModuleGroup extends StatelessWidget {
           HomeModuleGrid(maxColumns: maxColumns, buttons: buttons),
         ],
         const SizedBox(height: 8),
-        Divider(height: 32, color: cs.outlineVariant.withValues(alpha: 0.35)),
+        Divider(height: 32, color: cs.outlineVariant),
       ],
     );
   }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:ilms/shared/ui/map/app_current_location.dart';
-import 'package:ilms/shared/ui/map/app_map_tile_layer.dart';
+import 'package:ilms/shared/ui/map/app_map_limits.dart';
+import 'package:ilms/shared/ui/map/app_map_rotation_reset_button.dart';
+import 'package:ilms/shared/ui/map/app_map_view.dart';
 import 'package:latlong2/latlong.dart';
 
 /// Full-screen "pick a location" map, reusable across any form that needs a
@@ -48,6 +50,10 @@ class _AppLocationPickerPageState extends State<AppLocationPickerPage> {
   final _mapController = MapController();
   LatLng? _markedLocation;
   var _isLocating = false;
+  var _mapReady = false;
+  var _needsSilentLocate = false;
+  LatLng? _pendingMoveCenter;
+  double? _pendingMoveZoom;
   String? _locationError;
 
   @override
@@ -56,9 +62,36 @@ class _AppLocationPickerPageState extends State<AppLocationPickerPage> {
     if (widget.viewOnly && widget.initialCenter != null) {
       _markedLocation = widget.initialCenter;
     } else if (!widget.viewOnly && widget.initialCenter == null) {
-      // Best-effort: if the caller didn't pass a starting point, try to open
-      // centered on the device's own location instead of Kuala Lumpur.
+      _needsSilentLocate = true;
+    }
+  }
+
+  void _onMapReady() {
+    _mapReady = true;
+    _flushPendingMove();
+    if (_needsSilentLocate) {
+      _needsSilentLocate = false;
       _locateMe(silent: true);
+    }
+  }
+
+  void _flushPendingMove() {
+    final center = _pendingMoveCenter;
+    final zoom = _pendingMoveZoom;
+    if (center == null || zoom == null) return;
+
+    _pendingMoveCenter = null;
+    _pendingMoveZoom = null;
+    _moveMap(center, zoom);
+  }
+
+  bool _moveMap(LatLng center, double zoom) {
+    try {
+      return _mapController.move(center, AppMapLimits.clampZoom(zoom));
+    } on Exception {
+      _pendingMoveCenter = center;
+      _pendingMoveZoom = zoom;
+      return false;
     }
   }
 
@@ -77,7 +110,7 @@ class _AppLocationPickerPageState extends State<AppLocationPickerPage> {
     try {
       final here = await resolveAppCurrentLocation();
       if (!mounted) return;
-      _mapController.move(here, 16);
+      _moveMap(here, AppMapLimits.locateZoom);
     } on AppLocationFailure catch (error) {
       if (!silent && mounted) setState(() => _locationError = error.message);
     } catch (_) {
@@ -87,7 +120,13 @@ class _AppLocationPickerPageState extends State<AppLocationPickerPage> {
     }
   }
 
-  void _markLocation() => setState(() => _markedLocation = _mapController.camera.center);
+  void _markLocation() {
+    try {
+      setState(() => _markedLocation = _mapController.camera.center);
+    } on Exception {
+      // Map not ready — ignore.
+    }
+  }
 
   void _proceed() {
     final marked = _markedLocation;
@@ -104,17 +143,14 @@ class _AppLocationPickerPageState extends State<AppLocationPickerPage> {
       body: SafeArea(
         child: Stack(
           children: [
-            FlutterMap(
+            AppMapView(
               mapController: _mapController,
-              options: MapOptions(
-                initialCenter: widget.initialCenter ?? _markedLocation ?? AppLocationPickerPage.fallbackCenter,
-                initialZoom: 15,
-                interactionOptions: InteractionOptions(
-                  flags: widget.viewOnly ? InteractiveFlag.none : InteractiveFlag.all,
-                ),
-              ),
-              children: [
-                const AppMapTileLayer(),
+              center: widget.initialCenter ?? _markedLocation ?? AppLocationPickerPage.fallbackCenter,
+              zoom: AppMapLimits.defaultZoom,
+              interactionFlags: widget.viewOnly ? AppMapView.previewFlags : AppMapView.pickerFlags,
+              interactiveTiles: !widget.viewOnly,
+              onMapReady: _onMapReady,
+              layers: [
                 // MarkerLayer/Marker call MapCamera.of(context) internally to
                 // position themselves against the map's viewport — it MUST
                 // live inside FlutterMap's own children, not as a sibling in
@@ -138,6 +174,12 @@ class _AppLocationPickerPageState extends State<AppLocationPickerPage> {
             IgnorePointer(
               child: Center(child: Icon(Icons.add_rounded, size: 28, color: cs.error.withValues(alpha: 0.85))),
             ),
+            if (!widget.viewOnly && _mapReady)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: AppMapRotationResetButton(mapController: _mapController),
+              ),
             if (_locationError != null)
               Positioned(
                 left: 16,
@@ -168,6 +210,7 @@ class _AppLocationPickerPageState extends State<AppLocationPickerPage> {
                 child: _BottomPanel(
                   markedLocation: _markedLocation,
                   isLocating: _isLocating,
+                  compact: MediaQuery.orientationOf(context) == Orientation.landscape,
                   onCurrentLocation: () => _locateMe(),
                   onMarkLocation: _markLocation,
                   onProceed: _markedLocation == null ? null : _proceed,
@@ -219,6 +262,7 @@ class _BottomPanel extends StatelessWidget {
   const _BottomPanel({
     required this.markedLocation,
     required this.isLocating,
+    required this.compact,
     required this.onCurrentLocation,
     required this.onMarkLocation,
     required this.onProceed,
@@ -226,6 +270,7 @@ class _BottomPanel extends StatelessWidget {
 
   final LatLng? markedLocation;
   final bool isLocating;
+  final bool compact;
   final VoidCallback onCurrentLocation;
   final VoidCallback onMarkLocation;
   final VoidCallback? onProceed;
@@ -236,65 +281,73 @@ class _BottomPanel extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final marked = markedLocation;
 
+    final coordinateRow = Row(
+      children: [
+        Icon(
+          marked != null ? Icons.location_on_rounded : Icons.location_searching_rounded,
+          size: 18,
+          color: marked != null ? cs.primary : cs.onSurface.withValues(alpha: 0.5),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            marked != null
+                ? '${marked.latitude.toStringAsFixed(6)}, ${marked.longitude.toStringAsFixed(6)}'
+                : 'Pan the map, then tap Mark Location',
+            maxLines: compact ? 1 : 2,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: marked != null ? cs.onSurface : cs.onSurface.withValues(alpha: 0.5),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final actionButtons = Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: isLocating ? null : onCurrentLocation,
+            icon: isLocating
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.my_location_rounded, size: 18),
+            label: Text(compact ? 'Current' : 'Current Location'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: onMarkLocation,
+            icon: const Icon(Icons.push_pin_outlined, size: 18),
+            label: Text(compact ? 'Mark' : 'Mark Location'),
+          ),
+        ),
+      ],
+    );
+
+    final proceedButton = SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: FilledButton(onPressed: onProceed, child: const Text('Proceed')),
+    );
+
     return Material(
       color: cs.surface,
       elevation: 8,
       borderRadius: BorderRadius.circular(20),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        padding: EdgeInsets.fromLTRB(16, compact ? 12 : 14, 16, compact ? 12 : 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Icon(
-                  marked != null ? Icons.location_on_rounded : Icons.location_searching_rounded,
-                  size: 18,
-                  color: marked != null ? cs.primary : cs.onSurface.withValues(alpha: 0.5),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    marked != null
-                        ? '${marked.latitude.toStringAsFixed(6)}, ${marked.longitude.toStringAsFixed(6)}'
-                        : 'Pan the map, then tap Mark Location',
-                    style: textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: marked != null ? cs.onSurface : cs.onSurface.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: isLocating ? null : onCurrentLocation,
-                    icon: isLocating
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.my_location_rounded, size: 18),
-                    label: const Text('Current Location'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onMarkLocation,
-                    icon: const Icon(Icons.push_pin_outlined, size: 18),
-                    label: const Text('Mark Location'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: FilledButton(onPressed: onProceed, child: const Text('Proceed')),
-            ),
+            coordinateRow,
+            SizedBox(height: compact ? 8 : 12),
+            actionButtons,
+            SizedBox(height: compact ? 8 : 10),
+            proceedButton,
           ],
         ),
       ),

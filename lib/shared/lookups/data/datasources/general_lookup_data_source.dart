@@ -35,5 +35,11 @@ abstract class GeneralLookupDataSource {
 
   Future<List<GeneralModel>> fetchPhases();
 
+  Future<List<GeneralModel>> fetchPhasesByBillboard();
+
+  Future<List<GeneralModel>> fetchBillboardTypes();
+
+  Future<List<GeneralModel>> fetchAssetOwnerTypes();
+
   Future<List<GeneralModel>> getYesNo();
 }

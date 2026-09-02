@@ -158,6 +158,7 @@ class _PremiseBusinessActivitySheetBodyState extends ConsumerState<_PremiseBusin
       title: 'Business Type',
       loadOptions: () => ref.read(premiseBusinessTypesProvider.future),
       label: generalLookupLabel,
+      searchable: true,
       isSelected: (item) => _businessTypeController.text.trim() == generalLookupLabel(item).trim(),
       empty: const AppListEmptyConfig(
         icon: Icons.storefront_outlined,

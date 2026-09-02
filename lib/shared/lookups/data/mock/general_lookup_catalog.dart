@@ -209,6 +209,21 @@ class GeneralLookupCatalog {
     GeneralModel(code: 'P3', desc: 'Phase 3'),
   ];
 
+  static const billboardTypes = <GeneralModel>[
+    GeneralModel(code: 'BBT01', desc: 'Bunting'),
+    GeneralModel(code: 'BBT02', desc: 'Gantry'),
+    GeneralModel(code: 'BBT03', desc: 'Billboard'),
+    GeneralModel(code: 'BBT04', desc: 'Signboard'),
+    GeneralModel(code: 'BBT05', desc: 'LED Screen'),
+  ];
+
+  static const assetOwnerTypes = <GeneralModel>[
+    GeneralModel(code: 'AOT01', desc: 'Dewan Bandaraya Kuala Lumpur'),
+    GeneralModel(code: 'AOT02', desc: 'Private Owner'),
+    GeneralModel(code: 'AOT03', desc: 'Jabatan Kerja Raya'),
+    GeneralModel(code: 'AOT04', desc: 'Tenaga Nasional Berhad'),
+  ];
+
   static const yesNo = <GeneralModel>[GeneralModel(code: 'Y', desc: 'Yes'), GeneralModel(code: 'N', desc: 'No')];
 
   static List<GeneralModel> filterByParent(List<GeneralModel> items, String? parentCode) {

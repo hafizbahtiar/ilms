@@ -36,8 +36,8 @@ class BillboardFormMapper {
         isLedBoard: _isYes(details['is_led_board']),
         isLight: _isYes(details['is_light']),
         isPotential: _isYes(details['is_potential']),
-        hordingStartDate: _nullableString(details['hording_start_date']),
-        hordingCompleteDate: _nullableString(details['hording_complete_date']),
+        hoardingStartDate: _nullableString(details['hording_start_date']),
+        hoardingCompleteDate: _nullableString(details['hording_complete_date']),
       ),
       location: BillboardLocation(
         mediaClientName: _nullableString(location['media_client_name']),

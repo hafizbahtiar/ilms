@@ -77,5 +77,14 @@ class MockGeneralLookupDataSource implements GeneralLookupDataSource {
   Future<List<GeneralModel>> fetchPhases() async => GeneralLookupCatalog.phases;
 
   @override
+  Future<List<GeneralModel>> fetchPhasesByBillboard() async => GeneralLookupCatalog.phases;
+
+  @override
+  Future<List<GeneralModel>> fetchBillboardTypes() async => GeneralLookupCatalog.billboardTypes;
+
+  @override
+  Future<List<GeneralModel>> fetchAssetOwnerTypes() async => GeneralLookupCatalog.assetOwnerTypes;
+
+  @override
   Future<List<GeneralModel>> getYesNo() async => GeneralLookupCatalog.yesNo;
 }

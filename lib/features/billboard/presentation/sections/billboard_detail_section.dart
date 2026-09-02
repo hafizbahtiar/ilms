@@ -49,8 +49,8 @@ class BillboardDetailSection extends ConsumerWidget {
           children: [
             Expanded(
               child: AppPickerField<DateTime>(
-                label: 'Hording Start Date',
-                controller: fields.hordingStartDate,
+                label: 'Hoarding Start Date',
+                controller: fields.hoardingStartDate,
                 enabled: !readOnly,
                 suffixIcon: Icons.calendar_month_outlined,
                 onTap: () => _pickDate(context, fields, controller, isStart: true),
@@ -59,8 +59,8 @@ class BillboardDetailSection extends ConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: AppPickerField<DateTime>(
-                label: 'Hording Complete Date',
-                controller: fields.hordingCompleteDate,
+                label: 'Hoarding Complete Date',
+                controller: fields.hoardingCompleteDate,
                 enabled: !readOnly,
                 suffixIcon: Icons.calendar_month_outlined,
                 onTap: () => _pickDate(context, fields, controller, isStart: false),
@@ -109,7 +109,7 @@ class BillboardDetailSection extends ConsumerWidget {
   }
 
   Future<void> _pickDate(BuildContext context, dynamic fields, dynamic controller, {required bool isStart}) async {
-    final current = isStart ? fields.hordingStartDate.text : fields.hordingCompleteDate.text;
+    final current = isStart ? fields.hoardingStartDate.text : fields.hoardingCompleteDate.text;
     final initialDate = DateTime.tryParse(current) ?? DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -121,11 +121,11 @@ class BillboardDetailSection extends ConsumerWidget {
 
     final formatted = formatIsoDate(picked);
     if (isStart) {
-      fields.hordingStartDate.text = formatted;
-      controller.setHordingStartDate(formatted);
+      fields.hoardingStartDate.text = formatted;
+      controller.setHoardingStartDate(formatted);
     } else {
-      fields.hordingCompleteDate.text = formatted;
-      controller.setHordingCompleteDate(formatted);
+      fields.hoardingCompleteDate.text = formatted;
+      controller.setHoardingCompleteDate(formatted);
     }
   }
 }

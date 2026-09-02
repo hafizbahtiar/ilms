@@ -11,6 +11,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     AppPreferences.reset();
     await AppPreferences.init();
+    await AppConfig.init(flavor: AppFlavor.dev);
+    DioClient.create(AppConfig.instance);
   });
 
   tearDown(() {

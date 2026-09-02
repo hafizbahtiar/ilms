@@ -18,10 +18,11 @@ class AppImageSource {
     bool enableLoadState = true,
     bool enableSlideOutPage = false,
     Color? failedColor,
+    String? failedAsset,
   }) {
     final gestureHandler = gestureConfig == null ? null : (_) => gestureConfig;
     final Widget? Function(ExtendedImageState)? loadStateChanged = enableLoadState
-        ? (state) => _loadStateChanged(state, failedColor)
+        ? (state) => _loadStateChanged(state, failedColor: failedColor, failedAsset: failedAsset, fit: fit)
         : null;
 
     if (item.bytes != null && item.bytes!.isNotEmpty) {
@@ -88,19 +89,28 @@ class AppImageSource {
   /// [failedColor] overrides the failure state's background (default dark
   /// grey) — e.g. a per-item color so a broken thumbnail still reads as
   /// "this item" instead of a uniform grey box everywhere.
-  static Widget thumbnail(AppImageItem item, {BoxFit fit = BoxFit.cover, Color? failedColor}) {
-    return extendedImage(item, fit: fit, enableLoadState: true, failedColor: failedColor);
+  static Widget thumbnail(
+    AppImageItem item, {
+    BoxFit fit = BoxFit.cover,
+    Color? failedColor,
+    String? failedAsset,
+  }) {
+    return extendedImage(item, fit: fit, enableLoadState: true, failedColor: failedColor, failedAsset: failedAsset);
   }
 
-  static Widget? _loadStateChanged(ExtendedImageState state, Color? failedColor) {
+  static Widget? _loadStateChanged(
+    ExtendedImageState state, {
+    Color? failedColor,
+    String? failedAsset,
+    BoxFit fit = BoxFit.cover,
+  }) {
     return switch (state.extendedImageLoadState) {
       LoadState.loading => const Center(child: CircularProgressIndicator.adaptive()),
-      // A caller-supplied [failedColor] means the fallback is an intentional,
-      // purely-visual placeholder (e.g. a per-item color swatch) — no retry
-      // affordance needed there. Without one, this is the generic
-      // broken-image case, where tap-to-retry is the useful behavior.
-      LoadState.failed =>
-        failedColor != null ? ColoredBox(color: failedColor) : _RetryableBrokenImage(onRetry: state.reLoadImage),
+      LoadState.failed => failedAsset != null
+          ? Image.asset(failedAsset, fit: fit, width: double.infinity, height: double.infinity)
+          : failedColor != null
+          ? ColoredBox(color: failedColor)
+          : _RetryableBrokenImage(onRetry: state.reLoadImage),
       LoadState.completed => null,
     };
   }

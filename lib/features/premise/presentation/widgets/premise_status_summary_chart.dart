@@ -59,7 +59,7 @@ class PremiseStatusSummaryChart extends ConsumerWidget {
               Expanded(
                 child: Text(
                   "Today's Status Summary",
-                  style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: cs.primary),
+                  style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: cs.onPrimaryContainer),
                 ),
               ),
               // Data is cached locally once fetched — this is the only way
@@ -121,10 +121,7 @@ class _LoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 120,
-      child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
-    );
+    return const SizedBox(height: 120, child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)));
   }
 }
 
@@ -144,10 +141,7 @@ class _ErrorState extends StatelessWidget {
           children: [
             Icon(Icons.error_outline, size: 18, color: cs.error),
             const SizedBox(width: 8),
-            Text(
-              'Unable to load status summary.',
-              style: textTheme.bodySmall?.copyWith(color: cs.error),
-            ),
+            Text('Unable to load status summary.', style: textTheme.bodySmall?.copyWith(color: cs.error)),
           ],
         ),
       ),
@@ -173,7 +167,10 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               'No visits recorded today',
-              style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: cs.onSurface.withValues(alpha: 0.7)),
+              style: textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface.withValues(alpha: 0.7),
+              ),
             ),
             const SizedBox(height: 2),
             Text(
@@ -228,10 +225,7 @@ class _SummaryContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'Total: ${summary.total}',
-                style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
-              ),
+              Text('Total: ${summary.total}', style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               Wrap(
                 spacing: 10,

@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../config/app_config.dart';
 import 'api_client.dart';
+import 'api_logging_interceptor.dart';
 import 'auth_interceptor.dart';
 import 'network_exception.dart';
 
@@ -11,6 +13,8 @@ class DioClient implements ApiClient {
   final Dio dio;
 
   static DioClient? _instance;
+
+  static DioClient? get maybeInstance => _instance;
 
   static DioClient get instance {
     final client = _instance;
@@ -24,15 +28,22 @@ class DioClient implements ApiClient {
     final dio = Dio(
       BaseOptions(
         baseUrl: config.baseUrl,
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
-        headers: const {'Accept': 'application/json', 'Content-Type': 'application/json'},
+        connectTimeout: const Duration(seconds: 90),
+        receiveTimeout: const Duration(seconds: 90),
+        sendTimeout: const Duration(seconds: 90),
+        headers: const {'Accept': 'application/json'},
       ),
     );
 
     final client = DioClient(dio);
-    dio.interceptors.insert(0, AuthInterceptor(client));
+    dio.interceptors.addAll(buildDioInterceptors(client, verboseLogging: kDebugMode));
     return _instance = client;
+  }
+
+  /// [verboseLogging] gates request/response body logging (debug only).
+  @visibleForTesting
+  static List<Interceptor> buildDioInterceptors(DioClient client, {required bool verboseLogging}) {
+    return [AuthInterceptor(client), if (verboseLogging) ApiLoggingInterceptor()];
   }
 
   static void reset() {

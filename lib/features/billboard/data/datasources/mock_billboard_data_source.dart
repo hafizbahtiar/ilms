@@ -1,6 +1,7 @@
 import 'package:ilms/features/billboard/data/models/billboard_submit_payload_model.dart';
 import 'package:ilms/features/billboard/domain/entities/billboard_form.dart';
 import 'package:ilms/features/billboard/domain/entities/billboard_submit_result.dart';
+import 'package:ilms/shared/models/general_model.dart';
 
 import 'billboard_data_source.dart';
 
@@ -34,6 +35,7 @@ class MockBillboardDataSource implements BillboardDataSource {
     required String billboardNo,
     required String localPath,
     String process = 'create',
+    int seq = 1,
     void Function(double progress)? onProgress,
   }) async {
     for (var i = 1; i <= 5; i++) {
@@ -45,5 +47,15 @@ class MockBillboardDataSource implements BillboardDataSource {
   @override
   Future<void> deletePhoto({required String photoId}) async {
     await Future<void>.delayed(const Duration(milliseconds: 150));
+  }
+
+  @override
+  Future<List<GeneralModel>> fetchRemarkOptions() async {
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    return const [
+      GeneralModel(code: 'PROJEK_TERBENGKALAI', desc: 'PROJEK TERBENGKALAI'),
+      GeneralModel(code: 'TIADA_PAPAN_CADANGAN', desc: 'TIADA PAPAN CADANGAN'),
+      GeneralModel(code: 'OTHERS', desc: 'Others'),
+    ];
   }
 }

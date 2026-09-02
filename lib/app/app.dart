@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ilms/core/services/crash_log/crash_log_providers.dart';
 
 import 'router/app_router.dart';
+import 'theme/app_text_scale.dart';
 import 'theme/app_theme.dart';
+import 'theme/text_scale.dart';
+import 'theme/text_scale_controller.dart';
 import 'theme/theme_mode_controller.dart';
 import '../features/auth/presentation/controllers/auth_state.dart';
 import '../features/auth/presentation/providers/auth_providers.dart';
@@ -37,6 +40,10 @@ class _AppState extends ConsumerState<App> {
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeControllerProvider);
+    final textScale = ref.watch(textScaleControllerProvider);
+    final textScaleFactor = appTextScaleFactor(textScale);
+    final lightTheme = AppTheme.lightFor(textScale: textScaleFactor);
+    final darkTheme = AppTheme.darkFor(textScale: textScaleFactor);
 
     // The lookup endpoints require auth — only warm them up once a token
     // actually exists (auto-login success, or a later manual login), never
@@ -57,9 +64,14 @@ class _AppState extends ConsumerState<App> {
 
     if (!_ready) {
       return MaterialApp(
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
+        theme: lightTheme,
+        darkTheme: darkTheme,
         themeMode: themeMode,
+        builder: (context, child) => wrapWithTextScale(
+          appScale: textScale,
+          mediaQuery: MediaQuery.of(context),
+          child: child ?? const SizedBox.shrink(),
+        ),
         home: const Scaffold(body: Center(child: CircularProgressIndicator.adaptive())),
       );
     }
@@ -68,9 +80,14 @@ class _AppState extends ConsumerState<App> {
 
     return MaterialApp.router(
       title: 'ILMS',
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      theme: lightTheme,
+      darkTheme: darkTheme,
       themeMode: themeMode,
+      builder: (context, child) => wrapWithTextScale(
+        appScale: textScale,
+        mediaQuery: MediaQuery.of(context),
+        child: child ?? const SizedBox.shrink(),
+      ),
       routerConfig: router,
     );
   }

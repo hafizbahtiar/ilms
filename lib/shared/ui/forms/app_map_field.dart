@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:ilms/shared/ui/map/app_current_location.dart';
 import 'package:ilms/shared/ui/map/app_location_picker_page.dart';
-import 'package:ilms/shared/ui/map/app_map_tile_layer.dart';
+import 'package:ilms/shared/ui/map/app_map_limits.dart';
+import 'package:ilms/shared/ui/map/app_map_view.dart';
 import 'package:latlong2/latlong.dart';
 
 /// Reusable map coordinate field for forms — empty tap-to-pick state and a
@@ -304,14 +305,13 @@ class _MapPreview extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              FlutterMap(
-                options: MapOptions(
-                  initialCenter: location,
-                  initialZoom: 16,
-                  interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
-                ),
-                children: [
-                  const AppMapTileLayer(),
+              AppMapView(
+                center: location,
+                zoom: AppMapLimits.previewZoom,
+                interactionFlags: AppMapView.previewFlags,
+                instantTiles: true,
+                highDensityTiles: false,
+                layers: [
                   MarkerLayer(
                     markers: [
                       Marker(

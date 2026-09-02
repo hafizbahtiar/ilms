@@ -57,7 +57,7 @@ class BillboardActivitySummary extends ConsumerWidget {
               Expanded(
                 child: Text(
                   "Today's Activity Summary",
-                  style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: cs.primary),
+                  style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: cs.onPrimaryContainer),
                 ),
               ),
               _RefreshButton(

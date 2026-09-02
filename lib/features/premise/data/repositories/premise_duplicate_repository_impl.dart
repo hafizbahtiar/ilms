@@ -14,6 +14,9 @@ class PremiseDuplicateRepositoryImpl implements PremiseDuplicateRepository {
   final PremiseDraftRepository _draftRepository;
 
   @override
+  void cancelSearch() => _remote.cancelSearch();
+
+  @override
   Future<int> createDraftFromRecord(String visitNo) async {
     final check = await _remote.checkCanDuplicate(visitNo);
     if (!check.canDuplicate) {

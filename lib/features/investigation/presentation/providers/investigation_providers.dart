@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ilms/core/network/dio_client.dart';
+import 'package:ilms/core/network/dio_client_provider.dart';
 import 'package:ilms/features/investigation/data/datasources/api_investigation_data_source.dart';
 import 'package:ilms/features/investigation/data/datasources/api_investigation_detail_remote_data_source.dart';
 import 'package:ilms/features/investigation/data/datasources/investigation_data_source.dart';
@@ -10,17 +10,17 @@ import 'package:ilms/features/investigation/domain/repositories/investigation_de
 import 'package:ilms/features/investigation/domain/repositories/investigation_repository.dart';
 
 final investigationDataSourceProvider = Provider<InvestigationDataSource>((ref) {
-  return ApiInvestigationDataSource(DioClient.instance);
+  return ApiInvestigationDataSource(ref.watch(dioClientProvider));
 });
 
 final investigationRepositoryProvider = Provider<InvestigationRepository>((ref) {
-  return InvestigationRepositoryImpl(ref.read(investigationDataSourceProvider));
+  return InvestigationRepositoryImpl(ref.watch(investigationDataSourceProvider));
 });
 
 final investigationDetailRemoteDataSourceProvider = Provider<InvestigationDetailRemoteDataSource>((ref) {
-  return ApiInvestigationDetailRemoteDataSource(DioClient.instance);
+  return ApiInvestigationDetailRemoteDataSource(ref.watch(dioClientProvider));
 });
 
 final investigationDetailRepositoryProvider = Provider<InvestigationDetailRepository>((ref) {
-  return InvestigationDetailRepositoryImpl(ref.read(investigationDetailRemoteDataSourceProvider));
+  return InvestigationDetailRepositoryImpl(ref.watch(investigationDetailRemoteDataSourceProvider));
 });

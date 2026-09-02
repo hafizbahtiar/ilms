@@ -1,27 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:ilms/shared/models/general_model.dart';
 
-/// Standard picker label. Prefers the server-provided `display` (e.g.
-/// `"O : OTHER"` for remarks, which is keyed by [GeneralModel.type], not
-/// [GeneralModel.code]) and only falls back to composing `CODE : Description`
-/// for lookups the API doesn't send a display string for (e.g. mock data).
+/// Standard picker label.
+///
+/// Priority:
+/// 1. [GeneralModel.apiDisplay] when the API sends `display` (e.g. `"O : OTHER"`)
+/// 2. [GeneralModel.desc] for user-facing text
+/// 3. [GeneralModel.code] as a last-resort fallback
+///
+/// Callers should still persist/send [GeneralModel.code] — this is display only.
 String generalLookupLabel(GeneralModel option) {
+  final apiDisplay = option.apiDisplay?.trim();
+  if (apiDisplay != null && apiDisplay.isNotEmpty) return apiDisplay;
+
+  final desc = option.desc?.trim();
+  if (desc != null && desc.isNotEmpty) return desc;
+
+  return option.code?.trim() ?? '';
+}
+
+/// Same as [generalLookupLabel] but nullable for filter rows / chips.
+String? generalLookupDisplay(GeneralModel? option) {
+  if (option == null) return null;
+  final label = generalLookupLabel(option);
+  return label.isEmpty ? null : label;
+}
+
+/// Postcode picker shows `50000 - Kuala Lumpur` when city differs from code.
+/// When [GeneralModel.apiDisplay] is set, or code/desc are identical, shows a
+/// single value instead of `51000 - 51000`.
+String generalPostcodeLabel(GeneralModel option) {
   final apiDisplay = option.apiDisplay?.trim();
   if (apiDisplay != null && apiDisplay.isNotEmpty) return apiDisplay;
 
   final code = option.code?.trim();
   final desc = option.desc?.trim();
-  if (code != null && code.isNotEmpty && desc != null && desc.isNotEmpty) {
-    return '$code : $desc';
-  }
-  return desc ?? code ?? '';
-}
 
-/// Postcode picker shows `50000 - Kuala Lumpur` style labels.
-String generalPostcodeLabel(GeneralModel option) {
-  final code = option.code?.trim();
-  final desc = option.desc?.trim();
-  if (code != null && desc != null) return '$code - $desc';
+  if (code != null && code.isNotEmpty && desc != null && desc.isNotEmpty) {
+    if (code == desc) return desc;
+    return '$code - $desc';
+  }
+
   return code ?? desc ?? '';
 }
 

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'app_fonts.dart';
+import 'app_typography.dart';
+
 class AppTheme {
   static const navy = Color(0xFF001871);
   static const yellow = Color(0xFFFFE600);
@@ -10,30 +13,44 @@ class AppTheme {
   static const _ink = Color(0xFF111827);
   static const _lightSurface = Color(0xFFF7F9FD);
   static const _lightBackground = Color(0xFFF3F5FB);
-  static const _darkSurface = Color(0xFF0C1430);
-  static const _darkBackground = Color(0xFF081022);
 
-  static ThemeData get light => _build(Brightness.light);
+  /// Cool charcoal — night sky, not a navy-painted room.
+  static const _night = Color(0xFF12151C);
+  static const _panel = Color(0xFF181C26);
+  static const _plate = Color(0xFF252A38);
+  static const _tile = Color(0xFF333A4C);
+  static const _ridge = Color(0xFF3C4458);
+  static const _hairline = Color(0xFF4A5266);
+  static const _mist = Color(0xFFE8EBF2);
 
-  static ThemeData get dark => _build(Brightness.dark);
+  static ThemeData get light => lightFor();
 
-  static ThemeData _build(Brightness brightness) {
+  static ThemeData get dark => darkFor();
+
+  static ThemeData lightFor({double textScale = 1.0}) => _build(Brightness.light, textScale: textScale);
+
+  static ThemeData darkFor({double textScale = 1.0}) => _build(Brightness.dark, textScale: textScale);
+
+  static ThemeData _build(Brightness brightness, {double textScale = 1.0}) {
     final isLight = brightness == Brightness.light;
-    final onSurface = isLight ? _ink : const Color(0xFFF3F5FB);
-    final surface = isLight ? _lightSurface : _darkSurface;
-    final background = isLight ? _lightBackground : _darkBackground;
-    final cardColor = isLight ? Colors.white : const Color(0xFF111A3A);
-    final outline = isLight ? const Color(0xFF9AA4C2) : const Color(0xFF4B5678);
+    final onSurface = isLight ? _ink : _mist;
+    final surface = isLight ? _lightSurface : _panel;
+    final background = isLight ? _lightBackground : _night;
+    final cardColor = isLight ? Colors.white : _plate;
+    final outline = isLight ? const Color(0xFF9AA4C2) : const Color(0xFF8B93A5);
+    // 60/30/10: charcoal carries the UI, navy is the banner, yellow is the lamp.
+    final interactive = isLight ? navy : yellow;
+    final onInteractive = isLight ? Colors.white : Colors.black;
 
     final colorScheme = ColorScheme(
       brightness: brightness,
       primary: navy,
       onPrimary: Colors.white,
-      primaryContainer: isLight ? const Color(0xFFD6DEFF) : const Color(0xFF1A2A6B),
-      onPrimaryContainer: isLight ? navy : Colors.white,
+      primaryContainer: isLight ? const Color(0xFFD6DEFF) : const Color(0xFF1E2A44),
+      onPrimaryContainer: isLight ? navy : _mist,
       secondary: yellow,
       onSecondary: Colors.black,
-      secondaryContainer: isLight ? const Color(0xFFFFF6B0) : const Color(0xFF4A4300),
+      secondaryContainer: isLight ? const Color(0xFFFFF6B0) : const Color(0xFF3D3800),
       onSecondaryContainer: isLight ? _ink : yellow,
       tertiary: isLight ? success : successDark,
       onTertiary: isLight ? onSuccessLight : onSuccessDark,
@@ -43,35 +60,42 @@ class AppTheme {
       onError: isLight ? Colors.white : const Color(0xFF601410),
       surface: surface,
       onSurface: onSurface,
+      surfaceContainerLowest: background,
+      surfaceContainerLow: isLight ? const Color(0xFFEEF2F8) : const Color(0xFF1E232E),
+      surfaceContainer: isLight ? _lightSurface : cardColor,
+      surfaceContainerHigh: isLight ? Colors.white : _tile,
+      surfaceContainerHighest: isLight ? Colors.white : _ridge,
       outline: outline,
-      outlineVariant: isLight ? const Color(0xFFD5DBEA) : const Color(0xFF2A3458),
+      outlineVariant: isLight ? const Color(0xFFD5DBEA) : _hairline,
     );
 
     final radius = BorderRadius.circular(14);
     final buttonShape = RoundedRectangleBorder(borderRadius: radius);
-
-    // The app bar's background isn't always `colorScheme.primary` (dark mode
-    // uses `_darkSurface` instead, to sit closer to the rest of the dark
-    // chrome) — so its foreground has to be picked per-branch to match
-    // whichever background is actually in play, rather than a bare
-    // `Colors.white` that happened to read fine on both today but isn't
-    // actually tied to either.
     final appBarForeground = isLight ? colorScheme.onPrimary : onSurface;
+    final textTheme = AppFonts.poppinsTextTheme(
+      AppTypography.textTheme(brightness: brightness, onSurface: onSurface, scale: textScale),
+    );
+    final fontFamily = AppFonts.primaryFamilyName;
 
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
+      fontFamily: fontFamily,
+      textTheme: textTheme,
+      primaryTextTheme: textTheme,
       scaffoldBackgroundColor: background,
       splashColor: yellow.withValues(alpha: 0.16),
-      highlightColor: navy.withValues(alpha: 0.08),
+      highlightColor: interactive.withValues(alpha: 0.12),
       dividerColor: colorScheme.outlineVariant,
       appBarTheme: AppBarTheme(
-        backgroundColor: isLight ? navy : _darkSurface,
+        backgroundColor: isLight ? navy : _panel,
         foregroundColor: appBarForeground,
         centerTitle: true,
         elevation: 0,
         iconTheme: IconThemeData(color: appBarForeground),
+        titleTextStyle: textTheme.titleLarge?.copyWith(color: appBarForeground),
+        toolbarTextStyle: textTheme.titleMedium?.copyWith(color: appBarForeground),
       ),
       cardTheme: CardThemeData(
         color: cardColor,
@@ -80,12 +104,9 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: navy,
-          foregroundColor: colorScheme.onPrimary,
+          backgroundColor: interactive,
+          foregroundColor: onInteractive,
           disabledBackgroundColor: outline,
-          // Was a bare Colors.white — poor contrast against the light-mode
-          // `outline` background (a light blue-gray). Material's disabled
-          // convention (dimmed onSurface) reads correctly in both themes.
           disabledForegroundColor: onSurface.withValues(alpha: 0.38),
           minimumSize: const Size.fromHeight(48),
           shape: buttonShape,
@@ -101,14 +122,14 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: navy,
-          side: const BorderSide(color: navy, width: 1.5),
+          foregroundColor: interactive,
+          side: BorderSide(color: interactive, width: 1.5),
           minimumSize: const Size.fromHeight(48),
           shape: buttonShape,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: navy, shape: buttonShape),
+        style: TextButton.styleFrom(foregroundColor: interactive, shape: buttonShape),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: yellow,
@@ -126,7 +147,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: radius,
-          borderSide: const BorderSide(color: navy, width: 1.8),
+          borderSide: BorderSide(color: interactive, width: 1.8),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: radius,
@@ -143,35 +164,36 @@ class AppTheme {
       ),
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return navy;
+          if (states.contains(WidgetState.selected)) return interactive;
           return Colors.transparent;
         }),
-        checkColor: WidgetStatePropertyAll(colorScheme.onPrimary),
+        checkColor: WidgetStatePropertyAll(onInteractive),
         side: BorderSide(color: outline, width: 1.5),
       ),
       radioTheme: RadioThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return navy;
+          if (states.contains(WidgetState.selected)) return interactive;
           return outline;
         }),
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return yellow;
+          if (states.contains(WidgetState.selected)) {
+            return isLight ? yellow : navy;
+          }
           return Colors.white;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return navy;
+          if (states.contains(WidgetState.selected)) {
+            return isLight ? navy : yellow;
+          }
           return outline;
         }),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: isLight ? const Color(0xFFE8EDFF) : const Color(0xFF1A2A6B),
+        backgroundColor: isLight ? const Color(0xFFE8EDFF) : _tile,
         selectedColor: yellow,
         labelStyle: TextStyle(color: onSurface, fontWeight: FontWeight.w600),
-        // Used for the label once a chip is `selected` (bg swaps to
-        // `selectedColor` = yellow/secondary) — must pair with onSecondary,
-        // not a bare black, to actually stay correct if secondary ever does.
         secondaryLabelStyle: TextStyle(color: colorScheme.onSecondary, fontWeight: FontWeight.w600),
         side: BorderSide.none,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -182,7 +204,6 @@ class AppTheme {
         labelTextStyle: WidgetStatePropertyAll(TextStyle(color: onSurface, fontWeight: FontWeight.w600)),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            // Selected icon sits on `indicatorColor` (yellow/secondary).
             return IconThemeData(color: colorScheme.onSecondary);
           }
           return IconThemeData(color: onSurface);
@@ -190,7 +211,7 @@ class AppTheme {
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: cardColor,
-        selectedItemColor: navy,
+        selectedItemColor: interactive,
         unselectedItemColor: outline,
         type: BottomNavigationBarType.fixed,
       ),
@@ -206,7 +227,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       dividerTheme: DividerThemeData(color: colorScheme.outlineVariant, space: 1),
-      progressIndicatorTheme: const ProgressIndicatorThemeData(color: navy),
+      progressIndicatorTheme: ProgressIndicatorThemeData(color: interactive),
       iconTheme: IconThemeData(color: onSurface),
     );
   }

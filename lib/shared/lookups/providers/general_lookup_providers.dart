@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ilms/core/local/database/app_database.dart';
-import 'package:ilms/core/network/dio_client.dart';
+import 'package:ilms/core/network/dio_client_provider.dart';
 import 'package:ilms/shared/lookups/data/datasources/api_general_lookup_data_source.dart';
 import 'package:ilms/shared/lookups/data/datasources/general_lookup_data_source.dart';
 import 'package:ilms/shared/lookups/data/repositories/general_lookup_repository_impl.dart';
@@ -10,14 +10,11 @@ import 'package:ilms/shared/models/general_model.dart';
 export 'package:ilms/shared/lookups/lookup_labels.dart';
 
 final generalLookupDataSourceProvider = Provider<GeneralLookupDataSource>((ref) {
-  return ApiGeneralLookupDataSource(DioClient.instance);
+  return ApiGeneralLookupDataSource(ref.watch(dioClientProvider));
 });
 
 final generalLookupRepositoryProvider = Provider<GeneralLookupRepository>((ref) {
-  return GeneralLookupRepositoryImpl(
-    ref.read(generalLookupDataSourceProvider),
-    AppDatabase.instance,
-  );
+  return GeneralLookupRepositoryImpl(ref.watch(generalLookupDataSourceProvider), AppDatabase.instance);
 });
 
 /// Kicks off the commonly-used lookups concurrently in the background

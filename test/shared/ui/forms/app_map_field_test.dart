@@ -56,6 +56,33 @@ void main() {
       expect(find.byType(FlutterMap), findsOneWidget);
     });
 
+    testWidgets('preview recenters when location is updated', (tester) async {
+      const first = LatLng(3.139012, 101.686901);
+      const second = LatLng(3.150000, 101.700000);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(child: SizedBox(width: 360, child: _EditableLocationHarness())),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Set first'));
+      await tester.pumpAndSettle();
+
+      final firstMap = tester.widget<FlutterMap>(find.byType(FlutterMap));
+      expect(firstMap.options.initialCenter, first);
+
+      await tester.tap(find.text('Set second'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('3.150000, 101.700000'), findsOneWidget);
+      final secondMap = tester.widget<FlutterMap>(find.byType(FlutterMap));
+      expect(secondMap.options.initialCenter, second);
+      expect(secondMap.key, isNot(equals(firstMap.key)));
+    });
+
     testWidgets('clear button removes location', (tester) async {
       LatLng? current = const LatLng(3.139012, 101.686901);
 
@@ -77,6 +104,37 @@ void main() {
       expect(find.text('Current Location'), findsOneWidget);
     });
   });
+}
+
+class _EditableLocationHarness extends StatefulWidget {
+  @override
+  State<_EditableLocationHarness> createState() => _EditableLocationHarnessState();
+}
+
+class _EditableLocationHarnessState extends State<_EditableLocationHarness> {
+  LatLng? _location;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppMapField(
+          label: 'Map Location',
+          location: _location,
+          onChanged: (picked) => setState(() => _location = picked),
+        ),
+        TextButton(
+          onPressed: () => setState(() => _location = const LatLng(3.139012, 101.686901)),
+          child: const Text('Set first'),
+        ),
+        TextButton(
+          onPressed: () => setState(() => _location = const LatLng(3.15, 101.7)),
+          child: const Text('Set second'),
+        ),
+      ],
+    );
+  }
 }
 
 class _LocationHarness extends StatefulWidget {

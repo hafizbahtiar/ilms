@@ -4,9 +4,11 @@ import 'package:dio/dio.dart';
 import 'package:ilms/core/network/api_response_helper.dart';
 import 'package:ilms/core/network/dio_client.dart';
 import 'package:ilms/core/network/form_data_builder.dart';
+import 'package:ilms/features/billboard/data/models/billboard_photo_upload_request.dart';
 import 'package:ilms/features/billboard/data/models/billboard_submit_payload_model.dart';
 import 'package:ilms/features/billboard/domain/entities/billboard_form.dart';
 import 'package:ilms/features/billboard/domain/entities/billboard_submit_result.dart';
+import 'package:ilms/shared/models/general_model.dart';
 
 import 'billboard_data_source.dart';
 
@@ -39,6 +41,7 @@ class ApiBillboardDataSource implements BillboardDataSource {
     required String billboardNo,
     required String localPath,
     String process = 'create',
+    int seq = 1,
     void Function(double progress)? onProgress,
   }) async {
     final file = File(localPath);
@@ -47,10 +50,7 @@ class ApiBillboardDataSource implements BillboardDataSource {
     }
 
     final bytes = await file.readAsBytes();
-    // Legacy `CreateBillboardPhotoInput` sends the owning record under the
-    // key `photo_url` (not `billboard_no`) — preserved as-is to match the
-    // real API contract (see ilms_flutter `create_billboard_photo_input.dart`).
-    final body = <String, dynamic>{'photo_url': billboardNo, 'photo': bytes, 'is_default': 'Y'};
+    final body = BillboardPhotoUploadRequest.toMap(billboardNo: billboardNo, process: process, seq: seq, file: bytes);
 
     try {
       final formData = await _formDataBuilder.fromMap(body);
@@ -93,6 +93,26 @@ class ApiBillboardDataSource implements BillboardDataSource {
       rethrow;
     } on DioException catch (error) {
       throw ApiResponseException(extractDioErrorMessage(error) ?? 'Failed to delete photo.');
+    }
+  }
+
+  @override
+  Future<List<GeneralModel>> fetchRemarkOptions() async {
+    try {
+      final payload = await DioClient.instance.get<Map<String, dynamic>>('/api/billboardCensus/remarkOptions');
+      final message = payload['message'];
+      final options = message is Map ? message['options'] as List? : null;
+      return options
+              ?.map((item) {
+                if (item is! Map) return null;
+                final map = Map<String, dynamic>.from(item);
+                return GeneralModel(code: map['code']?.toString(), desc: map['label']?.toString());
+              })
+              .whereType<GeneralModel>()
+              .toList(growable: false) ??
+          const [];
+    } on DioException catch (error) {
+      throw ApiResponseException(extractDioErrorMessage(error) ?? 'Failed to load remark options.');
     }
   }
 

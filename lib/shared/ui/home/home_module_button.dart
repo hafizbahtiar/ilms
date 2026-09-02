@@ -26,10 +26,11 @@ class HomeModuleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final effectiveAccent = enabled ? accentColor : cs.onSurface.withValues(alpha: 0.38);
+    final tileColor = cs.surfaceContainerHigh;
+    final effectiveAccent = enabled ? _readableAccent(cs, accentColor) : cs.onSurface.withValues(alpha: 0.38);
 
     return Material(
-      color: cs.surface,
+      color: tileColor,
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
@@ -63,17 +64,13 @@ class HomeModuleButton extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: cs.error,
                             borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: cs.surface, width: 1.5),
+                            border: Border.all(color: tileColor, width: 1.5),
                           ),
                           constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                           child: Text(
                             badgeCount! > 99 ? '99+' : '$badgeCount',
                             textAlign: TextAlign.center,
-                            style: textTheme.labelSmall?.copyWith(
-                              color: cs.onError,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 9,
-                            ),
+                            style: textTheme.labelSmall?.copyWith(color: cs.onError, fontWeight: FontWeight.w800),
                           ),
                         ),
                       ),
@@ -91,7 +88,6 @@ class HomeModuleButton extends StatelessWidget {
                       style: textTheme.labelMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         height: 1.15,
-                        fontSize: 12,
                         color: cs.onSurface.withValues(alpha: enabled ? 0.88 : 0.45),
                       ),
                     ),
@@ -103,5 +99,15 @@ class HomeModuleButton extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Navy icons vanish on charcoal. In dark mode the lamp is yellow —
+  /// the 10% accent — so home tiles stay readable without a periwinkle wash.
+  static Color _readableAccent(ColorScheme cs, Color accent) {
+    if (cs.brightness != Brightness.dark) return accent;
+    if (ThemeData.estimateBrightnessForColor(accent) == Brightness.light) {
+      return accent;
+    }
+    return cs.secondary;
   }
 }

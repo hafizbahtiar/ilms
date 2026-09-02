@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ilms/app/environment/environment_controller.dart';
 import 'package:ilms/core/config/app_flavor.dart';
+import 'package:ilms/core/network/network_provider_invalidation.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
 
 const _segmentOrder = [AppFlavor.dev, AppFlavor.stg, AppFlavor.prod];
@@ -75,6 +76,7 @@ class EnvironmentSwitcher extends ConsumerWidget {
     if (flavor == ref.read(environmentControllerProvider)) return;
 
     await ref.read(environmentControllerProvider.notifier).setFlavor(flavor);
+    await invalidateNetworkProviders(ref);
 
     if (context.mounted) {
       AppSnackbar.info(context, 'Switched to ${_label(flavor)} environment.');

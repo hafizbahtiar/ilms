@@ -105,13 +105,13 @@ class _BillboardSearchFilterBodyState extends ConsumerState<_BillboardSearchFilt
         const SizedBox(height: 12),
         _LookupFilterRow(
           title: 'Billboard Type',
-          value: filter.billType?.desc,
+          value: generalLookupDisplay(filter.billType),
           onClear: () => _controller.setBillType(null),
           onTap: () => _pickBillType(filter.billType),
         ),
         _LookupFilterRow(
           title: 'LED Board',
-          value: filter.ledBoard?.desc,
+          value: generalLookupDisplay(filter.ledBoard),
           onClear: () => _controller.setLedBoard(null),
           onTap: () => _pickYesNo(filter.ledBoard, onPicked: _controller.setLedBoard),
         ),
@@ -127,19 +127,19 @@ class _BillboardSearchFilterBodyState extends ConsumerState<_BillboardSearchFilt
         const SizedBox(height: 12),
         _LookupFilterRow(
           title: 'Parliament',
-          value: filter.parliament?.desc,
+          value: generalLookupDisplay(filter.parliament),
           onClear: () => _controller.setParliament(null),
           onTap: () => _pickParliament(filter.parliament),
         ),
         _LookupFilterRow(
           title: 'Phase',
-          value: filter.phase?.desc,
+          value: generalLookupDisplay(filter.phase),
           onClear: () => _controller.setPhase(null),
           onTap: () => _pickPhase(filter.phase),
         ),
         _LookupFilterRow(
           title: 'Asset Owner',
-          value: filter.assetOwner?.desc,
+          value: generalLookupDisplay(filter.assetOwner),
           onClear: () => _controller.setAssetOwner(null),
           onTap: () => _pickAssetOwner(filter.assetOwner),
         ),

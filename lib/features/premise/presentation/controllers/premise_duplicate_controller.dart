@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ilms/features/premise/domain/entities/premise_duplicate_filter.dart';
 import 'package:ilms/features/premise/domain/entities/premise_duplicate_record.dart';
@@ -59,11 +60,15 @@ class PremiseDuplicateFilterSelection {
   }
 
   PremiseDuplicateFilter toDomainFilter() {
+    // Backend SearchPrevPhaseController filters DB codes/names:
+    // parliament → MSArea.AreaGroup (exact code)
+    // area → PA_AreaCode, building → PA_BuildingCode
+    // street → PA_StreetName, unit → PAUnitNo
     return PremiseDuplicateFilter(
-      parliament: parliament?.desc ?? '',
-      area: area?.desc ?? '',
+      parliament: parliament?.code ?? '',
+      area: area?.code ?? '',
       street: street?.desc ?? '',
-      building: building?.desc ?? '',
+      building: building?.code ?? '',
       unit: unitNo?.desc ?? '',
       companyName: companyName.trim(),
       traderName: traderName.trim(),
@@ -73,16 +78,16 @@ class PremiseDuplicateFilterSelection {
   }
 
   List<String> get activeChipLabels => [
-        unitNo?.desc ?? '',
-        building?.desc ?? '',
-        street?.desc ?? '',
-        parliament?.desc ?? '',
-        area?.desc ?? '',
-        companyName.trim(),
-        traderName.trim(),
-        licenseNo.trim(),
-        licenseFileNo.trim(),
-      ].where((value) => value.isNotEmpty).toList();
+    unitNo?.desc ?? '',
+    building?.desc ?? '',
+    street?.desc ?? '',
+    parliament?.desc ?? '',
+    area?.desc ?? '',
+    companyName.trim(),
+    traderName.trim(),
+    licenseNo.trim(),
+    licenseFileNo.trim(),
+  ].where((value) => value.isNotEmpty).toList();
 
   bool get isEmpty =>
       parliament == null &&
@@ -174,22 +179,32 @@ class PremiseDuplicateController extends Notifier<PremiseDuplicateState> {
 
   void setArea(GeneralModel? value) {
     state = state.copyWith(
-      filter: state.filter.copyWith(area: value, clearStreet: true, clearBuilding: true, clearUnitNo: true),
+      filter: state.filter.copyWith(
+        area: value,
+        clearArea: value == null,
+        clearStreet: true,
+        clearBuilding: true,
+        clearUnitNo: true,
+      ),
     );
   }
 
   void setStreet(GeneralModel? value) {
     state = state.copyWith(
-      filter: state.filter.copyWith(street: value, clearBuilding: true, clearUnitNo: true),
+      filter: state.filter.copyWith(street: value, clearStreet: value == null, clearBuilding: true, clearUnitNo: true),
     );
   }
 
   void setBuilding(GeneralModel? value) {
-    state = state.copyWith(filter: state.filter.copyWith(building: value, clearUnitNo: true));
+    state = state.copyWith(
+      filter: state.filter.copyWith(building: value, clearBuilding: value == null, clearUnitNo: true),
+    );
   }
 
   void setUnitNo(GeneralModel? value) {
-    state = state.copyWith(filter: state.filter.copyWith(unitNo: value));
+    state = state.copyWith(
+      filter: state.filter.copyWith(unitNo: value, clearUnitNo: value == null),
+    );
   }
 
   void setCompanyName(String value) => state = state.copyWith(filter: state.filter.copyWith(companyName: value));
@@ -198,8 +213,7 @@ class PremiseDuplicateController extends Notifier<PremiseDuplicateState> {
 
   void setLicenseNo(String value) => state = state.copyWith(filter: state.filter.copyWith(licenseNo: value));
 
-  void setLicenseFileNo(String value) =>
-      state = state.copyWith(filter: state.filter.copyWith(licenseFileNo: value));
+  void setLicenseFileNo(String value) => state = state.copyWith(filter: state.filter.copyWith(licenseFileNo: value));
 
   void resetFilter() {
     state = state.copyWith(filter: const PremiseDuplicateFilterSelection());
@@ -209,16 +223,17 @@ class PremiseDuplicateController extends Notifier<PremiseDuplicateState> {
     if (_isFetching) return;
     _isFetching = true;
 
+    ref.read(premiseDuplicateRepositoryProvider).cancelSearch();
+
     try {
       final keepItems = isRefresh && state.items.isNotEmpty;
       if (!keepItems) {
         state = state.copyWith(hasSearched: true, listState: AppListState.loading, errorMessage: null);
       }
 
-      final page = await ref.read(premiseDuplicateRepositoryProvider).searchPreviousPhase(
-            filter: state.filter.toDomainFilter(),
-            page: 1,
-          );
+      final page = await ref
+          .read(premiseDuplicateRepositoryProvider)
+          .searchPreviousPhase(filter: state.filter.toDomainFilter(), page: 1);
 
       state = state.copyWith(
         hasSearched: true,
@@ -229,11 +244,8 @@ class PremiseDuplicateController extends Notifier<PremiseDuplicateState> {
         errorMessage: null,
       );
     } catch (error) {
-      state = state.copyWith(
-        hasSearched: true,
-        listState: AppListState.error,
-        errorMessage: error.toString(),
-      );
+      if (error is DioException && CancelToken.isCancel(error)) return;
+      state = state.copyWith(hasSearched: true, listState: AppListState.error, errorMessage: error.toString());
     } finally {
       _isFetching = false;
     }
@@ -245,10 +257,9 @@ class PremiseDuplicateController extends Notifier<PremiseDuplicateState> {
     state = state.copyWith(isLoadingMore: true);
 
     try {
-      final page = await ref.read(premiseDuplicateRepositoryProvider).searchPreviousPhase(
-            filter: state.filter.toDomainFilter(),
-            page: state.nextPage,
-          );
+      final page = await ref
+          .read(premiseDuplicateRepositoryProvider)
+          .searchPreviousPhase(filter: state.filter.toDomainFilter(), page: state.nextPage);
 
       state = state.copyWith(
         items: [...state.items, ...page.items],
@@ -257,6 +268,7 @@ class PremiseDuplicateController extends Notifier<PremiseDuplicateState> {
         isLoadingMore: false,
       );
     } catch (error) {
+      if (error is DioException && CancelToken.isCancel(error)) return;
       state = state.copyWith(isLoadingMore: false, errorMessage: error.toString());
     } finally {
       _isFetching = false;
@@ -268,7 +280,6 @@ class PremiseDuplicateController extends Notifier<PremiseDuplicateState> {
   }
 }
 
-final premiseDuplicateControllerProvider =
-    NotifierProvider<PremiseDuplicateController, PremiseDuplicateState>(
+final premiseDuplicateControllerProvider = NotifierProvider<PremiseDuplicateController, PremiseDuplicateState>(
   PremiseDuplicateController.new,
 );

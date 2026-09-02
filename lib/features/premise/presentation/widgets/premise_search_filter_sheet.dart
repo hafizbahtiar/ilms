@@ -6,6 +6,7 @@ import 'package:ilms/shared/lookups/providers/general_lookup_providers.dart';
 import 'package:ilms/shared/models/general_model.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
 import 'package:ilms/shared/ui/forms/app_text_field.dart';
+import 'package:ilms/shared/ui/lists/app_list_view.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
 import 'package:ilms/shared/ui/sheets/app_option_picker_sheet.dart';
 
@@ -118,7 +119,7 @@ class _PremiseSearchFilterBodyState extends ConsumerState<_PremiseSearchFilterBo
         const SizedBox(height: 12),
         _LookupFilterSection(
           title: 'Phase',
-          value: filter.phase != null ? generalLookupLabel(filter.phase!) : null,
+          value: generalLookupDisplay(filter.phase),
           onClear: () => _controller.setPhase(null),
           onTap: () => _pickPhase(context, filter.phase),
         ),
@@ -138,31 +139,31 @@ class _PremiseSearchFilterBodyState extends ConsumerState<_PremiseSearchFilterBo
         const SizedBox(height: 12),
         _LookupFilterSection(
           title: 'Parliament',
-          value: filter.parliament?.desc,
+          value: generalLookupDisplay(filter.parliament),
           onClear: () => _controller.setParliament(null),
           onTap: () => _pickParliament(context, filter.parliament),
         ),
         _LookupFilterSection(
           title: 'Area',
-          value: filter.area?.desc,
+          value: generalLookupDisplay(filter.area),
           onClear: () => _controller.setArea(null),
           onTap: () => _pickArea(context, filter),
         ),
         _LookupFilterSection(
           title: 'Street',
-          value: filter.street?.desc,
+          value: generalLookupDisplay(filter.street),
           onClear: () => _controller.setStreet(null),
           onTap: () => _pickStreet(context, filter),
         ),
         _LookupFilterSection(
           title: 'Building Name',
-          value: filter.building?.desc,
+          value: generalLookupDisplay(filter.building),
           onClear: () => _controller.setBuilding(null),
           onTap: () => _pickBuilding(context, filter),
         ),
         _LookupFilterSection(
           title: 'Unit No.',
-          value: filter.unitNo?.desc,
+          value: generalLookupDisplay(filter.unitNo),
           onClear: () => _controller.setUnitNo(null),
           onTap: () => _pickUnit(context, filter),
         ),
@@ -263,7 +264,13 @@ class _PremiseSearchFilterBodyState extends ConsumerState<_PremiseSearchFilterBo
       ),
       label: generalLookupLabel,
       isSelected: (item) => item.code == filter.unitNo?.code,
-      preset: AppBottomSheetPreset.compact,
+      preset: AppBottomSheetPreset.scrollable,
+      searchable: true,
+      empty: const AppListEmptyConfig(
+        icon: Icons.search_off_outlined,
+        title: 'No Unit No. found',
+        subtitle: 'Nothing matches the current street or building. Try a different selection above.',
+      ),
     );
     if (picked != null) _controller.setUnitNo(picked);
   }

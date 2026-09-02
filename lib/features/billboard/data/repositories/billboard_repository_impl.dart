@@ -44,7 +44,12 @@ class BillboardRepositoryImpl implements BillboardRepository {
     for (var i = 0; i < pending.length; i++) {
       final photo = pending[i];
       try {
-        await _dataSource.uploadPhoto(billboardNo: billboardNo, localPath: photo.localPath!, process: process);
+        await _dataSource.uploadPhoto(
+          billboardNo: billboardNo,
+          localPath: photo.localPath!,
+          process: process,
+          seq: i + 1,
+        );
         uploaded++;
       } catch (e) {
         throw BillboardImageUploadException('Failed to upload photo ${i + 1}: $e');

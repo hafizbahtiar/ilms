@@ -25,7 +25,9 @@ void main() {
     final client = DioClient.create(config);
 
     expect(client.dio.options.baseUrl, 'https://dev.example.com');
-    expect(client.dio.options.connectTimeout, const Duration(seconds: 30));
+    expect(client.dio.options.connectTimeout, const Duration(seconds: 90));
+    expect(client.dio.options.receiveTimeout, const Duration(seconds: 90));
+    expect(client.dio.options.sendTimeout, const Duration(seconds: 90));
   });
 
   test('get returns response data', () async {

@@ -9,6 +9,7 @@ import 'package:ilms/features/premise/domain/entities/premise_image_upload_statu
 import 'package:ilms/features/premise/domain/entities/premise_license.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license_activity.dart';
 import 'package:ilms/features/premise/domain/entities/premise_remark.dart';
+import 'package:ilms/features/premise/domain/utils/premise_coordinate.dart';
 import 'package:ilms/shared/formatters/app_date_format.dart';
 import 'package:ilms/shared/lookups/lookup_labels.dart';
 import 'package:ilms/shared/models/general_model.dart';
@@ -19,20 +20,45 @@ class PremiseDetailMapper {
 
   /// Full detail mapping — for view/edit flows.
   static PremiseDraftPayloadModel fromApiDetail(Map<String, dynamic> data) {
-    return _fromApiDetail(data, includeImages: true, includeVisitFindings: true);
+    return _fromApiDetail(data, includeImages: true);
   }
 
-  /// Duplicate flow — carry structural premise data only; omit census
-  /// photos and this visit's findings (remarks, licenses, business
-  /// activities) — the surveyor re-collects those for the new visit.
+  /// Duplicate flow — carry company/contact/details, premise addresses,
+  /// business activities, and remarks. Omits census photos and licenses.
+  /// Sticker no is cleared and census date defaults to today (legacy parity).
   static PremiseDraftPayloadModel fromApiDetailForDuplicate(Map<String, dynamic> data) {
-    return _fromApiDetail(data, includeImages: false, includeVisitFindings: false);
+    final base = _fromApiDetail(
+      data,
+      includeImages: false,
+      includeLicenses: false,
+      includeBusinessActivities: true,
+      includeRemarks: true,
+      includeAddresses: true,
+    );
+
+    final fields = Map<String, String>.from(base.fields)
+      ..['stickerNo'] = ''
+      ..['censusDate'] = formatDdMmYyyy(DateTime.now());
+
+    return PremiseDraftPayloadModel(
+      companyStateCode: base.companyStateCode,
+      companyPostcode: base.companyPostcode,
+      fields: fields,
+      censusImages: const [],
+      remarks: _duplicateRemarks(base.remarks),
+      licenses: const [],
+      businessActivities: _duplicateBusinessActivities(base.businessActivities),
+      addresses: _duplicateAddresses(base.addresses),
+    );
   }
 
   static PremiseDraftPayloadModel _fromApiDetail(
     Map<String, dynamic> data, {
     required bool includeImages,
-    bool includeVisitFindings = true,
+    bool includeLicenses = true,
+    bool includeBusinessActivities = true,
+    bool includeRemarks = true,
+    bool includeAddresses = true,
   }) {
     final company = _asMap(data['company_details']);
     final contact = _asMap(data['contact_person']);
@@ -72,10 +98,66 @@ class PremiseDetailMapper {
       companyPostcode: _nullableString(company['postcode']),
       fields: fields,
       censusImages: includeImages ? _mapImages(rawImages) : const [],
-      remarks: includeVisitFindings ? _mapRemarks(rawRemarks) : const [],
-      licenses: includeVisitFindings ? _mapLicenses(rawLicenses) : const [],
-      businessActivities: includeVisitFindings ? _mapBusinessActivities(rawBusinessActivities) : const [],
+      remarks: includeRemarks ? _mapRemarks(rawRemarks) : const [],
+      licenses: includeLicenses ? _mapLicenses(rawLicenses) : const [],
+      businessActivities: includeBusinessActivities ? _mapBusinessActivities(rawBusinessActivities) : const [],
+      addresses: includeAddresses ? _mapAddresses(data['premise_addresses']) : const [],
     );
+  }
+
+  /// Carries remark data but drops server/local ids so create submit inserts
+  /// new rows instead of overwriting the source premise (legacy parity).
+  static List<PremiseRemark> _duplicateRemarks(List<PremiseRemark> source) {
+    return source
+        .map(
+          (remark) => PremiseRemark(
+            code: remark.code,
+            remark: remark.remark,
+            remarkDesc: remark.remarkDesc,
+            remarkType: remark.remarkType,
+            description: remark.description,
+          ),
+        )
+        .toList();
+  }
+
+  /// Carries business activity data; keeps server [PremiseBusinessActivity.id]
+  /// for license linkage but drops [localId] (legacy parity).
+  static List<PremiseBusinessActivity> _duplicateBusinessActivities(List<PremiseBusinessActivity> source) {
+    return source
+        .map(
+          (activity) => PremiseBusinessActivity(
+            id: activity.id,
+            businessType: activity.businessType,
+            businessTypeDesc: activity.businessTypeDesc,
+            status: activity.status,
+            statusDesc: activity.statusDesc,
+            description: activity.description,
+          ),
+        )
+        .toList();
+  }
+
+  /// Carries premise address rows for the new visit; drops visit-scoped ids.
+  static List<PremiseAddress> _duplicateAddresses(List<PremiseAddress> source) {
+    return source
+        .map(
+          (address) => PremiseAddress(
+            premiseAddressId: address.premiseAddressId,
+            unitNo: address.unitNo,
+            floor: address.floor,
+            blockNo: address.blockNo,
+            building: address.building,
+            streetName: address.streetName,
+            area: address.area,
+            parliament: address.parliament,
+            postcode: address.postcode,
+            state: address.state,
+            latitude: normalizePremiseCoordinate(address.latitude),
+            longitude: normalizePremiseCoordinate(address.longitude),
+          ),
+        )
+        .toList();
   }
 
   /// Read-only aggregate for the History document detail page — unlike

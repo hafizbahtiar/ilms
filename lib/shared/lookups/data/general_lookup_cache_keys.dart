@@ -9,7 +9,8 @@ abstract final class GeneralLookupCacheKeys {
 
   static String postcodes(String? stateCode) => '${prefix}postcodes:${stateCode ?? 'all'}';
 
-  static String areas(String? stateCode, String? postcode) => '${prefix}areas:${stateCode ?? 'all'}:${postcode ?? 'all'}';
+  static String areas(String? stateCode, String? postcode) =>
+      '${prefix}areas:${stateCode ?? 'all'}:${postcode ?? 'all'}';
 
   static String parliaments(String? stateCode) => '${prefix}parliaments:${stateCode ?? 'all'}';
 
@@ -40,6 +41,12 @@ abstract final class GeneralLookupCacheKeys {
 
   static String phases() => '${prefix}phases';
 
+  static String phasesByBillboard() => '${prefix}phasesByBillboard';
+
+  static String billboardTypes() => '${prefix}billboardTypes';
+
+  static String assetOwnerTypes() => '${prefix}assetOwnerTypes';
+
   static String yesNo() => '${prefix}yesNo';
 }
 
@@ -55,7 +62,10 @@ class GeneralLookupCacheCodec {
     if (decoded is! List) return const [];
     return [
       for (final item in decoded)
-        if (item is Map<String, dynamic>) GeneralModel.fromJson(item) else if (item is Map) GeneralModel.fromJson(Map<String, dynamic>.from(item)),
+        if (item is Map<String, dynamic>)
+          GeneralModel.fromJson(item)
+        else if (item is Map)
+          GeneralModel.fromJson(Map<String, dynamic>.from(item)),
     ];
   }
 }

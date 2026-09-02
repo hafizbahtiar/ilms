@@ -1,15 +1,34 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ilms/features/premise/data/mappers/premise_detail_mapper.dart';
 import 'package:ilms/features/premise/domain/entities/premise_image_upload_status.dart';
+import 'package:ilms/shared/formatters/app_date_format.dart';
 
 void main() {
   group('PremiseDetailMapper', () {
-    test('fromApiDetailForDuplicate omits census images and remarks', () {
+    test('fromApiDetailForDuplicate omits census images and clears visit-only fields', () {
       final payload = PremiseDetailMapper.fromApiDetailForDuplicate({
-        'company_details': {'company_name': 'ACME Sdn Bhd'},
+        'company_details': {
+          'company_name': 'ACME Sdn Bhd',
+          'sticker_no': 'ST-001',
+          'census_date': '2024-01-01',
+        },
         'premise_details': {'trader_name': 'ACME Trading'},
         'remarks': [
-          {'id': 1, 'remark': 'Old remark'},
+          {'id': 1, 'remark': 'Old remark', 'code': 'R01'},
+        ],
+        'business_activities': [
+          {'id': 9, 'business_type': 'A402', 'description': 'Retail'},
+        ],
+        'premise_addresses': [
+          {
+            'paid': 42,
+            'vpa_id': 99,
+            'unit_no': 'G-1',
+            'building': 'Plaza BB',
+            'street_name': 'Jalan BB',
+            'latitude': '0.000000',
+            'longitude': '0.000000',
+          },
         ],
         'images': [
           {'id': 7, 'type': 'FRONT', 'image_url': 'https://example.com/front.jpg'},
@@ -17,8 +36,26 @@ void main() {
       });
 
       expect(payload.fields['companyName'], 'ACME Sdn Bhd');
+      expect(payload.fields['stickerNo'], isEmpty);
+      expect(payload.fields['censusDate'], formatDdMmYyyy(DateTime.now()));
       expect(payload.censusImages, isEmpty);
-      expect(payload.remarks, isEmpty);
+      expect(payload.licenses, isEmpty);
+
+      expect(payload.remarks, hasLength(1));
+      expect(payload.remarks.first.id, isNull);
+      expect(payload.remarks.first.remark, 'Old remark');
+
+      expect(payload.businessActivities, hasLength(1));
+      expect(payload.businessActivities.first.id, 9);
+      expect(payload.businessActivities.first.localId, isNull);
+      expect(payload.businessActivities.first.businessType, 'A402');
+
+      expect(payload.addresses, hasLength(1));
+      expect(payload.addresses.first.premiseAddressId, 42);
+      expect(payload.addresses.first.visitPremiseAddressId, isNull);
+      expect(payload.addresses.first.unitNo, 'G-1');
+      expect(payload.addresses.first.latitude, isNull);
+      expect(payload.addresses.first.longitude, isNull);
     });
 
     test('fromApiDetail maps API detail payload into draft fields', () {
@@ -88,6 +125,9 @@ void main() {
             'description': 'Standalone activity',
           },
         ],
+        'premise_addresses': [
+          {'paid': 10, 'vpa_id': 20, 'unit_no': '1-1', 'street_name': 'Main St'},
+        ],
       });
 
       expect(payload.companyStateCode, '14');
@@ -111,6 +151,10 @@ void main() {
 
       expect(payload.businessActivities, hasLength(1));
       expect(payload.businessActivities.first.businessType, 'A402');
+
+      expect(payload.addresses, hasLength(1));
+      expect(payload.addresses.first.premiseAddressId, 10);
+      expect(payload.addresses.first.visitPremiseAddressId, 20);
     });
   });
 }
