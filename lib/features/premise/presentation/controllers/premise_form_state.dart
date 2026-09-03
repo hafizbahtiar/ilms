@@ -80,6 +80,11 @@ class PremiseFormState {
     this.addresses = const [],
     this.companyStateCode,
     this.companyPostcode,
+    this.companyAreaCode,
+    this.businessTypeCode,
+    this.businessTypeDesc,
+    this.premiseTypeCode,
+    this.premiseTypeDesc,
     this.isVacant = false,
     this.draftType = PremiseDraftType.newEntry,
     this.visitStatus,
@@ -106,6 +111,23 @@ class PremiseFormState {
   final List<PremiseAddress> addresses;
   final String? companyStateCode;
   final String? companyPostcode;
+
+  /// The actual selected area's code — kept separate from [PremiseFormFields.area]'s
+  /// display text (which shows the area's description, e.g. `SEGAMBUT - DESA SERI
+  /// HARTAMAS`) because that text isn't in a parseable `code - desc` format and must
+  /// not be re-derived from it (was silently truncated to `SEGAMBUT` at submit).
+  final String? companyAreaCode;
+
+  /// The selected business/premise type's actual code — kept separate from
+  /// [PremiseFormFields.businessType]/[premiseType]'s display text (which
+  /// shows the option's description, e.g. `Office`) for the same reason as
+  /// [companyAreaCode]: that text isn't in a parseable `code - desc` format
+  /// and must not be re-derived from it (was silently sent as the code —
+  /// e.g. `OFFICE` instead of the real code — at submit).
+  final String? businessTypeCode;
+  final String? businessTypeDesc;
+  final String? premiseTypeCode;
+  final String? premiseTypeDesc;
   final bool isVacant;
 
   /// How this draft was created — preserved from the loaded row (or set by
@@ -134,7 +156,13 @@ class PremiseFormState {
     List<PremiseAddress>? addresses,
     String? companyStateCode,
     String? companyPostcode,
+    String? companyAreaCode,
+    String? businessTypeCode,
+    String? businessTypeDesc,
+    String? premiseTypeCode,
+    String? premiseTypeDesc,
     bool clearCompanyPostcode = false,
+    bool clearCompanyArea = false,
     bool clearLocalDraftId = false,
     bool? isVacant,
     PremiseDraftType? draftType,
@@ -156,6 +184,11 @@ class PremiseFormState {
       addresses: addresses ?? this.addresses,
       companyStateCode: companyStateCode ?? this.companyStateCode,
       companyPostcode: clearCompanyPostcode ? null : (companyPostcode ?? this.companyPostcode),
+      companyAreaCode: (clearCompanyPostcode || clearCompanyArea) ? null : (companyAreaCode ?? this.companyAreaCode),
+      businessTypeCode: businessTypeCode ?? this.businessTypeCode,
+      businessTypeDesc: businessTypeDesc ?? this.businessTypeDesc,
+      premiseTypeCode: premiseTypeCode ?? this.premiseTypeCode,
+      premiseTypeDesc: premiseTypeDesc ?? this.premiseTypeDesc,
       isVacant: isVacant ?? this.isVacant,
       draftType: draftType ?? this.draftType,
       visitStatus: visitStatus ?? this.visitStatus,

@@ -57,7 +57,11 @@ class PremiseSubmitPayloadModel {
         street1: company.street1,
         street2: company.street2,
         postcode: company.postcode,
-        area: company.areaCode,
+        // The backend's `area` here is the full descriptive value (matches
+        // `premise_addresses[*][area]`, e.g. "SEGAMBUT - DESA SRI HARTAMAS"),
+        // NOT the short area/parliament code ("SEGAMBUT") — that code is a
+        // separate concept the premise-address payload sends as `parliament`.
+        area: company.areaDescription,
       ),
       contactPerson: ContactPersonRequest(
         name: company.contactPersonName,
@@ -370,6 +374,7 @@ class PremiseRemarkRequest {
 /// One entry in a license's `additional_license_info` (legacy `AdditionalLicenseInfo`).
 class PremiseLicenseActivityRequest {
   const PremiseLicenseActivityRequest({
+    this.id,
     this.businessType,
     this.businessTypeDesc,
     this.status,
@@ -378,6 +383,9 @@ class PremiseLicenseActivityRequest {
     this.amount,
   });
 
+  /// Server row id — resubmitted so the backend updates this row instead of
+  /// inserting a duplicate.
+  final int? id;
   final String? businessType;
   final String? businessTypeDesc;
   final String? status;
@@ -386,6 +394,7 @@ class PremiseLicenseActivityRequest {
   final String? amount;
 
   factory PremiseLicenseActivityRequest.fromDomain(PremiseLicenseActivity activity) => PremiseLicenseActivityRequest(
+    id: activity.id,
     businessType: activity.businessType,
     businessTypeDesc: activity.businessTypeDesc,
     status: activity.status,
@@ -395,6 +404,7 @@ class PremiseLicenseActivityRequest {
   );
 
   Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
     'business_type': businessType,
     'business_type_desc': businessTypeDesc,
     'status': status,
@@ -413,6 +423,7 @@ class PremiseLicenseRequest {
     this.licenseFrom,
     this.licenseTo,
     this.status,
+    this.statusDesc,
     this.additionalLicenseInfo = const [],
   });
 
@@ -422,6 +433,7 @@ class PremiseLicenseRequest {
   final String? licenseFrom;
   final String? licenseTo;
   final String? status;
+  final String? statusDesc;
   final List<PremiseLicenseActivityRequest> additionalLicenseInfo;
 
   factory PremiseLicenseRequest.fromDomain(PremiseLicense license) => PremiseLicenseRequest(
@@ -431,6 +443,7 @@ class PremiseLicenseRequest {
     licenseFrom: license.validFrom,
     licenseTo: license.validTo,
     status: license.status,
+    statusDesc: license.statusDesc,
     additionalLicenseInfo: license.businessActivities.map(PremiseLicenseActivityRequest.fromDomain).toList(),
   );
 
@@ -442,6 +455,7 @@ class PremiseLicenseRequest {
     'license_from': licenseFrom,
     'license_to': licenseTo,
     'status': status,
+    'status_desc': statusDesc,
     'additional_license_info': additionalLicenseInfo.map((e) => e.toJson()).toList(),
   };
 }

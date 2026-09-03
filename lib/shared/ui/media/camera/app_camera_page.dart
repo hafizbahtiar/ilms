@@ -59,7 +59,12 @@ class _AppCameraPageState extends State<AppCameraPage> with WidgetsBindingObserv
   }
 
   Future<void> _switchCamera() async {
-    await _cameraService.switchCamera();
+    await _cameraService.toggleFrontBack();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _cycleLens() async {
+    await _cameraService.cycleBackLens();
     if (mounted) setState(() {});
   }
 
@@ -153,6 +158,7 @@ class _AppCameraPageState extends State<AppCameraPage> with WidgetsBindingObserv
       reviewScrollController: _reviewScrollController,
       onRetry: _setupCamera,
       onSwitchCamera: _switchCamera,
+      onCycleLens: _cycleLens,
       onOpenSettings: _cameraService.openSettings,
     );
   }

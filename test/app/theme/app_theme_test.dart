@@ -76,7 +76,7 @@ void main() {
     expect(cs.outlineVariant.computeLuminance(), greaterThan(cs.surface.computeLuminance()));
     // Mid-navy fills made the last dark theme look like a blue room.
     // Charcoal canvases keep blue only as a whisper (B − R stays small).
-    expect(background.blue - background.red, lessThan(24));
+    expect((background.b * 255.0).round() - (background.r * 255.0).round(), lessThan(24));
   });
 
   test('dark theme uses yellow for interactive chrome', () {

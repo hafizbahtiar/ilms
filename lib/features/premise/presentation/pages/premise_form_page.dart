@@ -66,7 +66,7 @@ class _PremiseFormPageState extends ConsumerState<PremiseFormPage> {
       }
 
       if (_session.isVacantIntent) {
-        controller.markVacant();
+        await controller.markVacant();
       }
 
       // Measure section offsets only once the real content is in the tree —
@@ -290,14 +290,23 @@ class _PremiseFormPageState extends ConsumerState<PremiseFormPage> {
       FocusScope.of(context).unfocus();
       final controller = ref.read(premiseFormControllerProvider(_session).notifier);
 
-      final currentVisitStatus = ref.read(premiseFormControllerProvider(_session)).visitStatus;
-      final visitStatus = await showPremiseVisitStatusSheet(
-        context,
-        ref,
-        selectedCode: currentVisitStatus,
-      ).unfocusPremiseFormOnComplete(context);
-      if (!mounted || visitStatus == null) return;
-      controller.selectVisitStatus(visitStatus);
+      final formState = ref.read(premiseFormControllerProvider(_session));
+      final currentVisitStatus = formState.visitStatus;
+      // A vacant premise already got 'Vacant' auto-picked as its visit status
+      // (see PremiseFormController.markVacant) — don't make the surveyor
+      // re-pick it here. Still prompt if that auto-pick didn't land (e.g. no
+      // 'vacant' option in the list).
+      final skipVisitStatusPrompt =
+          formState.isVacant && currentVisitStatus != null && currentVisitStatus.isNotEmpty;
+      if (!skipVisitStatusPrompt) {
+        final visitStatus = await showPremiseVisitStatusSheet(
+          context,
+          ref,
+          selectedCode: currentVisitStatus,
+        ).unfocusPremiseFormOnComplete(context);
+        if (!mounted || visitStatus == null) return;
+        controller.selectVisitStatus(visitStatus);
+      }
 
       final ok = await controller.submit();
       if (!mounted) return;
@@ -366,7 +375,8 @@ class _PremiseFormPageState extends ConsumerState<PremiseFormPage> {
     ).unfocusPremiseFormOnComplete(context);
     if (!mounted || !confirmed) return;
 
-    ref.read(premiseFormControllerProvider(_session).notifier).markVacant();
+    await ref.read(premiseFormControllerProvider(_session).notifier).markVacant();
+    if (!mounted) return;
     AppSnackbar.success(context, 'Marked as vacant premise.');
   }
 

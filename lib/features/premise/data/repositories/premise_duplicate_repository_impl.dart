@@ -25,7 +25,9 @@ class PremiseDuplicateRepositoryImpl implements PremiseDuplicateRepository {
 
     final payload = await _remote.loadDetail(visitNo);
     return _draftRepository.saveDraft(
-      payload: payload,
+      // Strip the source premise's server ids — this draft becomes a NEW
+      // premise record, not an edit of the one it was duplicated from.
+      payload: PremiseDraftMapper.stripServerIdsForDuplicate(payload),
       companyName: PremiseDraftMapper.displayCompanyNameFromPayload(payload),
       traderName: PremiseDraftMapper.displayTraderNameFromPayload(payload),
       draftType: PremiseDraftType.duplicate,

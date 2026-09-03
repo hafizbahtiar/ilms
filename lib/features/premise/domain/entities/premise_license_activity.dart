@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 /// `AdditionalLicenseInfo`) — a license can carry several of these.
 class PremiseLicenseActivity extends Equatable {
   const PremiseLicenseActivity({
+    this.id,
     this.businessType,
     this.businessTypeDesc,
     this.status,
@@ -14,6 +15,9 @@ class PremiseLicenseActivity extends Equatable {
     this.businessActivityLocalId,
   });
 
+  /// Server row id — resubmitted so the backend updates this row instead of
+  /// inserting a duplicate.
+  final int? id;
   final String? businessType;
   final String? businessTypeDesc;
   final String? status;
@@ -31,6 +35,7 @@ class PremiseLicenseActivity extends Equatable {
   final int? businessActivityLocalId;
 
   PremiseLicenseActivity copyWith({
+    int? id,
     String? businessType,
     String? businessTypeDesc,
     String? status,
@@ -41,6 +46,7 @@ class PremiseLicenseActivity extends Equatable {
     int? businessActivityLocalId,
   }) {
     return PremiseLicenseActivity(
+      id: id ?? this.id,
       businessType: businessType ?? this.businessType,
       businessTypeDesc: businessTypeDesc ?? this.businessTypeDesc,
       status: status ?? this.status,
@@ -54,6 +60,7 @@ class PremiseLicenseActivity extends Equatable {
 
   @override
   List<Object?> get props => [
+    id,
     businessType,
     businessTypeDesc,
     status,

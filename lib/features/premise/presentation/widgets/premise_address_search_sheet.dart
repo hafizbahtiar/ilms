@@ -6,7 +6,6 @@ import 'package:ilms/features/premise/presentation/controllers/premise_address_s
 import 'package:ilms/features/premise/presentation/providers/premise_form_providers.dart';
 import 'package:ilms/features/premise/presentation/utils/premise_form_focus.dart';
 import 'package:ilms/features/premise/presentation/widgets/premise_address_search_filter_sheet.dart';
-import 'package:ilms/shared/lookups/lookup_labels.dart';
 import 'package:ilms/shared/models/general_model.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
 import 'package:ilms/shared/ui/forms/app_text_field.dart';
@@ -56,7 +55,7 @@ class _PremiseAddressSearchSheetBodyState extends ConsumerState<_PremiseAddressS
   void _initializeSearch() {
     final formState = ref.read(premiseFormControllerProvider(widget.session));
     final fields = ref.read(premiseFormFieldsProvider(widget.session));
-    final companyAreaCode = lookupCodeFromDisplay(fields.area.text);
+    final companyAreaCode = formState.companyAreaCode;
     final companyArea = companyAreaCode == null ? null : GeneralModel(code: companyAreaCode);
 
     ref

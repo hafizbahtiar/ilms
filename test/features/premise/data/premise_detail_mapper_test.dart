@@ -135,6 +135,11 @@ void main() {
       expect(payload.fields['companyName'], 'ACME Sdn Bhd');
       expect(payload.fields['traderName'], 'ACME Trading');
       expect(payload.fields['businessType'], 'A402 : Retail');
+      expect(payload.fields['premiseType'], '01 : Shoplot');
+      expect(payload.businessTypeCode, 'A402');
+      expect(payload.businessTypeDesc, 'Retail');
+      expect(payload.premiseTypeCode, '01');
+      expect(payload.premiseTypeDesc, 'Shoplot');
       expect(payload.fields['contactPersonName'], 'Ali');
       expect(payload.censusImages, hasLength(1));
       expect(payload.censusImages.first.networkUrl, 'https://example.com/front.jpg');

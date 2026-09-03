@@ -12,13 +12,9 @@ import 'package:ilms/core/services/crash_log/mobile_error_log.dart';
 
 /// Flushes queued crash logs once connectivity is restored.
 class CrashLogRetryController extends ChangeNotifier {
-  CrashLogRetryController({
-    CrashLogRepository? repository,
-    required CrashLogLocalStore localStore,
-    Connectivity? connectivity,
-  }) : _repository = repository ?? CrashLogRepository(),
-       _localStore = localStore,
-       _connectivity = connectivity ?? Connectivity();
+  CrashLogRetryController({CrashLogRepository? repository, required this._localStore, Connectivity? connectivity})
+    : _repository = repository ?? CrashLogRepository(),
+      _connectivity = connectivity ?? Connectivity();
 
   final CrashLogRepository _repository;
   final CrashLogLocalStore _localStore;

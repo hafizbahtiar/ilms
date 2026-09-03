@@ -13,6 +13,29 @@ void main() {
         ),
         isFalse,
       );
+      expect(
+        PremiseDraftMapper.isEmptyPayload(
+          const PremiseDraftPayloadModel(businessTypeCode: 'OF', premiseTypeCode: 'SL'),
+        ),
+        isFalse,
+      );
+    });
+
+    test('encode/decode preserves business and premise type codes', () {
+      const original = PremiseDraftPayloadModel(
+        businessTypeCode: 'OF',
+        businessTypeDesc: 'Office',
+        premiseTypeCode: 'SL',
+        premiseTypeDesc: 'Shoplot',
+        fields: {'businessType': 'Office', 'premiseType': 'Shoplot'},
+      );
+
+      final roundTripped = PremiseDraftMapper.decodePayload(PremiseDraftMapper.encodePayload(original));
+
+      expect(roundTripped.businessTypeCode, 'OF');
+      expect(roundTripped.businessTypeDesc, 'Office');
+      expect(roundTripped.premiseTypeCode, 'SL');
+      expect(roundTripped.premiseTypeDesc, 'Shoplot');
     });
 
     test('payloadsEqual compares encoded snapshots', () {

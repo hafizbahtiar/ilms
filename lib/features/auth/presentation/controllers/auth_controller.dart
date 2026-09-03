@@ -8,9 +8,7 @@ import 'package:ilms/features/auth/domain/repositories/auth_repository.dart';
 import 'package:ilms/features/auth/presentation/controllers/auth_state.dart';
 
 class AuthController extends StateNotifier<AuthState> {
-  AuthController(this._repository, {CrashLogService? crashLogService})
-    : _crashLogService = crashLogService,
-      super(const AuthState());
+  AuthController(this._repository, {this._crashLogService}) : super(const AuthState());
 
   final AuthRepository _repository;
   final CrashLogService? _crashLogService;
@@ -64,11 +62,7 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   String _loginErrorType(String message) {
-    const networkHints = [
-      'Unable to reach the server',
-      'Unable to connect to the server',
-      'Server error',
-    ];
+    const networkHints = ['Unable to reach the server', 'Unable to connect to the server', 'Server error'];
 
     if (networkHints.any(message.contains)) {
       return 'network';

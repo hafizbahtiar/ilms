@@ -26,6 +26,11 @@ class PremiseFormMapper {
     int? localDraftId,
     String? visitStatus,
     String? visitStatusDesc,
+    String? areaCode,
+    String? businessTypeCode,
+    String? businessTypeDesc,
+    String? premiseTypeCode,
+    String? premiseTypeDesc,
   }) {
     return PremiseForm(
       visitNo: visitNo,
@@ -47,8 +52,20 @@ class PremiseFormMapper {
         stateCode: lookupCodeFromDisplay(_text(fields.state)),
         stateDescription: lookupDescFromDisplay(_text(fields.state)),
         postcode: lookupCodeFromDisplay(_text(fields.postcode)) ?? _text(fields.postcode),
-        areaCode: lookupCodeFromDisplay(_text(fields.area)),
-        areaDescription: lookupDescFromDisplay(_text(fields.area)),
+        // [fields.area] always displays the area's full plain description
+        // (e.g. `SEGAMBUT - DESA SERI HARTAMAS`), never a `code - desc` pair —
+        // that's the value the backend's `area` field expects (it mirrors
+        // `premise_addresses[*][area]`), so it's passed through as-is here.
+        // Parsing it with lookupCodeFromDisplay/lookupDescFromDisplay would
+        // wrongly split it into a fake code + truncated desc.
+        //
+        // The real area *code* (a distinct, short "parliament-like" value —
+        // e.g. `SEGAMBUT` — used only for internal lookups such as street
+        // matching) is captured at selection time and passed in via
+        // [areaCode]; best-effort parse it from the text only when
+        // unavailable, e.g. a draft resumed without re-selecting the area.
+        areaCode: areaCode ?? lookupCodeFromDisplay(_text(fields.area)),
+        areaDescription: _text(fields.area),
         contactPersonName: _text(fields.contactPersonName),
         contactPersonPhone: _text(fields.contactPersonPhone),
         contactPersonEmail: _text(fields.contactPersonEmail),
@@ -56,10 +73,10 @@ class PremiseFormMapper {
       ),
       details: PremiseDetails(
         traderName: _text(fields.traderName),
-        businessTypeCode: lookupCodeFromDisplay(_text(fields.businessType)),
-        businessTypeDescription: lookupDescFromDisplay(_text(fields.businessType)),
-        premiseTypeCode: lookupCodeFromDisplay(_text(fields.premiseType)),
-        premiseTypeDescription: lookupDescFromDisplay(_text(fields.premiseType)),
+        businessTypeCode: businessTypeCode,
+        businessTypeDescription: businessTypeDesc,
+        premiseTypeCode: premiseTypeCode,
+        premiseTypeDescription: premiseTypeDesc,
         width: _text(fields.width),
         length: _text(fields.length),
       ),

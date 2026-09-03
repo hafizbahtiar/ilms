@@ -1,6 +1,10 @@
 import 'dart:convert';
 
 import 'package:ilms/features/premise/data/models/premise_draft_payload_model.dart';
+import 'package:ilms/features/premise/domain/entities/premise_business_activity.dart';
+import 'package:ilms/features/premise/domain/entities/premise_license.dart';
+import 'package:ilms/features/premise/domain/entities/premise_license_activity.dart';
+import 'package:ilms/features/premise/domain/entities/premise_remark.dart';
 import 'package:ilms/features/premise/presentation/controllers/premise_form_state.dart';
 
 class PremiseDraftMapper {
@@ -65,6 +69,10 @@ class PremiseDraftMapper {
     return PremiseDraftPayloadModel(
       companyStateCode: state.companyStateCode,
       companyPostcode: state.companyPostcode,
+      businessTypeCode: state.businessTypeCode,
+      businessTypeDesc: state.businessTypeDesc,
+      premiseTypeCode: state.premiseTypeCode,
+      premiseTypeDesc: state.premiseTypeDesc,
       fields: map,
       censusImages: state.censusImages,
       remarks: state.remarks,
@@ -73,6 +81,71 @@ class PremiseDraftMapper {
       addresses: state.addresses,
     );
   }
+
+  /// A "duplicate" draft (legacy `duplicateFromSearch`) starts from another
+  /// premise's full detail so its fields carry over, but every server `id`
+  /// in it (remarks, business activities, licenses, license activities)
+  /// still points at the SOURCE premise's rows. Since [toJson] on the
+  /// request models sends `id` whenever it's non-null regardless of
+  /// create/update, submitting a duplicated draft unmodified would UPDATE
+  /// the source premise's rows instead of inserting new ones for this
+  /// record (see legacy's `duplicateLicenseInfoForPremise` /
+  /// `duplicateBusinessActivitiesForPremise` / `duplicateRemarksForPremise`,
+  /// which guard against exactly this). This strips every server `id` (and
+  /// local bookkeeping ids that pointed at the source's local rows) so a
+  /// duplicated draft always inserts fresh rows.
+  static PremiseDraftPayloadModel stripServerIdsForDuplicate(PremiseDraftPayloadModel payload) {
+    return PremiseDraftPayloadModel(
+      companyStateCode: payload.companyStateCode,
+      companyPostcode: payload.companyPostcode,
+      businessTypeCode: payload.businessTypeCode,
+      businessTypeDesc: payload.businessTypeDesc,
+      premiseTypeCode: payload.premiseTypeCode,
+      premiseTypeDesc: payload.premiseTypeDesc,
+      fields: payload.fields,
+      censusImages: payload.censusImages,
+      remarks: payload.remarks.map(_stripRemarkId).toList(),
+      licenses: payload.licenses.map(_stripLicenseId).toList(),
+      businessActivities: payload.businessActivities.map(_stripBusinessActivityId).toList(),
+      addresses: payload.addresses,
+    );
+  }
+
+  static PremiseRemark _stripRemarkId(PremiseRemark remark) => PremiseRemark(
+    code: remark.code,
+    remark: remark.remark,
+    remarkType: remark.remarkType,
+    remarkDesc: remark.remarkDesc,
+    description: remark.description,
+    createdAt: remark.createdAt,
+  );
+
+  static PremiseBusinessActivity _stripBusinessActivityId(PremiseBusinessActivity activity) => PremiseBusinessActivity(
+    businessType: activity.businessType,
+    businessTypeDesc: activity.businessTypeDesc,
+    status: activity.status,
+    statusDesc: activity.statusDesc,
+    description: activity.description,
+  );
+
+  static PremiseLicense _stripLicenseId(PremiseLicense license) => PremiseLicense(
+    licenseNo: license.licenseNo,
+    licenseFileNo: license.licenseFileNo,
+    validFrom: license.validFrom,
+    validTo: license.validTo,
+    status: license.status,
+    statusDesc: license.statusDesc,
+    businessActivities: license.businessActivities.map(_stripLicenseActivityId).toList(),
+  );
+
+  static PremiseLicenseActivity _stripLicenseActivityId(PremiseLicenseActivity activity) => PremiseLicenseActivity(
+    businessType: activity.businessType,
+    businessTypeDesc: activity.businessTypeDesc,
+    status: activity.status,
+    statusDesc: activity.statusDesc,
+    description: activity.description,
+    amount: activity.amount,
+  );
 
   static String encodePayload(PremiseDraftPayloadModel payload) => jsonEncode(payload.toJson());
 
@@ -99,6 +172,10 @@ class PremiseDraftMapper {
         censusImages: payload.censusImages,
         companyStateCode: payload.companyStateCode,
         companyPostcode: payload.companyPostcode,
+        businessTypeCode: payload.businessTypeCode,
+        businessTypeDesc: payload.businessTypeDesc,
+        premiseTypeCode: payload.premiseTypeCode,
+        premiseTypeDesc: payload.premiseTypeDesc,
         remarks: payload.remarks,
         licenses: payload.licenses,
         businessActivities: payload.businessActivities,
@@ -128,7 +205,11 @@ class PremiseDraftMapper {
         payload.businessActivities.isEmpty &&
         payload.addresses.isEmpty &&
         payload.companyStateCode == null &&
-        payload.companyPostcode == null;
+        payload.companyPostcode == null &&
+        payload.businessTypeCode == null &&
+        payload.businessTypeDesc == null &&
+        payload.premiseTypeCode == null &&
+        payload.premiseTypeDesc == null;
   }
 
   static bool payloadsEqual(PremiseDraftPayloadModel a, PremiseDraftPayloadModel b) {

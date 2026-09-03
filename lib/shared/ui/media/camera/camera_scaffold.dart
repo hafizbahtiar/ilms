@@ -2,10 +2,12 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:ilms/shared/ui/media/camera/camera_gesture_overlay.dart';
 import 'package:ilms/shared/ui/media/camera/camera_service.dart';
 import 'package:ilms/shared/ui/media/camera/camera_status_view.dart';
 
-/// Full-screen camera layout with edge-to-edge preview, capture review strip, and overlay controls.
+/// Camera layout matching the legacy boxed preview: top chrome, a rounded
+/// native-aspect preview card, optional capture strip, then shutter controls.
 class CameraScaffold extends StatelessWidget {
   const CameraScaffold({
     super.key,
@@ -16,12 +18,16 @@ class CameraScaffold extends StatelessWidget {
     required this.onRetry,
     required this.onOpenSettings,
     required this.onSwitchCamera,
+    required this.onCycleLens,
     this.captures = const [],
     this.canCaptureMore = true,
     this.onDone,
     this.onRemoveCapture,
     this.reviewScrollController,
+    @visibleForTesting this.previewChild,
   });
+
+  static const previewCardKey = Key('cameraPreviewCard');
 
   final AppCameraService service;
   final bool isProcessing;
@@ -35,45 +41,47 @@ class CameraScaffold extends StatelessWidget {
   final VoidCallback onRetry;
   final VoidCallback onOpenSettings;
   final VoidCallback onSwitchCamera;
+  final VoidCallback onCycleLens;
+
+  /// Skips native [CameraPreview] so widget tests can drive gestures.
+  @visibleForTesting
+  final Widget? previewChild;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: service.isInitialized
-          ? Stack(
-              fit: StackFit.expand,
-              children: [
-                _CameraPreviewFill(controller: service.controller!),
-                const _ViewfinderOverlay(),
-                const _GradientOverlay(begin: Alignment.topCenter, end: Alignment.bottomCenter, stops: [0, 0.22]),
-                const _GradientOverlay(begin: Alignment.bottomCenter, end: Alignment.topCenter, stops: [0, 0.42]),
-                SafeArea(
-                  child: Column(
-                    children: [
-                      _TopBar(onClose: onClose, service: service, captureCount: captures.length, onDone: onDone),
-                      const Spacer(),
-                      if (captures.isNotEmpty)
-                        _CaptureReviewStrip(
-                          captures: captures,
-                          scrollController: reviewScrollController,
-                          onRemove: onRemoveCapture,
-                        ),
-                      _BottomControls(
-                        busy: isProcessing,
-                        canSwitchCamera: service.canSwitchCamera,
-                        canCaptureMore: canCaptureMore,
-                        captureCount: captures.length,
-                        onCapture: onCapture,
-                        onSwitchCamera: onSwitchCamera,
-                      ),
-                    ],
+      body: SafeArea(
+        child: service.isInitialized
+            ? Column(
+                children: [
+                  _TopBar(
+                    onClose: onClose,
+                    service: service,
+                    captureCount: captures.length,
+                    onDone: onDone,
                   ),
-                ),
-              ],
-            )
-          : SafeArea(
-              child: Center(
+                  Expanded(child: _previewCard()),
+                  if (captures.isNotEmpty)
+                    _CaptureReviewStrip(
+                      captures: captures,
+                      scrollController: reviewScrollController,
+                      onRemove: onRemoveCapture,
+                    ),
+                  _BottomControls(
+                    busy: isProcessing,
+                    canSwitchCamera: service.canSwitchCamera,
+                    canCycleLens:
+                        service.hasMultipleBackLenses &&
+                        !service.isUsingFrontCamera,
+                    canCaptureMore: canCaptureMore,
+                    onCapture: onCapture,
+                    onSwitchCamera: onSwitchCamera,
+                    onCycleLens: onCycleLens,
+                  ),
+                ],
+              )
+            : Center(
                 child: CameraStatusView(
                   status: service.status,
                   message: service.errorMessage,
@@ -82,13 +90,57 @@ class CameraScaffold extends StatelessWidget {
                   onClose: onClose,
                 ),
               ),
-            ),
+      ),
+    );
+  }
+
+  Widget _previewCard() {
+    final controller = service.controller;
+    final preview =
+        previewChild ??
+        (controller != null && controller.value.isInitialized
+            ? CameraPreview(controller)
+            : const ColoredBox(color: Colors.black));
+
+    if (controller == null || !controller.value.isInitialized) {
+      return _boxedPreview(aspect: 3 / 4, child: preview);
+    }
+
+    return ValueListenableBuilder<CameraValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final ratio = value.aspectRatio;
+        return _boxedPreview(
+          aspect: ratio == 0 ? 3 / 4 : 1 / ratio,
+          child: preview,
+        );
+      },
+    );
+  }
+
+  Widget _boxedPreview({required double aspect, required Widget child}) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: AspectRatio(
+          key: previewCardKey,
+          aspectRatio: aspect,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: CameraGestureOverlay(service: service, child: child),
+          ),
+        ),
+      ),
     );
   }
 }
 
 class _CaptureReviewStrip extends StatelessWidget {
-  const _CaptureReviewStrip({required this.captures, this.scrollController, this.onRemove});
+  const _CaptureReviewStrip({
+    required this.captures,
+    this.scrollController,
+    this.onRemove,
+  });
 
   final List<File> captures;
   final ScrollController? scrollController;
@@ -100,7 +152,7 @@ class _CaptureReviewStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -108,15 +160,18 @@ class _CaptureReviewStrip extends StatelessWidget {
           Text(
             '${captures.length} photo${captures.length == 1 ? '' : 's'} captured',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.labelLarge
-                ?.copyWith(color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontWeight: FontWeight.w600,
+            ),
           ),
           if (captures.length > 3) ...[
             const SizedBox(height: 4),
             Text(
               'Swipe to review all',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white60),
+              style: Theme.of(context).textTheme.labelSmall
+                  ?.copyWith(color: Colors.white60),
             ),
           ],
           const SizedBox(height: 10),
@@ -126,7 +181,12 @@ class _CaptureReviewStrip extends StatelessWidget {
               controller: scrollController,
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, _removeButtonOverflow, 16, 0),
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                _removeButtonOverflow,
+                16,
+                0,
+              ),
               itemCount: captures.length,
               separatorBuilder: (_, _) => const SizedBox(width: 10),
               itemBuilder: (context, index) {
@@ -146,7 +206,12 @@ class _CaptureReviewStrip extends StatelessWidget {
 }
 
 class _CaptureThumb extends StatelessWidget {
-  const _CaptureThumb({required this.file, required this.index, required this.size, this.onRemove});
+  const _CaptureThumb({
+    required this.file,
+    required this.index,
+    required this.size,
+    this.onRemove,
+  });
 
   final File file;
   final int index;
@@ -163,7 +228,12 @@ class _CaptureThumb extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.file(file, width: size, height: size, fit: BoxFit.cover),
+            child: Image.file(
+              file,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+            ),
           ),
           Positioned(
             left: 6,
@@ -176,7 +246,11 @@ class _CaptureThumb extends StatelessWidget {
               ),
               child: Text(
                 '${index + 1}',
-                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
@@ -193,7 +267,11 @@ class _CaptureThumb extends StatelessWidget {
                   child: const SizedBox(
                     width: 24,
                     height: 24,
-                    child: Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                 ),
               ),
@@ -204,123 +282,13 @@ class _CaptureThumb extends StatelessWidget {
   }
 }
 
-class _CameraPreviewFill extends StatelessWidget {
-  const _CameraPreviewFill({required this.controller});
-
-  final CameraController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!controller.value.isInitialized) {
-      return const ColoredBox(color: Colors.black);
-    }
-
-    return ValueListenableBuilder<CameraValue>(
-      valueListenable: controller,
-      builder: (context, value, child) {
-        final previewSize = value.previewSize;
-        if (previewSize == null) {
-          return Center(child: CameraPreview(controller));
-        }
-
-        // Sensor preview size is reported in landscape — swap for portrait display.
-        final isPortrait = MediaQuery.orientationOf(context) == Orientation.portrait;
-        final previewWidth = isPortrait ? previewSize.height : previewSize.width;
-        final previewHeight = isPortrait ? previewSize.width : previewSize.height;
-
-        return ClipRect(
-          child: OverflowBox(
-            alignment: Alignment.center,
-            maxWidth: double.infinity,
-            maxHeight: double.infinity,
-            child: FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(width: previewWidth, height: previewHeight, child: CameraPreview(controller)),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _GradientOverlay extends StatelessWidget {
-  const _GradientOverlay({required this.begin, required this.end, required this.stops});
-
-  final Alignment begin;
-  final Alignment end;
-  final List<double> stops;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: begin,
-          end: end,
-          stops: stops,
-          colors: [Colors.black.withValues(alpha: 0.72), Colors.transparent],
-        ),
-      ),
-    );
-  }
-}
-
-class _ViewfinderOverlay extends StatelessWidget {
-  const _ViewfinderOverlay();
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 120),
-          child: AspectRatio(
-            aspectRatio: 3 / 4,
-            child: CustomPaint(painter: _ViewfinderPainter(color: Colors.white.withValues(alpha: 0.55))),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ViewfinderPainter extends CustomPainter {
-  _ViewfinderPainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    const corner = 22.0;
-    final w = size.width;
-    final h = size.height;
-
-    void cornerLines(double x, double y, {required bool top, required bool left}) {
-      final dx = left ? 1.0 : -1.0;
-      final dy = top ? 1.0 : -1.0;
-      canvas.drawLine(Offset(x, y), Offset(x + corner * dx, y), paint);
-      canvas.drawLine(Offset(x, y), Offset(x, y + corner * dy), paint);
-    }
-
-    cornerLines(0, 0, top: true, left: true);
-    cornerLines(w, 0, top: true, left: false);
-    cornerLines(0, h, top: false, left: true);
-    cornerLines(w, h, top: false, left: false);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
 class _TopBar extends StatefulWidget {
-  const _TopBar({required this.onClose, required this.service, required this.captureCount, this.onDone});
+  const _TopBar({
+    required this.onClose,
+    required this.service,
+    required this.captureCount,
+    this.onDone,
+  });
 
   final VoidCallback onClose;
   final AppCameraService service;
@@ -334,43 +302,37 @@ class _TopBar extends StatefulWidget {
 class _TopBarState extends State<_TopBar> {
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
         children: [
           _CameraGlassButton(icon: Icons.close_rounded, onTap: widget.onClose),
-          Expanded(
-            child: Column(
-              children: [
-                Text(
-                  widget.captureCount == 0 ? 'Capture Photos' : 'Review & Add',
-                  style: textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  widget.captureCount == 0
-                      ? 'Snap multiple photos, then tap Done'
-                      : '${widget.captureCount} ready to add',
-                  style: textTheme.bodySmall?.copyWith(color: Colors.white70),
-                ),
-              ],
-            ),
+          const Spacer(),
+          _FlashToggle(
+            service: widget.service,
+            onChanged: () => setState(() {}),
           ),
-          if (widget.onDone != null)
+          if (widget.onDone != null) ...[
+            const SizedBox(width: 8),
             TextButton(
               onPressed: widget.onDone,
               style: TextButton.styleFrom(
                 foregroundColor: Colors.black,
                 backgroundColor: const Color(0xFFFFE600),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
-              child: Text('Done (${widget.captureCount})', style: const TextStyle(fontWeight: FontWeight.w700)),
-            )
-          else
-            _FlashToggle(service: widget.service, onChanged: () => setState(() {})),
+              child: Text(
+                'Done (${widget.captureCount})',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -381,56 +343,53 @@ class _BottomControls extends StatelessWidget {
   const _BottomControls({
     required this.busy,
     required this.canSwitchCamera,
+    required this.canCycleLens,
     required this.canCaptureMore,
-    required this.captureCount,
     required this.onCapture,
     required this.onSwitchCamera,
+    required this.onCycleLens,
   });
 
   final bool busy;
   final bool canSwitchCamera;
+  final bool canCycleLens;
   final bool canCaptureMore;
-  final int captureCount;
   final VoidCallback onCapture;
   final VoidCallback onSwitchCamera;
+  final VoidCallback onCycleLens;
 
   @override
   Widget build(BuildContext context) {
-    final hint = !canCaptureMore
-        ? 'Photo limit reached'
-        : busy
-        ? 'Saving photo…'
-        : captureCount == 0
-        ? 'Tap to capture'
-        : 'Tap to capture another';
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: canSwitchCamera
-                    ? _CameraGlassButton(
-                        icon: Icons.cameraswitch_rounded,
-                        onTap: busy || !canCaptureMore ? () {} : onSwitchCamera,
-                        label: 'Flip',
-                      )
-                    : const SizedBox(width: 46),
-              ),
-              _CameraShutterButton(busy: busy || !canCaptureMore, onTap: onCapture),
-              const Expanded(child: SizedBox(width: 46)),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            hint,
-            style: Theme.of(context).textTheme.labelLarge
-                ?.copyWith(color: Colors.white.withValues(alpha: 0.82), fontWeight: FontWeight.w600),
-          ),
-        ],
+    return SizedBox(
+      height: 132,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: canSwitchCamera
+                  ? _CameraGlassButton(
+                      icon: Icons.cameraswitch_rounded,
+                      onTap: busy || !canCaptureMore ? () {} : onSwitchCamera,
+                      label: 'Flip',
+                    )
+                  : const SizedBox(width: 46),
+            ),
+            _CameraShutterButton(
+              busy: busy || !canCaptureMore,
+              onTap: onCapture,
+            ),
+            Expanded(
+              child: canCycleLens
+                  ? _CameraGlassButton(
+                      icon: Icons.crop_free_rounded,
+                      onTap: busy || !canCaptureMore ? () {} : onCycleLens,
+                      label: 'Lens',
+                    )
+                  : const SizedBox(width: 46),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -464,7 +423,12 @@ class _FlashToggle extends StatelessWidget {
 }
 
 class _CameraGlassButton extends StatelessWidget {
-  const _CameraGlassButton({required this.icon, required this.onTap, this.active = false, this.label});
+  const _CameraGlassButton({
+    required this.icon,
+    required this.onTap,
+    this.active = false,
+    this.label,
+  });
 
   final IconData icon;
   final VoidCallback onTap;
@@ -484,20 +448,27 @@ class _CameraGlassButton extends StatelessWidget {
             width: _size,
             height: _size,
             decoration: BoxDecoration(
-              color: active ? const Color(0xFFFFE600) : Colors.black.withValues(alpha: 0.38),
+              color: active
+                  ? const Color(0xFFFFE600)
+                  : Colors.black.withValues(alpha: 0.38),
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 10, offset: const Offset(0, 4)),
-              ],
             ),
-            child: Icon(icon, color: active ? Colors.black : Colors.white, size: _size * 0.46),
+            child: Icon(
+              icon,
+              color: active ? Colors.black : Colors.white,
+              size: _size * 0.48,
+            ),
           ),
           if (label != null) ...[
             const SizedBox(height: 4),
             Text(
               label!,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 11, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.78),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ],
@@ -517,7 +488,7 @@ class _CameraShutterButton extends StatefulWidget {
 }
 
 class _CameraShutterButtonState extends State<_CameraShutterButton> {
-  static const double _size = 78;
+  static const double _size = 74;
   bool _pressed = false;
 
   @override
@@ -528,8 +499,9 @@ class _CameraShutterButtonState extends State<_CameraShutterButton> {
       onTapCancel: () => setState(() => _pressed = false),
       onTap: widget.busy ? null : widget.onTap,
       child: AnimatedScale(
-        scale: _pressed ? 0.92 : 1,
-        duration: const Duration(milliseconds: 100),
+        scale: _pressed ? 0.86 : 1,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
         child: SizedBox(
           width: _size,
           height: _size,
@@ -537,25 +509,33 @@ class _CameraShutterButtonState extends State<_CameraShutterButton> {
             alignment: Alignment.center,
             children: [
               Container(
-                width: _size,
-                height: _size,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.95), width: 4),
+                  border: Border.all(
+                    color: Colors.white.withValues(
+                      alpha: widget.busy ? 0.5 : 1,
+                    ),
+                    width: 3,
+                  ),
                 ),
               ),
               Container(
-                width: _size - 16,
-                height: _size - 16,
+                width: _size - 14,
+                height: _size - 14,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: widget.busy ? Colors.white38 : Colors.white,
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 12, offset: const Offset(0, 4)),
-                  ],
                 ),
               ),
-              if (widget.busy) const SizedBox(width: 28, height: 28, child: CircularProgressIndicator.adaptive()),
+              if (widget.busy)
+                const SizedBox(
+                  width: 26,
+                  height: 26,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.black54,
+                  ),
+                ),
             ],
           ),
         ),

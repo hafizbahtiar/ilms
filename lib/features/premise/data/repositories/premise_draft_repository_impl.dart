@@ -93,7 +93,9 @@ class PremiseDraftRepositoryImpl implements PremiseDraftRepository {
     final payload = PremiseDraftMapper.decodePayload(row.formPayload);
 
     return saveDraft(
-      payload: payload,
+      // Strip the source draft/premise's server ids — this becomes a NEW
+      // premise record, not an edit of the one it was duplicated from.
+      payload: PremiseDraftMapper.stripServerIdsForDuplicate(payload),
       companyName: row.companyName,
       traderName: row.traderName,
       draftType: PremiseDraftType.duplicate,

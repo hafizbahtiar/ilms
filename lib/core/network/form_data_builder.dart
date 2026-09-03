@@ -19,46 +19,28 @@ class FormDataBuilder {
 
   Future<FormData> fromMap(Map<String, dynamic> data) async {
     final formData = FormData();
-    final tasks = <Future<void>>[];
-
-    void processEntry(String key, dynamic value, {String parentKey = ''}) {
-      final fullKey = parentKey.isEmpty ? key : '$parentKey[$key]';
-
-      if (value is Uint8List) {
-        tasks.add(_addBytes(formData, fullKey, value));
-      } else if (value is File) {
-        tasks.add(_addFile(formData, fullKey, value));
-      } else if (value is List<Map<String, dynamic>>) {
-        tasks.add(_addMapList(formData, fullKey, value));
-      } else if (value is Map<String, dynamic>) {
-        if (_isSimpleMap(value)) {
-          value.forEach((nestedKey, nestedValue) {
-            _addField(formData, '$key[$nestedKey]', nestedValue);
-          });
-        } else {
-          value.forEach((nestedKey, nestedValue) {
-            processEntry(nestedKey, nestedValue, parentKey: fullKey);
-          });
-        }
-      } else if (value is List) {
-        tasks.add(_addGenericList(formData, key, value, parentKey: parentKey));
-      } else {
-        _addField(formData, fullKey, value);
-      }
-    }
-
-    data.forEach(processEntry);
-    await Future.wait(tasks);
+    await Future.wait(data.entries.map((entry) => _addValue(formData, entry.key, entry.value)));
     return formData;
   }
 
-  bool _isSimpleMap(Map<String, dynamic> map) {
-    for (final value in map.values) {
-      if (value is Uint8List || value is File || value is Map || value is List) {
-        return false;
-      }
+  /// Recursively flattens [value] under [key] using legacy bracket notation
+  /// (`key[0][field]`, `key[field][nested]`, …). Handles arbitrarily nested
+  /// maps and lists — e.g. `license_information[0][additional_license_info][1][amount]`
+  /// — not just a single level, so a list embedded inside a list-of-maps
+  /// entry (like a license's business activities) doesn't fall through to a
+  /// stringified Dart literal that the backend can't parse.
+  Future<void> _addValue(FormData formData, String key, dynamic value) async {
+    if (value is Uint8List) {
+      await _addBytes(formData, key, value);
+    } else if (value is File) {
+      await _addFile(formData, key, value);
+    } else if (value is Map<String, dynamic>) {
+      await Future.wait(value.entries.map((entry) => _addValue(formData, '$key[${entry.key}]', entry.value)));
+    } else if (value is List) {
+      await Future.wait(value.asMap().entries.map((entry) => _addValue(formData, '$key[${entry.key}]', entry.value)));
+    } else {
+      _addField(formData, key, value);
     }
-    return true;
   }
 
   void _addField(FormData formData, String key, dynamic value) {
@@ -73,40 +55,6 @@ class FormDataBuilder {
   Future<void> _addFile(FormData formData, String key, File file) async {
     final filename = file.path.split('/').last;
     formData.files.add(MapEntry(key, await MultipartFile.fromFile(file.path, filename: filename)));
-  }
-
-  Future<void> _addMapList(FormData formData, String key, List<Map<String, dynamic>> mapList) async {
-    for (var i = 0; i < mapList.length; i++) {
-      final map = mapList[i];
-      for (final entry in map.entries) {
-        final fullKey = '$key[$i][${entry.key}]';
-        final nestedValue = entry.value;
-        if (nestedValue is Uint8List) {
-          await _addBytes(formData, fullKey, nestedValue);
-        } else if (nestedValue is File) {
-          await _addFile(formData, fullKey, nestedValue);
-        } else if (nestedValue is Map<String, dynamic>) {
-          nestedValue.forEach((deepKey, deepValue) {
-            _addField(formData, '$fullKey[$deepKey]', deepValue);
-          });
-        } else {
-          _addField(formData, fullKey, nestedValue);
-        }
-      }
-    }
-  }
-
-  Future<void> _addGenericList(FormData formData, String key, List<dynamic> list, {String parentKey = ''}) async {
-    final fullKey = parentKey.isEmpty ? key : '$parentKey[$key]';
-    for (var i = 0; i < list.length; i++) {
-      final item = list[i];
-      final itemKey = '$fullKey[$i]';
-      if (item is Map<String, dynamic>) {
-        await _addMapList(formData, fullKey, [item]);
-      } else {
-        _addField(formData, itemKey, item);
-      }
-    }
   }
 
   Future<MultipartFile> _multipartFromBytes(String key, Uint8List bytes) async {

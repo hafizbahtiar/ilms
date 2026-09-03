@@ -17,8 +17,5 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 });
 
 final authControllerProvider = StateNotifierProvider<AuthController, AuthState>((ref) {
-  return AuthController(
-    ref.read(authRepositoryProvider),
-    crashLogService: ref.read(crashLogServiceProvider),
-  );
+  return AuthController(ref.read(authRepositoryProvider), crashLogService: ref.read(crashLogServiceProvider));
 });

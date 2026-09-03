@@ -11,13 +11,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 ///
 /// Never throws: failed sends are persisted locally for a later retry.
 class CrashLogService {
-  CrashLogService({
-    CrashLogRepository? repository,
-    CrashLogLocalStore? localStore,
-    PackageInfo? packageInfo,
-  }) : _repository = repository ?? CrashLogRepository(),
-       _localStore = localStore ?? CrashLogLocalStore(AppDatabase.instance),
-       _packageInfo = packageInfo;
+  CrashLogService({CrashLogRepository? repository, CrashLogLocalStore? localStore, this._packageInfo})
+    : _repository = repository ?? CrashLogRepository(),
+      _localStore = localStore ?? CrashLogLocalStore(AppDatabase.instance);
 
   final CrashLogRepository _repository;
   final CrashLogLocalStore _localStore;

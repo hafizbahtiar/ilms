@@ -25,12 +25,7 @@ class CrashLogHandler {
     };
 
     PlatformDispatcher.instance.onError = (error, stack) {
-      _service?.reportError(
-        module: 'general',
-        type: 'crash',
-        error: error,
-        stackTrace: stack,
-      );
+      _service?.reportError(module: 'general', type: 'crash', error: error, stackTrace: stack);
       return true;
     };
   }

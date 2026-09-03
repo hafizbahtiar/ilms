@@ -11,6 +11,10 @@ class PremiseDraftPayloadModel {
   const PremiseDraftPayloadModel({
     this.companyStateCode,
     this.companyPostcode,
+    this.businessTypeCode,
+    this.businessTypeDesc,
+    this.premiseTypeCode,
+    this.premiseTypeDesc,
     this.fields = const {},
     this.censusImages = const [],
     this.remarks = const [],
@@ -21,6 +25,15 @@ class PremiseDraftPayloadModel {
 
   final String? companyStateCode;
   final String? companyPostcode;
+
+  /// Kept separate from `fields['businessType']`/`['premiseType']`'s display
+  /// text (which shows only the option's description, e.g. `Office`) since
+  /// that text isn't in a parseable `code - desc` format — re-deriving the
+  /// code from it would silently send the description as the code.
+  final String? businessTypeCode;
+  final String? businessTypeDesc;
+  final String? premiseTypeCode;
+  final String? premiseTypeDesc;
   final Map<String, String> fields;
   final List<PremiseCensusImage> censusImages;
   final List<PremiseRemark> remarks;
@@ -31,6 +44,10 @@ class PremiseDraftPayloadModel {
   Map<String, dynamic> toJson() => {
     'companyStateCode': companyStateCode,
     'companyPostcode': companyPostcode,
+    'businessTypeCode': businessTypeCode,
+    'businessTypeDesc': businessTypeDesc,
+    'premiseTypeCode': premiseTypeCode,
+    'premiseTypeDesc': premiseTypeDesc,
     'fields': fields,
     'censusImages': censusImages.map(_imageToJson).toList(),
     'remarks': remarks.map(_remarkToJson).toList(),
@@ -50,6 +67,10 @@ class PremiseDraftPayloadModel {
     return PremiseDraftPayloadModel(
       companyStateCode: json['companyStateCode'] as String?,
       companyPostcode: json['companyPostcode'] as String?,
+      businessTypeCode: json['businessTypeCode'] as String?,
+      businessTypeDesc: json['businessTypeDesc'] as String?,
+      premiseTypeCode: json['premiseTypeCode'] as String?,
+      premiseTypeDesc: json['premiseTypeDesc'] as String?,
       fields: rawFields is Map ? rawFields.map((key, value) => MapEntry('$key', '$value')) : const {},
       censusImages: rawImages is List
           ? rawImages.whereType<Map>().map((item) => _imageFromJson(Map<String, dynamic>.from(item))).toList()
@@ -157,6 +178,7 @@ class PremiseDraftPayloadModel {
   }
 
   static Map<String, dynamic> _licenseActivityToJson(PremiseLicenseActivity activity) => {
+    if (activity.id != null) 'id': activity.id,
     'businessType': activity.businessType,
     'businessTypeDesc': activity.businessTypeDesc,
     'status': activity.status,
@@ -169,6 +191,7 @@ class PremiseDraftPayloadModel {
 
   static PremiseLicenseActivity _licenseActivityFromJson(Map<String, dynamic> json) {
     return PremiseLicenseActivity(
+      id: json['id'] is int ? json['id'] as int : int.tryParse('${json['id']}'),
       businessType: json['businessType'] as String?,
       businessTypeDesc: json['businessTypeDesc'] as String?,
       status: json['status'] as String?,

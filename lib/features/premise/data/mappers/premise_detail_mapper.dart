@@ -43,6 +43,10 @@ class PremiseDetailMapper {
     return PremiseDraftPayloadModel(
       companyStateCode: base.companyStateCode,
       companyPostcode: base.companyPostcode,
+      businessTypeCode: base.businessTypeCode,
+      businessTypeDesc: base.businessTypeDesc,
+      premiseTypeCode: base.premiseTypeCode,
+      premiseTypeDesc: base.premiseTypeDesc,
       fields: fields,
       censusImages: const [],
       remarks: _duplicateRemarks(base.remarks),
@@ -96,6 +100,10 @@ class PremiseDetailMapper {
     return PremiseDraftPayloadModel(
       companyStateCode: _nullableString(company['state']),
       companyPostcode: _nullableString(company['postcode']),
+      businessTypeCode: _nullableString(details['business_type']),
+      businessTypeDesc: _nullableString(details['business_type_desc']),
+      premiseTypeCode: _nullableString(details['premise_type']),
+      premiseTypeDesc: _nullableString(details['premise_type_desc']),
       fields: fields,
       censusImages: includeImages ? _mapImages(rawImages) : const [],
       remarks: includeRemarks ? _mapRemarks(rawRemarks) : const [],
@@ -270,9 +278,24 @@ class PremiseDetailMapper {
     return parsed == null ? text : formatDdMmYyyy(parsed.toLocal());
   }
 
+  /// Combines a code/desc pair from `/api/premiseCensus/detail` into a single
+  /// display string. Deliberately does NOT go through [generalLookupLabel] —
+  /// that helper drops the code whenever there's no `apiDisplay` (falls back
+  /// to desc-only), which for this API (no `display` field) would show only
+  /// the description, e.g. `Office` instead of `OF : Office`, and it isn't in
+  /// a parseable `code - desc` format either — either way the code is not
+  /// recoverable later from the display text. Businesss/premise type codes
+  /// are additionally carried through untouched as
+  /// [PremiseDraftPayloadModel.businessTypeCode]/[premiseTypeCode], so this
+  /// combined string is used purely for display, never re-parsed for submit.
   static String _lookupDisplay(String code, String? desc) {
-    if (code.isEmpty && (desc == null || desc.isEmpty)) return '';
-    return generalLookupLabel(GeneralModel(code: code.isEmpty ? null : code, desc: desc));
+    final trimmedCode = code.trim();
+    final trimmedDesc = desc?.trim();
+    if (trimmedCode.isEmpty && (trimmedDesc == null || trimmedDesc.isEmpty)) return '';
+    if (trimmedCode.isNotEmpty && trimmedDesc != null && trimmedDesc.isNotEmpty) {
+      return '$trimmedCode : $trimmedDesc';
+    }
+    return trimmedDesc ?? trimmedCode;
   }
 
   static String _postcodeDisplay(String code, String? desc) {
@@ -337,6 +360,7 @@ class PremiseDetailMapper {
     return rawActivities.whereType<Map>().map((item) {
       final map = Map<String, dynamic>.from(item);
       return PremiseLicenseActivity(
+        id: map['id'] is int ? map['id'] as int : int.tryParse('${map['id']}'),
         businessType: map['business_type']?.toString(),
         businessTypeDesc: map['business_type_desc']?.toString(),
         status: map['status']?.toString(),

@@ -7,9 +7,7 @@ class CrashLogLocalStore {
   final AppDatabase _database;
 
   Future<int> insert({required String payload}) {
-    return _database.into(_database.crashLogEntries).insert(
-      CrashLogEntriesCompanion.insert(payload: payload),
-    );
+    return _database.into(_database.crashLogEntries).insert(CrashLogEntriesCompanion.insert(payload: payload));
   }
 
   Future<List<CrashLogEntry>> getPending() {

@@ -325,11 +325,18 @@ class PremiseFormController extends FamilyNotifier<PremiseFormState, PremiseForm
     return newLocalId;
   }
 
+  /// Business activity code auto-assigned to a premise marked vacant — see
+  /// [markVacant].
+  static const String vacantBusinessActivityCode = 'X101';
+
   /// Marks the visit as a vacant premise (legacy `fillVacantDefaults`):
-  /// company/contact/trader fields are known-N/A, while the address and
-  /// business/premise type are cleared so the surveyor enters the real
-  /// values for the vacant unit instead of carrying over the previous entry.
-  void markVacant() {
+  /// company/contact/trader fields are known-N/A. Company address, premise
+  /// type and business type are left as-is (the surveyor may still need
+  /// them for a vacant unit), while any remarks recorded before the unit
+  /// was marked vacant no longer apply and are cleared. Any business
+  /// activities already recorded no longer apply to an empty unit, so
+  /// they're replaced with a single [vacantBusinessActivityCode] entry.
+  Future<void> markVacant() async {
     if (state.isReadOnly) return;
 
     const na = 'N/A';
@@ -343,16 +350,40 @@ class PremiseFormController extends FamilyNotifier<PremiseFormState, PremiseForm
     fields.contactPersonPosition.text = na;
     fields.traderName.text = na;
 
-    fields.unit.clear();
-    fields.building.clear();
-    fields.street1.clear();
-    fields.street2.clear();
-    fields.postcode.clear();
-    fields.area.clear();
-    fields.businessType.clear();
-    fields.premiseType.clear();
+    final businessTypes = await ref.read(generalBusinessTypesProvider.future);
+    final vacantType = _lookupByCode(businessTypes, vacantBusinessActivityCode);
+    final vacantActivity = PremiseBusinessActivity(
+      localId: 1,
+      businessType: vacantBusinessActivityCode,
+      businessTypeDesc: vacantType != null ? generalLookupLabel(vacantType) : vacantBusinessActivityCode,
+    );
 
-    state = state.copyWith(isVacant: true, draftType: PremiseDraftType.vacant, clearCompanyPostcode: true);
+    // Auto-pick the 'vacant' visit status (legacy `autoSelectVacantIfNeeded`)
+    // so the surveyor isn't asked to re-pick a status that's already implied
+    // by marking the unit vacant. Only when nothing's been chosen yet — a
+    // status the surveyor already picked (or a resumed draft's) is left alone.
+    String? visitStatus = state.visitStatus;
+    String? visitStatusDesc = state.visitStatusDesc;
+    if (visitStatus == null || visitStatus.isEmpty) {
+      final visitStatuses = await ref.read(premiseVisitStatusesProvider.future);
+      final vacantStatus = visitStatuses.cast<GeneralModel?>().firstWhere(
+        (e) => e?.code?.toLowerCase() == 'vacant' || e?.desc?.toLowerCase() == 'vacant',
+        orElse: () => null,
+      );
+      if (vacantStatus != null) {
+        visitStatus = vacantStatus.code;
+        visitStatusDesc = generalLookupLabel(vacantStatus);
+      }
+    }
+
+    state = state.copyWith(
+      isVacant: true,
+      draftType: PremiseDraftType.vacant,
+      businessActivities: [vacantActivity],
+      remarks: [],
+      visitStatus: visitStatus,
+      visitStatusDesc: visitStatusDesc,
+    );
   }
 
   void selectVisitStatus(GeneralModel item) {
@@ -426,12 +457,13 @@ class PremiseFormController extends FamilyNotifier<PremiseFormState, PremiseForm
     if (state.isReadOnly) return;
     applyGeneralLookupSelection(controller: fields.postcode, item: item, label: generalPostcodeLabel);
     fields.area.clear();
-    state = state.copyWith(companyPostcode: item.code);
+    state = state.copyWith(companyPostcode: item.code, clearCompanyArea: true);
   }
 
   void selectCompanyArea(GeneralModel item) {
     if (state.isReadOnly) return;
     applyGeneralLookupSelection(controller: fields.area, item: item);
+    state = state.copyWith(companyAreaCode: item.code, clearCompanyArea: item.code == null);
   }
 
   /// Prefills Company & Contact from a license QR lookup — mirrors legacy
@@ -506,11 +538,13 @@ class PremiseFormController extends FamilyNotifier<PremiseFormState, PremiseForm
   void selectBusinessType(GeneralModel item) {
     if (state.isReadOnly) return;
     applyGeneralLookupSelection(controller: fields.businessType, item: item);
+    state = state.copyWith(businessTypeCode: item.code, businessTypeDesc: item.desc);
   }
 
   void selectPremiseType(GeneralModel item) {
     if (state.isReadOnly) return;
     applyGeneralLookupSelection(controller: fields.premiseType, item: item);
+    state = state.copyWith(premiseTypeCode: item.code, premiseTypeDesc: item.desc);
   }
 
   Future<void> deleteDraft() async {
@@ -584,6 +618,11 @@ class PremiseFormController extends FamilyNotifier<PremiseFormState, PremiseForm
         localDraftId: state.localDraftId,
         visitStatus: state.visitStatus,
         visitStatusDesc: state.visitStatusDesc,
+        areaCode: state.companyAreaCode,
+        businessTypeCode: state.businessTypeCode,
+        businessTypeDesc: state.businessTypeDesc,
+        premiseTypeCode: state.premiseTypeCode,
+        premiseTypeDesc: state.premiseTypeDesc,
         // A resumed draft that already succeeded once (visitNo set, photos
         // still pending) must submit as an UPDATE — otherwise this would
         // create a duplicate premise record on the server every retry.
