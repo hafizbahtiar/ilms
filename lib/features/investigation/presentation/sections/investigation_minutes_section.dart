@@ -58,6 +58,7 @@ class InvestigationMinutesSection extends ConsumerWidget {
           readOnly: readOnly,
           required: true,
           maxLines: 5,
+          keyboardType: TextInputType.multiline,
           onChanged: (_) {},
         ),
       ],

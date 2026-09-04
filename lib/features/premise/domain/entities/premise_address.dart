@@ -14,8 +14,6 @@ class PremiseAddress extends Equatable {
     this.parliament,
     this.postcode,
     this.state,
-    this.latitude,
-    this.longitude,
   });
 
   PremiseAddress copyWith({
@@ -31,8 +29,6 @@ class PremiseAddress extends Equatable {
     String? parliament,
     String? postcode,
     String? state,
-    String? latitude,
-    String? longitude,
   }) {
     return PremiseAddress(
       localId: localId ?? this.localId,
@@ -47,8 +43,6 @@ class PremiseAddress extends Equatable {
       parliament: parliament ?? this.parliament,
       postcode: postcode ?? this.postcode,
       state: state ?? this.state,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
     );
   }
 
@@ -64,8 +58,6 @@ class PremiseAddress extends Equatable {
   final String? parliament;
   final String? postcode;
   final String? state;
-  final String? latitude;
-  final String? longitude;
 
   @override
   List<Object?> get props => [
@@ -81,7 +73,5 @@ class PremiseAddress extends Equatable {
         parliament,
         postcode,
         state,
-        latitude,
-        longitude,
       ];
 }

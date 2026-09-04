@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:ilms/shared/models/general_model.dart';
 
-/// Standard picker label.
+/// Standard picker label — the option's **description only**, matching legacy
+/// (`controller.text = val.desc`). The code is internal plumbing; showing
+/// `A105 : BADAN PENGURUSAN BERSAMA` in a field just makes it harder to read.
 ///
 /// Priority:
-/// 1. [GeneralModel.apiDisplay] when the API sends `display` (e.g. `"O : OTHER"`)
-/// 2. [GeneralModel.desc] for user-facing text
+/// 1. [GeneralModel.desc] — the user-facing text
+/// 2. the desc half of [GeneralModel.apiDisplay] when the API sends only a
+///    composed `display` (e.g. `"O : OTHER"` → `OTHER`)
 /// 3. [GeneralModel.code] as a last-resort fallback
 ///
-/// Callers should still persist/send [GeneralModel.code] — this is display only.
+/// Callers must persist/send [GeneralModel.code] captured at selection time —
+/// it is NOT recoverable from this label.
 String generalLookupLabel(GeneralModel option) {
-  final apiDisplay = option.apiDisplay?.trim();
-  if (apiDisplay != null && apiDisplay.isNotEmpty) return apiDisplay;
-
   final desc = option.desc?.trim();
   if (desc != null && desc.isNotEmpty) return desc;
+
+  final apiDisplay = option.apiDisplay?.trim();
+  if (apiDisplay != null && apiDisplay.isNotEmpty) {
+    return lookupDescFromDisplay(apiDisplay) ?? apiDisplay;
+  }
 
   return option.code?.trim() ?? '';
 }

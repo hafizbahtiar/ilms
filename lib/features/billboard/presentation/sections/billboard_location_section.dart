@@ -23,18 +23,31 @@ class BillboardLocationSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AppTextField(label: 'Media Client Name', controller: fields.mediaClientName, readOnly: readOnly),
+        AppTextField(
+          label: 'Media Client Name',
+          controller: fields.mediaClientName,
+          readOnly: readOnly,
+          uppercase: true,
+        ),
         const SizedBox(height: 12),
         AppTextField(
           label: 'Media Client Tel',
           controller: fields.mediaClientTel,
           readOnly: readOnly,
           keyboardType: TextInputType.phone,
+          uppercase: true,
         ),
         const SizedBox(height: 12),
-        AppTextField(label: 'Unit', controller: fields.unit, readOnly: readOnly),
+        AppTextField(label: 'Unit', controller: fields.unit, readOnly: readOnly, uppercase: true),
         const SizedBox(height: 12),
-        AppTextField(label: 'Address', controller: fields.address, readOnly: readOnly, maxLines: 2),
+        AppTextField(
+          label: 'Address',
+          controller: fields.address,
+          readOnly: readOnly,
+          maxLines: 2,
+          keyboardType: TextInputType.multiline,
+          uppercase: true,
+        ),
         const SizedBox(height: 12),
         AppTextField(
           label: 'Postal',
@@ -43,7 +56,7 @@ class BillboardLocationSection extends ConsumerWidget {
           keyboardType: TextInputType.number,
         ),
         const SizedBox(height: 12),
-        AppTextField(label: 'Building', controller: fields.building, readOnly: readOnly),
+        AppTextField(label: 'Building', controller: fields.building, readOnly: readOnly, uppercase: true),
         const SizedBox(height: 12),
         AppPickerField<GeneralModel>(
           label: 'Parliament',

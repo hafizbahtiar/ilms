@@ -60,6 +60,25 @@ void main() {
       expect(fields.containsKey('license_information[0][additional_license_info]'), isFalse);
     });
 
+    test('sends key[] with an empty value for an empty list instead of dropping the key', () async {
+      // Regression: without this, deleting every license/business-activity
+      // row left `license_information`/`business_activities` absent from the
+      // request entirely, so the backend kept the old rows instead of
+      // clearing them. A plain string value (e.g. "[]") doesn't work either —
+      // PHP still parses it as a scalar and the backend's `foreach` over it
+      // throws a 500 ("foreach() argument must be of type array|object,
+      // string given"). `key[]` with an empty value is the classic
+      // HTML-forms idiom: PHP parses it as a real array so `foreach` doesn't
+      // choke, and the backend filters out the blank placeholder row.
+      final formData = await const FormDataBuilder().fromMap({'license_information': [], 'business_activities': []});
+
+      final fields = {for (final f in formData.fields) f.key: f.value};
+      expect(fields['license_information[]'], '');
+      expect(fields['business_activities[]'], '');
+      expect(fields.containsKey('license_information'), isFalse);
+      expect(fields.containsKey('business_activities'), isFalse);
+    });
+
     test('flattens nested maps under bracket keys', () async {
       final formData = await const FormDataBuilder().fromMap({
         'company_details': {'company_name': 'ACME', 'contact': {'phone': '0123456789'}},

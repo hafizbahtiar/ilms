@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:ilms/features/billboard/domain/entities/billboard_asset_owner.dart';
 import 'package:ilms/features/billboard/domain/entities/billboard_details.dart';
 import 'package:ilms/features/billboard/domain/entities/billboard_face.dart';
@@ -12,7 +14,11 @@ import 'package:ilms/features/billboard/domain/utils/billboard_remark_codec.dart
 /// Request model for `/api/billboardCensus/create|update`, mirroring legacy
 /// `CreateBillBoardInput` (one class per sub-object, same field placement).
 ///
-/// Photos are intentionally excluded — they upload via `/create-photo` after submit.
+/// Photos travel inline under `images` (raw file bytes, one per local photo)
+/// — mirroring legacy `CreateBillBoardInput.toJson()`/`toJsonUpdate()`, which
+/// send photo bytes with the same create/update request rather than via a
+/// separate endpoint. (The `/create-photo` endpoint exists but, like in
+/// legacy, is never exercised by the main submit flow.)
 class BillboardSubmitPayloadModel {
   const BillboardSubmitPayloadModel({
     this.billboardNo,
@@ -50,7 +56,7 @@ class BillboardSubmitPayloadModel {
     );
   }
 
-  Map<String, dynamic> toCreateJson() {
+  Map<String, dynamic> toCreateJson({List<Uint8List> images = const []}) {
     return {
       'location_details': locationDetails.toJson(),
       'gps_details': gpsDetails.toJson(),
@@ -59,11 +65,12 @@ class BillboardSubmitPayloadModel {
       'billboard_details': billboardDetails.toJson(),
       'license_details': licenseDetails.toJson(),
       'remarks_details': remarksDetails.toJson(),
+      'images': images,
       'faces': faces.map((e) => e.toJson()).toList(),
     };
   }
 
-  Map<String, dynamic> toUpdateJson() {
+  Map<String, dynamic> toUpdateJson({List<Uint8List> images = const []}) {
     return {
       'billboard_no': billboardNo,
       'location_details': locationDetails.toJson(),
@@ -73,6 +80,7 @@ class BillboardSubmitPayloadModel {
       'billboard_details': billboardDetails.toJson(),
       'license_details': licenseDetails.toJson(),
       'remarks_details': remarksDetails.toJson(),
+      'images': images,
       'faces': faces.map((e) => e.toJson()).toList(),
     };
   }

@@ -160,7 +160,13 @@ class _PremiseRemarkSheetBodyState extends ConsumerState<_PremiseRemarkSheetBody
           ),
           if (_isOther) ...[
             const SizedBox(height: 12),
-            AppTextField(label: 'Description', controller: _descriptionController, maxLines: 4, uppercase: true),
+            AppTextField(
+              label: 'Description',
+              controller: _descriptionController,
+              maxLines: 4,
+              keyboardType: TextInputType.multiline,
+              uppercase: true,
+            ),
           ],
         ],
       ),

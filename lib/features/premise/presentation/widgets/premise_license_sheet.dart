@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ilms/core/network/api_response_helper.dart';
-import 'package:ilms/features/premise/domain/entities/premise_business_activity.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license_activity.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license_qr_data.dart';
@@ -91,7 +90,6 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
   final _actAmountController = TextEditingController(text: '0.00');
   GeneralModel? _actSelectedBusinessType;
   GeneralModel? _actSelectedStatus;
-  var _actSaveToBusiness = false;
 
   late List<PremiseLicenseActivity> _items;
 
@@ -287,7 +285,6 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
       statusDesc: status == null ? null : generalLookupLabel(status),
       description: _actDescriptionController.text.trim().isEmpty ? null : _actDescriptionController.text.trim(),
       amount: _actAmountController.text.trim().isEmpty ? null : _actAmountController.text.trim(),
-      saveToBusiness: _actSaveToBusiness,
     );
 
     // Same business type + description + amount counts as a duplicate — the
@@ -311,47 +308,11 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
       _actStatusController.clear();
       _actDescriptionController.clear();
       _actAmountController.text = '0.00';
-      _actSaveToBusiness = false;
     });
   }
 
   void _removeItem(int index) {
     setState(() => _items = [..._items]..removeAt(index));
-  }
-
-  void _toggleItemSaveBusiness(int index) {
-    setState(() {
-      final next = [..._items];
-      next[index] = next[index].copyWith(saveToBusiness: !next[index].saveToBusiness);
-      _items = next;
-    });
-  }
-
-  /// Upserts every item flagged `saveToBusiness` into the Business Activity
-  /// section (mirrors already-linked items instead of duplicating them),
-  /// then writes the resulting link back onto each item.
-  void _mirrorFlaggedToBusiness() {
-    final controller = ref.read(premiseFormControllerProvider(widget.session).notifier);
-    final next = [..._items];
-
-    for (var i = 0; i < next.length; i++) {
-      final item = next[i];
-      if (!item.saveToBusiness) continue;
-
-      final localId = controller.upsertMirroredBusinessActivity(
-        localId: item.businessActivityLocalId,
-        activity: PremiseBusinessActivity(
-          businessType: item.businessType,
-          businessTypeDesc: item.businessTypeDesc,
-          status: item.status,
-          statusDesc: item.statusDesc,
-          description: item.description,
-        ),
-      );
-      next[i] = item.copyWith(businessActivityLocalId: localId);
-    }
-
-    _items = next;
   }
 
   void save() {
@@ -362,8 +323,6 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
     }
 
     final status = _selectedStatus;
-
-    _mirrorFlaggedToBusiness();
 
     final license = PremiseLicense(
       id: widget.initial?.id,
@@ -484,11 +443,7 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
           else
             for (var i = 0; i < _items.length; i++) ...[
               if (i > 0) const SizedBox(height: 8),
-              _LicenseActivityCard(
-                item: _items[i],
-                onDelete: () => _removeItem(i),
-                onToggleSaveToBusiness: () => _toggleItemSaveBusiness(i),
-              ),
+              _LicenseActivityCard(item: _items[i], onDelete: () => _removeItem(i)),
             ],
           const SizedBox(height: 12),
           Container(
@@ -528,18 +483,7 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
                   inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
                   onChanged: (_) => setState(() {}),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Row(
-                    children: [
-                      Expanded(child: Text('Save to Business Activity', style: textTheme.bodySmall)),
-                      Switch.adaptive(
-                        value: _actSaveToBusiness,
-                        onChanged: (v) => setState(() => _actSaveToBusiness = v),
-                      ),
-                    ],
-                  ),
-                ),
+                const SizedBox(height: 4),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
@@ -559,11 +503,10 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
 }
 
 class _LicenseActivityCard extends StatelessWidget {
-  const _LicenseActivityCard({required this.item, required this.onDelete, required this.onToggleSaveToBusiness});
+  const _LicenseActivityCard({required this.item, required this.onDelete});
 
   final PremiseLicenseActivity item;
   final VoidCallback onDelete;
-  final VoidCallback onToggleSaveToBusiness;
 
   @override
   Widget build(BuildContext context) {
@@ -573,34 +516,21 @@ class _LicenseActivityCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(color: cs.surfaceContainerLow, borderRadius: BorderRadius.circular(12)),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: Column(
-        children: [
-          ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              item.businessTypeDesc ?? item.businessType ?? '-',
-              style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            subtitle: Text(
-              '${item.statusDesc ?? item.status ?? '-'}  •  ${item.description ?? '-'}  •  RM ${item.amount ?? '0.00'}',
-              style: textTheme.bodySmall,
-            ),
-            trailing: IconButton(
-              icon: Icon(Icons.delete_outline, color: cs.error),
-              onPressed: onDelete,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              children: [
-                Expanded(child: Text('Save to Business Activity', style: textTheme.bodySmall)),
-                Switch.adaptive(value: item.saveToBusiness, onChanged: (_) => onToggleSaveToBusiness()),
-              ],
-            ),
-          ),
-        ],
+      child: ListTile(
+        dense: true,
+        contentPadding: EdgeInsets.zero,
+        title: Text(
+          item.businessTypeDesc ?? item.businessType ?? '-',
+          style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(
+          '${item.statusDesc ?? item.status ?? '-'}  •  ${item.description ?? '-'}  •  RM ${item.amount ?? '0.00'}',
+          style: textTheme.bodySmall,
+        ),
+        trailing: IconButton(
+          icon: Icon(Icons.delete_outline, color: cs.error),
+          onPressed: onDelete,
+        ),
       ),
     );
   }

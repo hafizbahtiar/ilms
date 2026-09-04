@@ -242,7 +242,13 @@ class InvestigationPremiseDetailsSection extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 12),
-        AppTextField(label: 'Other Activities', controller: fields.otherActivities, readOnly: readOnly, maxLines: 3),
+        AppTextField(
+          label: 'Other Activities',
+          controller: fields.otherActivities,
+          readOnly: readOnly,
+          maxLines: 3,
+          keyboardType: TextInputType.multiline,
+        ),
         const SizedBox(height: 24),
         const InvestigationSectionHeader(title: 'Advertisement'),
         _YesNoRow(
@@ -267,6 +273,7 @@ class InvestigationPremiseDetailsSection extends ConsumerWidget {
             controller: fields.advertisementNonCompliantReason,
             readOnly: readOnly,
             maxLines: 2,
+            keyboardType: TextInputType.multiline,
           ),
         ],
         const SizedBox(height: 12),

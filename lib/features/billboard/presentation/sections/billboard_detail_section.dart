@@ -31,7 +31,14 @@ class BillboardDetailSection extends ConsumerWidget {
           onTap: () => _pickPhase(context, ref, fields, controller),
         ),
         const SizedBox(height: 12),
-        AppTextField(label: 'Description', controller: fields.description, readOnly: readOnly, maxLines: 3),
+        AppTextField(
+          label: 'Description',
+          controller: fields.description,
+          readOnly: readOnly,
+          maxLines: 3,
+          keyboardType: TextInputType.multiline,
+          uppercase: true,
+        ),
         const SizedBox(height: 12),
         AppPickerField<GeneralModel>(
           label: 'Billboard Type',

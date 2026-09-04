@@ -449,17 +449,11 @@ class BillboardFormController extends FamilyNotifier<BillboardFormState, Billboa
       final repository = ref.read(billboardRepositoryProvider);
       final result = form.isUpdate ? await repository.submitUpdate(form) : await repository.submitCreate(form);
 
-      if (result.pendingImageUploads > 0) {
-        await repository.uploadPendingPhotos(
-          billboardNo: result.billboardNo,
-          form: form,
-          process: form.isUpdate ? 'update' : 'create',
-        );
-      }
-
-      // Submit uploads photos synchronously (no separate upload sheet like
-      // premise), so the record is fully synced the moment this resolves —
-      // any local draft/edit-session row for it is now stale and removed.
+      // Photos travel inline with the create/update request itself (see
+      // BillboardSubmitPayloadModel), so no separate photo-upload call is
+      // needed here — the record (including photos) is fully synced the
+      // moment this resolves, and any local draft/edit-session row for it
+      // is now stale and removed.
       final draftId = state.localDraftId;
       if (draftId != null) {
         await ref.read(billboardDraftRepositoryProvider).deleteDraft(draftId);

@@ -11,8 +11,6 @@ class PremiseLicenseActivity extends Equatable {
     this.statusDesc,
     this.description,
     this.amount,
-    this.saveToBusiness = false,
-    this.businessActivityLocalId,
   });
 
   /// Server row id — resubmitted so the backend updates this row instead of
@@ -25,15 +23,6 @@ class PremiseLicenseActivity extends Equatable {
   final String? description;
   final String? amount;
 
-  /// UI-only: when true, this item is also mirrored into the standalone
-  /// Business Activity section on save.
-  final bool saveToBusiness;
-
-  /// UI-only bookkeeping: [PremiseBusinessActivity.localId] this item was
-  /// already mirrored to. Lets re-saving the license update that row instead
-  /// of inserting a duplicate every time.
-  final int? businessActivityLocalId;
-
   PremiseLicenseActivity copyWith({
     int? id,
     String? businessType,
@@ -42,8 +31,6 @@ class PremiseLicenseActivity extends Equatable {
     String? statusDesc,
     String? description,
     String? amount,
-    bool? saveToBusiness,
-    int? businessActivityLocalId,
   }) {
     return PremiseLicenseActivity(
       id: id ?? this.id,
@@ -53,21 +40,9 @@ class PremiseLicenseActivity extends Equatable {
       statusDesc: statusDesc ?? this.statusDesc,
       description: description ?? this.description,
       amount: amount ?? this.amount,
-      saveToBusiness: saveToBusiness ?? this.saveToBusiness,
-      businessActivityLocalId: businessActivityLocalId ?? this.businessActivityLocalId,
     );
   }
 
   @override
-  List<Object?> get props => [
-    id,
-    businessType,
-    businessTypeDesc,
-    status,
-    statusDesc,
-    description,
-    amount,
-    saveToBusiness,
-    businessActivityLocalId,
-  ];
+  List<Object?> get props => [id, businessType, businessTypeDesc, status, statusDesc, description, amount];
 }

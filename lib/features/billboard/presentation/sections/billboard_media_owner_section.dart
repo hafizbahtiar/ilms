@@ -15,13 +15,14 @@ class BillboardMediaOwnerSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AppTextField(label: 'Media Owner Name', controller: fields.mediaOwnerName, readOnly: readOnly),
+        AppTextField(label: 'Media Owner Name', controller: fields.mediaOwnerName, readOnly: readOnly, uppercase: true),
         const SizedBox(height: 12),
         AppTextField(
           label: 'Media Owner Tel',
           controller: fields.mediaOwnerTel,
           readOnly: readOnly,
           keyboardType: TextInputType.phone,
+          uppercase: true,
         ),
       ],
     );

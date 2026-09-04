@@ -15,6 +15,13 @@ final premiseRepositoryProvider = Provider<PremiseRepository>((ref) {
 });
 
 // Premise re-exports general lookup providers for section widgets.
+/// Premise Details' "Business Type" (`premise_details[business_type]`, e.g.
+/// `01`) — legacy `PremisDetailSection` reads `listVisitBusinessType` here.
+/// NOT the same catalogue as [premiseBusinessTypesProvider].
+final premiseVisitBusinessTypesProvider = generalVisitBusinessTypesProvider;
+
+/// Business activity / license activity business types (`A105`-style codes) —
+/// legacy `PremisBusinessActivityModal` and `PremisLicenseModal`.
 final premiseBusinessTypesProvider = generalBusinessTypesProvider;
 final premisePremiseTypesProvider = generalPremiseTypesProvider;
 final premiseStatesProvider = generalStatesProvider;

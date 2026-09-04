@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:ilms/shared/ui/media/camera/camera_gesture_overlay.dart';
+import 'package:ilms/shared/ui/media/camera/camera_orientation.dart';
 import 'package:ilms/shared/ui/media/camera/camera_service.dart';
 import 'package:ilms/shared/ui/media/camera/camera_status_view.dart';
 
@@ -23,7 +24,9 @@ class CameraScaffold extends StatelessWidget {
     this.canCaptureMore = true,
     this.onDone,
     this.onRemoveCapture,
+    this.onPreviewCapture,
     this.reviewScrollController,
+    this.orientationController,
     @visibleForTesting this.previewChild,
   });
 
@@ -37,11 +40,17 @@ class CameraScaffold extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback? onDone;
   final ValueChanged<int>? onRemoveCapture;
+  /// Opens the full-screen viewer for the capture at this index.
+  final ValueChanged<int>? onPreviewCapture;
   final ScrollController? reviewScrollController;
   final VoidCallback onRetry;
   final VoidCallback onOpenSettings;
   final VoidCallback onSwitchCamera;
   final VoidCallback onCycleLens;
+
+  /// Drives the physical-orientation rotation of the control glyphs. When
+  /// null the glyphs simply stay upright with the (portrait) layout.
+  final CameraOrientationController? orientationController;
 
   /// Skips native [CameraPreview] so widget tests can drive gestures.
   @visibleForTesting
@@ -60,6 +69,7 @@ class CameraScaffold extends StatelessWidget {
                     service: service,
                     captureCount: captures.length,
                     onDone: onDone,
+                    orientationController: orientationController,
                   ),
                   Expanded(child: _previewCard()),
                   if (captures.isNotEmpty)
@@ -67,6 +77,7 @@ class CameraScaffold extends StatelessWidget {
                       captures: captures,
                       scrollController: reviewScrollController,
                       onRemove: onRemoveCapture,
+                      onPreview: onPreviewCapture,
                     ),
                   _BottomControls(
                     busy: isProcessing,
@@ -78,6 +89,7 @@ class CameraScaffold extends StatelessWidget {
                     onCapture: onCapture,
                     onSwitchCamera: onSwitchCamera,
                     onCycleLens: onCycleLens,
+                    orientationController: orientationController,
                   ),
                 ],
               )
@@ -140,11 +152,13 @@ class _CaptureReviewStrip extends StatelessWidget {
     required this.captures,
     this.scrollController,
     this.onRemove,
+    this.onPreview,
   });
 
   final List<File> captures;
   final ScrollController? scrollController;
   final ValueChanged<int>? onRemove;
+  final ValueChanged<int>? onPreview;
 
   static const _thumbSize = 84.0;
   static const _removeButtonOverflow = 8.0;
@@ -195,6 +209,7 @@ class _CaptureReviewStrip extends StatelessWidget {
                   index: index,
                   size: _thumbSize,
                   onRemove: onRemove == null ? null : () => onRemove!(index),
+                  onTap: onPreview == null ? null : () => onPreview!(index),
                 );
               },
             ),
@@ -211,12 +226,14 @@ class _CaptureThumb extends StatelessWidget {
     required this.index,
     required this.size,
     this.onRemove,
+    this.onTap,
   });
 
   final File file;
   final int index;
   final double size;
   final VoidCallback? onRemove;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -228,11 +245,14 @@ class _CaptureThumb extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.file(
-              file,
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
+            child: GestureDetector(
+              onTap: onTap,
+              child: Image.file(
+                file,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           Positioned(
@@ -288,12 +308,14 @@ class _TopBar extends StatefulWidget {
     required this.service,
     required this.captureCount,
     this.onDone,
+    this.orientationController,
   });
 
   final VoidCallback onClose;
   final AppCameraService service;
   final int captureCount;
   final VoidCallback? onDone;
+  final CameraOrientationController? orientationController;
 
   @override
   State<_TopBar> createState() => _TopBarState();
@@ -306,11 +328,16 @@ class _TopBarState extends State<_TopBar> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
         children: [
-          _CameraGlassButton(icon: Icons.close_rounded, onTap: widget.onClose),
+          _CameraGlassButton(
+            icon: Icons.close_rounded,
+            onTap: widget.onClose,
+            orientationController: widget.orientationController,
+          ),
           const Spacer(),
           _FlashToggle(
             service: widget.service,
             onChanged: () => setState(() {}),
+            orientationController: widget.orientationController,
           ),
           if (widget.onDone != null) ...[
             const SizedBox(width: 8),
@@ -348,6 +375,7 @@ class _BottomControls extends StatelessWidget {
     required this.onCapture,
     required this.onSwitchCamera,
     required this.onCycleLens,
+    this.orientationController,
   });
 
   final bool busy;
@@ -357,6 +385,7 @@ class _BottomControls extends StatelessWidget {
   final VoidCallback onCapture;
   final VoidCallback onSwitchCamera;
   final VoidCallback onCycleLens;
+  final CameraOrientationController? orientationController;
 
   @override
   Widget build(BuildContext context) {
@@ -372,6 +401,7 @@ class _BottomControls extends StatelessWidget {
                       icon: Icons.cameraswitch_rounded,
                       onTap: busy || !canCaptureMore ? () {} : onSwitchCamera,
                       label: 'Flip',
+                      orientationController: orientationController,
                     )
                   : const SizedBox(width: 46),
             ),
@@ -385,6 +415,7 @@ class _BottomControls extends StatelessWidget {
                       icon: Icons.crop_free_rounded,
                       onTap: busy || !canCaptureMore ? () {} : onCycleLens,
                       label: 'Lens',
+                      orientationController: orientationController,
                     )
                   : const SizedBox(width: 46),
             ),
@@ -396,10 +427,15 @@ class _BottomControls extends StatelessWidget {
 }
 
 class _FlashToggle extends StatelessWidget {
-  const _FlashToggle({required this.service, required this.onChanged});
+  const _FlashToggle({
+    required this.service,
+    required this.onChanged,
+    this.orientationController,
+  });
 
   final AppCameraService service;
   final VoidCallback onChanged;
+  final CameraOrientationController? orientationController;
 
   @override
   Widget build(BuildContext context) {
@@ -414,6 +450,7 @@ class _FlashToggle extends StatelessWidget {
     return _CameraGlassButton(
       icon: icon,
       active: active,
+      orientationController: orientationController,
       onTap: () async {
         await service.cycleFlashMode();
         onChanged();
@@ -428,12 +465,14 @@ class _CameraGlassButton extends StatelessWidget {
     required this.onTap,
     this.active = false,
     this.label,
+    this.orientationController,
   });
 
   final IconData icon;
   final VoidCallback onTap;
   final bool active;
   final String? label;
+  final CameraOrientationController? orientationController;
   static const double _size = 46;
 
   @override
@@ -454,10 +493,13 @@ class _CameraGlassButton extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
             ),
-            child: Icon(
-              icon,
-              color: active ? Colors.black : Colors.white,
-              size: _size * 0.48,
+            child: _RotatingGlyph(
+              controller: orientationController,
+              child: Icon(
+                icon,
+                color: active ? Colors.black : Colors.white,
+                size: _size * 0.48,
+              ),
             ),
           ),
           if (label != null) ...[
@@ -540,6 +582,36 @@ class _CameraShutterButtonState extends State<_CameraShutterButton> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Counter-rotates a single glyph so it stays upright relative to gravity
+/// while the camera layout itself stays locked in portrait — the behaviour of
+/// a stock camera app.
+///
+/// Only the glyph turns: its container, hit target and position are untouched,
+/// so nothing about the layout moves.
+class _RotatingGlyph extends StatelessWidget {
+  const _RotatingGlyph({required this.controller, required this.child});
+
+  final CameraOrientationController? controller;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = this.controller;
+    if (controller == null) return child;
+
+    return ValueListenableBuilder<double>(
+      valueListenable: controller,
+      builder: (context, turns, glyph) => AnimatedRotation(
+        turns: turns,
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+        child: glyph,
+      ),
+      child: child,
     );
   }
 }

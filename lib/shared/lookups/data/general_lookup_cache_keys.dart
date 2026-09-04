@@ -14,14 +14,21 @@ abstract final class GeneralLookupCacheKeys {
 
   static String parliaments(String? stateCode) => '${prefix}parliaments:${stateCode ?? 'all'}';
 
-  static String areasByParliament(String parliamentCode) => '${prefix}areasByParliament:$parliamentCode';
+  // The `search*` lookups below (areasByParliament/streets/buildings/units)
+  // hit paginated endpoints. Before ApiGeneralLookupDataSource._search()
+  // looped every page, a cached entry could hold only page 1's results — the
+  // ":v2" suffix keys those entries separately so a device holding a
+  // pre-fix (incomplete) cache misses and refetches the complete list,
+  // instead of silently reusing a truncated one indefinitely (there's no
+  // cache expiry otherwise). Don't remove the suffix without a similar bump.
+  static String areasByParliament(String parliamentCode) => '${prefix}areasByParliament:v2:$parliamentCode';
 
-  static String streets(String areaCode) => '${prefix}streets:$areaCode';
+  static String streets(String areaCode) => '${prefix}streets:v2:$areaCode';
 
-  static String buildings(String streetCode) => '${prefix}buildings:$streetCode';
+  static String buildings(String streetCode) => '${prefix}buildings:v2:$streetCode';
 
   static String units({String? buildingCode, String? streetCode}) =>
-      '${prefix}units:${buildingCode ?? ''}:${streetCode ?? ''}';
+      '${prefix}units:v2:${buildingCode ?? ''}:${streetCode ?? ''}';
 
   static String businessTypes() => '${prefix}businessTypes';
 

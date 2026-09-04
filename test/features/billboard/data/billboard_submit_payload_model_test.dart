@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ilms/features/billboard/data/models/billboard_submit_payload_model.dart';
 import 'package:ilms/features/billboard/domain/entities/billboard_asset_owner.dart';
@@ -36,20 +38,30 @@ void main() {
       expect(details.containsKey('hoarding_complete_date'), isFalse);
     });
 
-    test('create payload omits images — they upload via create-photo after submit', () {
+    test('create payload sends photo bytes inline under images, like legacy', () {
+      final bytes = Uint8List.fromList([0xFF, 0xD8, 0xFF]);
       final json = BillboardSubmitPayloadModel.fromDomain(
         _form(photos: const [BillboardPhoto(localPath: '/tmp/a.jpg')]),
-      ).toCreateJson();
+      ).toCreateJson(images: [bytes]);
 
-      expect(json.containsKey('images'), isFalse);
+      expect(json['images'], [bytes]);
       expect(json.containsKey('photos'), isFalse);
     });
 
-    test('update payload includes billboard_no and still omits images', () {
-      final json = BillboardSubmitPayloadModel.fromDomain(_form(billboardNo: 'BB20260001')).toUpdateJson();
+    test('create payload defaults images to an empty list when there are no local photos', () {
+      final json = BillboardSubmitPayloadModel.fromDomain(_form()).toCreateJson();
+
+      expect(json['images'], isEmpty);
+    });
+
+    test('update payload includes billboard_no and inline images', () {
+      final bytes = Uint8List.fromList([0xFF, 0xD8, 0xFF]);
+      final json = BillboardSubmitPayloadModel.fromDomain(
+        _form(billboardNo: 'BB20260001'),
+      ).toUpdateJson(images: [bytes]);
 
       expect(json['billboard_no'], 'BB20260001');
-      expect(json.containsKey('images'), isFalse);
+      expect(json['images'], [bytes]);
     });
   });
 }

@@ -80,7 +80,7 @@ Future<void> _pickBusinessType(
   final picked = await showAppAsyncOptionPicker<GeneralModel>(
     context: context,
     title: 'Business Type',
-    loadOptions: () => ref.read(premiseBusinessTypesProvider.future),
+    loadOptions: () => ref.read(premiseVisitBusinessTypesProvider.future),
     label: generalLookupLabel,
     isSelected: (item) => fieldController.text.trim() == generalLookupLabel(item).trim(),
     searchable: true,

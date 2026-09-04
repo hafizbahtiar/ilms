@@ -1,6 +1,7 @@
 import 'package:ilms/features/premise/domain/entities/premise_address.dart';
 import 'package:ilms/features/premise/domain/entities/premise_business_activity.dart';
 import 'package:ilms/features/premise/domain/entities/premise_form.dart';
+import 'package:ilms/features/premise/domain/entities/premise_gps.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license_activity.dart';
 import 'package:ilms/features/premise/domain/entities/premise_remark.dart';
@@ -18,6 +19,7 @@ class PremiseSubmitPayloadModel {
     required this.companyDetails,
     required this.contactPerson,
     required this.premiseDetails,
+    this.gps = const PremiseGpsRequest(),
     this.premiseAddresses = const [],
     this.businessActivities = const [],
     this.remarks = const [],
@@ -29,6 +31,7 @@ class PremiseSubmitPayloadModel {
   final CompanyDetailsRequest companyDetails;
   final ContactPersonRequest contactPerson;
   final PremiseDetailsRequest premiseDetails;
+  final PremiseGpsRequest gps;
   final List<PremiseAddressRequest> premiseAddresses;
   final List<PremiseBusinessActivityRequest> businessActivities;
   final List<PremiseRemarkRequest> remarks;
@@ -78,6 +81,7 @@ class PremiseSubmitPayloadModel {
         width: details.width,
         length: details.length,
       ),
+      gps: PremiseGpsRequest.fromDomain(form.gps),
       premiseAddresses: form.addresses.map(PremiseAddressRequest.fromDomain).toList(),
       businessActivities: form.businessActivities.map(PremiseBusinessActivityRequest.fromDomain).toList(),
       remarks: form.remarks.map(PremiseRemarkRequest.fromDomain).toList(),
@@ -94,11 +98,16 @@ class PremiseSubmitPayloadModel {
       'company_details': companyDetails.toJson(),
       'contact_person': contactPerson.toJson(),
       'premise_details': premiseDetails.toJson(),
+      // This used to travel per-address as `premise_addresses[*].latitude/
+      // longitude` instead — now one `{latitude, longitude}` object for the
+      // whole premise.
+      'gps_details': gps.toJson(),
       if (premiseAddresses.isNotEmpty) 'premise_addresses': premiseAddresses.map((e) => e.toCreateJson()).toList(),
       if (businessActivities.isNotEmpty)
         'business_activities': businessActivities.map((e) => e.toCreateJson()).toList(),
       if (remarks.isNotEmpty) 'remarks': remarks.map((e) => e.toCreateJson()).toList(),
-      if (licenseInformation.isNotEmpty) 'license_information': licenseInformation.map((e) => e.toJson()).toList(),
+      if (licenseInformation.isNotEmpty)
+        'license_information': licenseInformation.map((e) => e.toCreateJson()).toList(),
     };
   }
 
@@ -109,10 +118,11 @@ class PremiseSubmitPayloadModel {
       'company_details': companyDetails.toJson(),
       'contact_person': contactPerson.toJson(),
       'premise_details': premiseDetails.toJson(),
-      'premise_addresses': premiseAddresses.map((e) => e.toJson()).toList(),
-      'business_activities': businessActivities.map((e) => e.toJson()).toList(),
-      'remarks': remarks.map((e) => e.toJson()).toList(),
-      'license_information': licenseInformation.map((e) => e.toJson()).toList(),
+      'gps_details': gps.toJson(),
+      'premise_addresses': premiseAddresses.map((e) => e.toUpdateJson()).toList(),
+      'business_activities': businessActivities.map((e) => e.toUpdateJson()).toList(),
+      'remarks': remarks.map((e) => e.toUpdateJson()).toList(),
+      'license_information': licenseInformation.map((e) => e.toUpdateJson()).toList(),
     };
   }
 }
@@ -212,6 +222,20 @@ class PremiseDetailsRequest {
   };
 }
 
+/// `gps_details` — one coordinate for the whole premise record: a
+/// `{latitude, longitude}` object, confirmed against the backend contract.
+class PremiseGpsRequest {
+  const PremiseGpsRequest({this.latitude, this.longitude});
+
+  final String? latitude;
+  final String? longitude;
+
+  factory PremiseGpsRequest.fromDomain(PremiseGps gps) =>
+      PremiseGpsRequest(latitude: gps.latitude, longitude: gps.longitude);
+
+  Map<String, dynamic> toJson() => {'latitude': latitude, 'longitude': longitude};
+}
+
 /// One entry in `premise_addresses` (legacy `PremiseAddress`).
 class PremiseAddressRequest {
   const PremiseAddressRequest({
@@ -226,8 +250,6 @@ class PremiseAddressRequest {
     this.parliament,
     this.postcode,
     this.state,
-    this.latitude,
-    this.longitude,
   });
 
   final int? premiseAddressId;
@@ -241,8 +263,6 @@ class PremiseAddressRequest {
   final String? parliament;
   final String? postcode;
   final String? state;
-  final String? latitude;
-  final String? longitude;
 
   factory PremiseAddressRequest.fromDomain(PremiseAddress address) => PremiseAddressRequest(
     premiseAddressId: address.premiseAddressId,
@@ -256,8 +276,6 @@ class PremiseAddressRequest {
     parliament: address.parliament,
     postcode: address.postcode,
     state: address.state,
-    latitude: address.latitude,
-    longitude: address.longitude,
   );
 
   Map<String, dynamic> toCreateJson() => {
@@ -271,11 +289,10 @@ class PremiseAddressRequest {
     'parliament': parliament,
     'postcode': postcode,
     'state': state,
-    'latitude': latitude,
-    'longitude': longitude,
   };
 
-  Map<String, dynamic> toJson() => {
+  /// Update parity with legacy `PremiseAddress.toJsonUpdate()`.
+  Map<String, dynamic> toUpdateJson() => {
     if (premiseAddressId != null) 'paid': premiseAddressId,
     if (visitPremiseAddressId != null) 'vpa_id': visitPremiseAddressId,
     'unit_no': unitNo,
@@ -287,8 +304,6 @@ class PremiseAddressRequest {
     'parliament': parliament,
     'postcode': postcode,
     'state': state,
-    'latitude': latitude,
-    'longitude': longitude,
   };
 }
 
@@ -319,15 +334,12 @@ class PremiseBusinessActivityRequest {
     description: activity.description,
   );
 
-  Map<String, dynamic> toCreateJson() => {
-    'business_type': businessType,
-    'business_type_desc': businessTypeDesc,
-    'status': status,
-    'status_desc': statusDesc,
-    'description': description,
-  };
+  /// Create parity with legacy `BusinessActivity.toJson()` — the `*_desc`
+  /// fields are display-only lookups that `/create` has no column for.
+  Map<String, dynamic> toCreateJson() => {'business_type': businessType, 'status': status, 'description': description};
 
-  Map<String, dynamic> toJson() => {
+  /// Update parity with legacy `BusinessActivity.toJsonUpdate()`.
+  Map<String, dynamic> toUpdateJson() => {
     if (id != null) 'id': id,
     'business_type': businessType,
     'business_type_desc': businessTypeDesc,
@@ -362,7 +374,8 @@ class PremiseRemarkRequest {
     'description': description,
   };
 
-  Map<String, dynamic> toJson() => {
+  /// Update parity with legacy `Remark.toJsonUpdate()`.
+  Map<String, dynamic> toUpdateJson() => {
     if (id != null) 'id': id,
     'code': code,
     'remark': remark,
@@ -403,7 +416,19 @@ class PremiseLicenseActivityRequest {
     amount: activity.amount,
   );
 
-  Map<String, dynamic> toJson() => {
+  /// Create parity with legacy `AdditionalLicenseInfo.toJson()`: only the four
+  /// columns `/api/premiseCensus/create` accepts. The `*_desc` fields are
+  /// display-only lookups with no column behind them, and `id` is deliberately
+  /// omitted so a duplicated premise can't overwrite the source premise's row.
+  Map<String, dynamic> toCreateJson() => {
+    'business_type': businessType,
+    'status': status,
+    'description': description,
+    'amount': amount,
+  };
+
+  /// Update parity with legacy `AdditionalLicenseInfo.toJsonUpdate()`.
+  Map<String, dynamic> toUpdateJson() => {
     if (id != null) 'id': id,
     'business_type': businessType,
     'business_type_desc': businessTypeDesc,
@@ -447,15 +472,39 @@ class PremiseLicenseRequest {
     additionalLicenseInfo: license.businessActivities.map(PremiseLicenseActivityRequest.fromDomain).toList(),
   );
 
-  Map<String, dynamic> toJson() => {
+  /// Create parity with legacy `LicenseInformation.toJson()`. `/create` has no
+  /// `file_no` or `status_desc` column on the license row — sending them made
+  /// the whole submit fail whenever the form carried any license at all.
+  Map<String, dynamic> toCreateJson() => {
     if (id != null) 'id': id,
-    if (licenseNo != null && licenseNo!.isNotEmpty) 'license_no': licenseNo,
+    'license_no': licenseNo ?? '',
     'license_file_no': fileNo,
-    'file_no': fileNo,
-    'license_from': licenseFrom,
-    'license_to': licenseTo,
+    'license_from': _isoDate(licenseFrom),
+    'license_to': _isoDate(licenseTo),
+    'status': status,
+    'additional_license_info': additionalLicenseInfo.map((e) => e.toCreateJson()).toList(),
+  };
+
+  /// Update parity with legacy `LicenseInformation.toJsonUpdate()` — `/update`
+  /// does carry the `*_desc` display columns.
+  Map<String, dynamic> toUpdateJson() => {
+    if (id != null) 'id': id,
+    'license_no': licenseNo ?? '',
+    'license_file_no': fileNo,
+    'license_from': _isoDate(licenseFrom),
+    'license_to': _isoDate(licenseTo),
     'status': status,
     'status_desc': statusDesc,
-    'additional_license_info': additionalLicenseInfo.map((e) => e.toJson()).toList(),
+    'additional_license_info': additionalLicenseInfo.map((e) => e.toUpdateJson()).toList(),
   };
+
+  /// The form holds dates as `dd/MM/yyyy`; both endpoints expect a plain
+  /// `yyyy-MM-dd` (legacy `LicenseInformation._dateOnly` sent the date half of
+  /// a `DateTime.toString()`). Unparseable/empty values pass through untouched
+  /// rather than becoming a bogus date.
+  static String? _isoDate(String? value) {
+    if (value == null || value.isEmpty) return value;
+    final parsed = parseDdMmYyyy(value);
+    return parsed == null ? value : formatIsoDate(parsed);
+  }
 }

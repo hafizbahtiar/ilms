@@ -108,8 +108,13 @@ class ApiPremiseDataSource implements PremiseDataSource {
     required int pendingImageUploads,
   }) async {
     try {
-      final formData = await _formDataBuilder.fromMap(body);
-      final response = await DioClient.instance.dio.post<Map<String, dynamic>>(endpoint, data: formData);
+      // Unlike `create-photo`/`delete-photo`, this endpoint carries no files
+      // — send it as plain JSON rather than flattening through
+      // [FormDataBuilder]'s multipart bracket notation. Classic
+      // multipart/form-data has no way to represent a genuinely empty array
+      // (`business_activities: []`), which Laravel needs to tell "clear
+      // every row" apart from "field not sent, leave rows alone"; JSON does.
+      final response = await DioClient.instance.dio.post<Map<String, dynamic>>(endpoint, data: body);
 
       final payload = response.data;
       if (payload == null) {

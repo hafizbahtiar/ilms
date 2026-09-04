@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:ilms/core/network/api_response_helper.dart';
@@ -20,20 +21,31 @@ class ApiBillboardDataSource implements BillboardDataSource {
 
   @override
   Future<BillboardSubmitResult> create(BillboardForm form) async {
+    final images = await _readLocalPhotoBytes(form);
     return _submit(
       endpoint: '/api/billboardCensus/create',
-      body: BillboardSubmitPayloadModel.fromDomain(form).toCreateJson(),
+      body: BillboardSubmitPayloadModel.fromDomain(form).toCreateJson(images: images),
       pendingImageUploads: form.photos.where((photo) => photo.isLocalOnly).length,
     );
   }
 
   @override
   Future<BillboardSubmitResult> update(BillboardForm form) async {
+    final images = await _readLocalPhotoBytes(form);
     return _submit(
       endpoint: '/api/billboardCensus/update',
-      body: BillboardSubmitPayloadModel.fromDomain(form).toUpdateJson(),
+      body: BillboardSubmitPayloadModel.fromDomain(form).toUpdateJson(images: images),
       pendingImageUploads: form.photos.where((photo) => photo.isLocalOnly).length,
     );
+  }
+
+  /// Reads bytes for every locally-picked photo so they can travel inline
+  /// with the create/update request — matching legacy `sumbmit()`, which
+  /// sends photo bytes with the same request rather than via a separate
+  /// upload call.
+  Future<List<Uint8List>> _readLocalPhotoBytes(BillboardForm form) {
+    final localPhotos = form.photos.where((photo) => photo.isLocalOnly && photo.localPath != null);
+    return Future.wait(localPhotos.map((photo) => File(photo.localPath!).readAsBytes()));
   }
 
   @override

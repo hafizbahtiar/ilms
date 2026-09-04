@@ -224,7 +224,6 @@ class _AddressListingTile extends StatelessWidget {
 /// Legacy-style action sheet for an existing address row.
 Future<void> showPremiseAddressActionSheet(
   BuildContext context, {
-  required VoidCallback onPickLocation,
   required VoidCallback onSetAsCompanyAddress,
   required VoidCallback onDelete,
 }) {
@@ -232,7 +231,7 @@ Future<void> showPremiseAddressActionSheet(
     context: context,
     preset: AppBottomSheetPreset.compact,
     title: 'Choose an Action',
-    itemCount: 3,
+    itemCount: 2,
     builder: (context, scrollController) {
       final cs = Theme.of(context).colorScheme;
       return Column(
@@ -244,14 +243,6 @@ Future<void> showPremiseAddressActionSheet(
             onTap: () {
               Navigator.of(context).pop();
               onSetAsCompanyAddress();
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.map_outlined),
-            title: const Text('Pick Location'),
-            onTap: () {
-              Navigator.of(context).pop();
-              onPickLocation();
             },
           ),
           ListTile(

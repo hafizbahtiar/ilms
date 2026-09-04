@@ -4,6 +4,7 @@ import 'package:ilms/features/premise/domain/entities/premise_business_activity.
 import 'package:ilms/features/premise/domain/entities/premise_census_image.dart';
 import 'package:ilms/features/premise/domain/entities/premise_company_contact.dart';
 import 'package:ilms/features/premise/domain/entities/premise_details.dart';
+import 'package:ilms/features/premise/domain/entities/premise_gps.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license.dart';
 import 'package:ilms/features/premise/domain/entities/premise_remark.dart';
 
@@ -15,6 +16,7 @@ class PremiseForm extends Equatable {
     this.localDraftId,
     required this.companyContact,
     required this.details,
+    this.gps = const PremiseGps(),
     this.addresses = const [],
     this.licenses = const [],
     this.businessActivities = const [],
@@ -29,6 +31,7 @@ class PremiseForm extends Equatable {
   final int? localDraftId;
   final PremiseCompanyContact companyContact;
   final PremiseDetails details;
+  final PremiseGps gps;
   final List<PremiseAddress> addresses;
   final List<PremiseLicense> licenses;
   final List<PremiseBusinessActivity> businessActivities;
@@ -48,6 +51,7 @@ class PremiseForm extends Equatable {
     int? localDraftId,
     PremiseCompanyContact? companyContact,
     PremiseDetails? details,
+    PremiseGps? gps,
     List<PremiseAddress>? addresses,
     List<PremiseLicense>? licenses,
     List<PremiseBusinessActivity>? businessActivities,
@@ -62,6 +66,7 @@ class PremiseForm extends Equatable {
       localDraftId: localDraftId ?? this.localDraftId,
       companyContact: companyContact ?? this.companyContact,
       details: details ?? this.details,
+      gps: gps ?? this.gps,
       addresses: addresses ?? this.addresses,
       licenses: licenses ?? this.licenses,
       businessActivities: businessActivities ?? this.businessActivities,
@@ -79,6 +84,7 @@ class PremiseForm extends Equatable {
     localDraftId,
     companyContact,
     details,
+    gps,
     addresses,
     licenses,
     businessActivities,

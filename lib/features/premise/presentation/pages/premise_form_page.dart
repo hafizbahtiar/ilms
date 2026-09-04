@@ -14,6 +14,7 @@ import 'package:ilms/features/premise/presentation/widgets/premise_section_heade
 import 'package:ilms/features/premise/presentation/widgets/premise_visit_status_sheet.dart';
 import 'package:ilms/shared/ui/feedback/app_dialog.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
+import 'package:ilms/shared/ui/layout/app_unfocus_on_tap.dart';
 
 class PremiseFormPage extends ConsumerStatefulWidget {
   const PremiseFormPage({super.key, required this.session});
@@ -296,8 +297,7 @@ class _PremiseFormPageState extends ConsumerState<PremiseFormPage> {
       // (see PremiseFormController.markVacant) — don't make the surveyor
       // re-pick it here. Still prompt if that auto-pick didn't land (e.g. no
       // 'vacant' option in the list).
-      final skipVisitStatusPrompt =
-          formState.isVacant && currentVisitStatus != null && currentVisitStatus.isNotEmpty;
+      final skipVisitStatusPrompt = formState.isVacant && currentVisitStatus != null && currentVisitStatus.isNotEmpty;
       if (!skipVisitStatusPrompt) {
         final visitStatus = await showPremiseVisitStatusSheet(
           context,
@@ -472,36 +472,38 @@ class _PremiseFormPageState extends ConsumerState<PremiseFormPage> {
               if (!formState.isReadOnly) IconButton(onPressed: _onMoreOptions, icon: const Icon(Icons.more_vert)),
             ],
           ),
-          body: SafeArea(
-            child: Column(
-              children: [
-                PremiseFormTabBar(
-                  activeIndex: _activeSectionIndex,
-                  onTabSelected: _jumpToSection,
-                  tabKeys: _tabKeys,
-                  tabScrollController: _tabScrollController,
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    physics: const ClampingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (var i = 0; i < premiseFormSections.length; i++) ...[
-                          if (i > 0) const SizedBox(height: 28),
-                          KeyedSubtree(
-                            key: _sectionKeys[i],
-                            child: PremiseSectionHeader(title: premiseFormSections[i].headerTitle),
-                          ),
-                          premiseFormSections[i].builder(context),
+          body: AppUnfocusOnTap(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  PremiseFormTabBar(
+                    activeIndex: _activeSectionIndex,
+                    onTabSelected: _jumpToSection,
+                    tabKeys: _tabKeys,
+                    tabScrollController: _tabScrollController,
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (var i = 0; i < premiseFormSections.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 28),
+                            KeyedSubtree(
+                              key: _sectionKeys[i],
+                              child: PremiseSectionHeader(title: premiseFormSections[i].headerTitle),
+                            ),
+                            premiseFormSections[i].builder(context),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           bottomNavigationBar: formState.isReadOnly

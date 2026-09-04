@@ -3,6 +3,7 @@ import 'package:ilms/features/premise/domain/entities/premise_address.dart';
 import 'package:ilms/features/premise/domain/entities/premise_business_activity.dart';
 import 'package:ilms/features/premise/domain/entities/premise_census_image.dart';
 import 'package:ilms/features/premise/domain/entities/premise_draft_summary.dart';
+import 'package:ilms/features/premise/domain/entities/premise_gps.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license.dart';
 import 'package:ilms/features/premise/domain/entities/premise_remark.dart';
 
@@ -78,6 +79,7 @@ class PremiseFormState {
     this.licenses = const [],
     this.businessActivities = const [],
     this.addresses = const [],
+    this.gps = const PremiseGps(),
     this.companyStateCode,
     this.companyPostcode,
     this.companyAreaCode,
@@ -109,6 +111,7 @@ class PremiseFormState {
   final List<PremiseLicense> licenses;
   final List<PremiseBusinessActivity> businessActivities;
   final List<PremiseAddress> addresses;
+  final PremiseGps gps;
   final String? companyStateCode;
   final String? companyPostcode;
 
@@ -154,6 +157,7 @@ class PremiseFormState {
     List<PremiseLicense>? licenses,
     List<PremiseBusinessActivity>? businessActivities,
     List<PremiseAddress>? addresses,
+    PremiseGps? gps,
     String? companyStateCode,
     String? companyPostcode,
     String? companyAreaCode,
@@ -182,6 +186,7 @@ class PremiseFormState {
       licenses: licenses ?? this.licenses,
       businessActivities: businessActivities ?? this.businessActivities,
       addresses: addresses ?? this.addresses,
+      gps: gps ?? this.gps,
       companyStateCode: companyStateCode ?? this.companyStateCode,
       companyPostcode: clearCompanyPostcode ? null : (companyPostcode ?? this.companyPostcode),
       companyAreaCode: (clearCompanyPostcode || clearCompanyArea) ? null : (companyAreaCode ?? this.companyAreaCode),

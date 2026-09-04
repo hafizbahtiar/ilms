@@ -90,8 +90,31 @@ class ApiGeneralLookupDataSource implements GeneralLookupDataSource {
     return GeneralResponseModel.fromJson(data).data ?? const [];
   }
 
+  /// The `search*` family of lookup endpoints (`searchAreaByParliament`,
+  /// `searchStreetByArea`, `searchBuildingByStreet`,
+  /// `searchUnitByBuildingOrStreet`) paginate server-side — legacy handles
+  /// this with an infinite-scroll sheet (`CustomInfiniteSheet`) for exactly
+  /// these endpoints, while our shared option picker (`showAppAsyncOptionPicker`)
+  /// loads its options once and never fetches more. Fetching every page here
+  /// keeps that picker correct without having to teach it to paginate: a
+  /// dropdown with a hundred-odd areas is a network cost worth paying once
+  /// per picker open, not a case for infinite scroll.
+  static const _maxSearchPages = 50;
+
   Future<List<GeneralModel>> _search(String endpoint, Map<String, String> params) async {
-    final data = await _client.get<Map<String, dynamic>>(endpoint, query: params);
-    return GeneralResponseModel.fromJson(data).data ?? const [];
+    final results = <GeneralModel>[];
+    var page = 1;
+
+    while (page <= _maxSearchPages) {
+      final data = await _client.get<Map<String, dynamic>>(endpoint, query: {...params, 'page': '$page'});
+      final response = GeneralResponseModel.fromJson(data);
+      results.addAll(response.data ?? const []);
+
+      final lastPage = response.pagination?.lastPage;
+      if (lastPage == null || page >= lastPage) break;
+      page++;
+    }
+
+    return results;
   }
 }

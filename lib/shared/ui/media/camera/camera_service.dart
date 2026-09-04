@@ -1,6 +1,7 @@
 import 'dart:developer' as dev;
 
 import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:ilms/shared/ui/media/camera/camera_status.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -151,6 +152,16 @@ class AppCameraService {
     );
     await controller.initialize();
     _controller = controller;
+
+    try {
+      // Bakes the correct rotation into captured photos regardless of how
+      // the phone is physically held, since the UI/preview orientation is
+      // locked to portrait (see AppCameraPage) — otherwise a photo taken
+      // while the phone is rotated would come out sideways.
+      await controller.lockCaptureOrientation(DeviceOrientation.portraitUp);
+    } catch (e) {
+      dev.log('lockCaptureOrientation not supported: $e', name: 'AppCameraService');
+    }
 
     _flashMode = FlashMode.off;
     await controller.setFlashMode(_flashMode);

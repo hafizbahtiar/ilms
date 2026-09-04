@@ -8,6 +8,7 @@ import 'package:ilms/features/investigation/presentation/widgets/investigation_f
 import 'package:ilms/features/investigation/presentation/widgets/investigation_form_tab_bar.dart';
 import 'package:ilms/features/investigation/presentation/widgets/investigation_section_header.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
+import 'package:ilms/shared/ui/layout/app_unfocus_on_tap.dart';
 
 /// Single-scroll + sticky-tab-bar form, mirroring `PremiseFormPage`'s /
 /// `BillboardFormPage`'s structure. Unlike billboard, investigation DOES
@@ -291,36 +292,38 @@ class _InvestigationFormPageState extends ConsumerState<InvestigationFormPage> {
                 ),
             ],
           ),
-          body: SafeArea(
-            child: Column(
-              children: [
-                InvestigationFormTabBar(
-                  activeIndex: _activeSectionIndex,
-                  onTabSelected: _jumpToSection,
-                  tabKeys: _tabKeys,
-                  tabScrollController: _tabScrollController,
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    physics: const ClampingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (var i = 0; i < investigationFormSections.length; i++) ...[
-                          if (i > 0) const SizedBox(height: 28),
-                          KeyedSubtree(
-                            key: _sectionKeys[i],
-                            child: InvestigationSectionHeader(title: investigationFormSections[i].headerTitle),
-                          ),
-                          investigationFormSections[i].builder(context),
+          body: AppUnfocusOnTap(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  InvestigationFormTabBar(
+                    activeIndex: _activeSectionIndex,
+                    onTabSelected: _jumpToSection,
+                    tabKeys: _tabKeys,
+                    tabScrollController: _tabScrollController,
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (var i = 0; i < investigationFormSections.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 28),
+                            KeyedSubtree(
+                              key: _sectionKeys[i],
+                              child: InvestigationSectionHeader(title: investigationFormSections[i].headerTitle),
+                            ),
+                            investigationFormSections[i].builder(context),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           bottomNavigationBar: formState.isReadOnly

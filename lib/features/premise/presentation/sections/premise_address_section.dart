@@ -3,11 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ilms/features/premise/domain/entities/premise_address.dart';
 import 'package:ilms/features/premise/presentation/controllers/premise_form_state.dart';
 import 'package:ilms/features/premise/presentation/providers/premise_form_providers.dart';
-import 'package:ilms/features/premise/presentation/utils/premise_address_location.dart';
 import 'package:ilms/features/premise/presentation/widgets/premise_address_search_sheet.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
 import 'package:ilms/shared/ui/feedback/app_dialog.dart';
-import 'package:ilms/shared/ui/map/app_location_picker_page.dart';
 
 class PremiseAddressSection extends ConsumerWidget {
   const PremiseAddressSection({super.key});
@@ -50,14 +48,9 @@ class PremiseAddressSection extends ConsumerWidget {
             if (i > 0) const SizedBox(height: 10),
             _AddressTile(
               address: addresses[i],
-              onTap: () => _handleAddressTap(
-                context,
-                ref,
-                session: session,
-                index: i,
-                address: addresses[i],
-                readOnly: readOnly,
-              ),
+              onTap: readOnly
+                  ? null
+                  : () => _handleAddressTap(context, ref, session: session, index: i, address: addresses[i]),
             ),
           ],
         if (!readOnly) ...[
@@ -78,17 +71,10 @@ class PremiseAddressSection extends ConsumerWidget {
     required PremiseFormSession session,
     required int index,
     required PremiseAddress address,
-    required bool readOnly,
   }) async {
-    if (readOnly) {
-      await _viewAddressLocation(context, address);
-      return;
-    }
-
     await showPremiseAddressActionSheet(
       context,
       onSetAsCompanyAddress: () => _setAsCompanyAddress(context, ref, session: session, address: address),
-      onPickLocation: () => _pickAddressLocation(context, ref, session: session, index: index, address: address),
       onDelete: () => _deleteAddress(context, ref, session: session, index: index),
     );
   }
@@ -102,30 +88,6 @@ class PremiseAddressSection extends ConsumerWidget {
     await ref.read(premiseFormControllerProvider(session).notifier).applyCompanyAddressFromPremise(address);
     if (!context.mounted) return;
     AppSnackbar.success(context, 'Company address updated from this premise address.');
-  }
-
-  Future<void> _viewAddressLocation(BuildContext context, PremiseAddress address) async {
-    final initial = latLngFromPremiseAddress(address);
-    await AppLocationPickerPage.open(context, title: 'Premise Location', initialCenter: initial, viewOnly: true);
-  }
-
-  Future<void> _pickAddressLocation(
-    BuildContext context,
-    WidgetRef ref, {
-    required PremiseFormSession session,
-    required int index,
-    required PremiseAddress address,
-  }) async {
-    final picked = await AppLocationPickerPage.open(
-      context,
-      title: 'Pick Premise Location',
-      initialCenter: latLngFromPremiseAddress(address),
-    );
-    if (picked == null || !context.mounted) return;
-
-    ref
-        .read(premiseFormControllerProvider(session).notifier)
-        .updateAddressAt(index, premiseAddressWithCoordinates(address, picked));
   }
 
   Future<void> _deleteAddress(
@@ -157,7 +119,6 @@ class _AddressTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final hasLocation = premiseAddressHasLocation(address);
 
     return Material(
       color: cs.surfaceContainerLow,
@@ -176,38 +137,12 @@ class _AddressTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.location_on, size: 16, color: cs.primary),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Premise Address',
-                            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                        if (hasLocation) ...[
-                          Icon(Icons.check_circle, size: 16, color: cs.tertiary),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Located',
-                            style: textTheme.labelSmall?.copyWith(color: cs.tertiary, fontWeight: FontWeight.w700),
-                          ),
-                        ],
-                      ],
-                    ),
+                    Text('Premise Address', style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 10),
                     _DetailRow(label: 'Unit', value: address.unitNo),
                     _DetailRow(label: 'Street', value: address.streetName),
                     _DetailRow(label: 'State', value: address.state),
                     if (address.postcode != null) _DetailRow(label: 'Postcode', value: address.postcode),
-                    if (hasLocation) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        formatPremiseCoordinates(address),
-                        style: textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.6)),
-                      ),
-                    ],
                   ],
                 ),
               ),

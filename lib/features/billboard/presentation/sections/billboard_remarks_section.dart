@@ -97,6 +97,8 @@ class BillboardRemarksSection extends ConsumerWidget {
                 controller: fields.otherRemarkText,
                 readOnly: readOnly,
                 maxLines: 3,
+                keyboardType: TextInputType.multiline,
+                uppercase: true,
                 onChanged: controller.setOtherRemarkText,
               ),
             ],

@@ -2,12 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ilms/features/premise/domain/entities/premise_duplicate_record.dart';
 
 class PremiseDuplicateRecordTile extends StatelessWidget {
-  const PremiseDuplicateRecordTile({
-    super.key,
-    required this.record,
-    required this.accentColor,
-    this.onTap,
-  });
+  const PremiseDuplicateRecordTile({super.key, required this.record, required this.accentColor, this.onTap});
 
   final PremiseDuplicateRecord record;
   final Color accentColor;

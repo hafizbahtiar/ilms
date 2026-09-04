@@ -5,6 +5,7 @@ import 'package:ilms/features/premise/domain/entities/premise_census_image.dart'
 import 'package:ilms/features/premise/domain/entities/premise_company_contact.dart';
 import 'package:ilms/features/premise/domain/entities/premise_details.dart';
 import 'package:ilms/features/premise/domain/entities/premise_form.dart';
+import 'package:ilms/features/premise/domain/entities/premise_gps.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license.dart';
 import 'package:ilms/features/premise/domain/entities/premise_remark.dart';
 import 'package:ilms/features/premise/presentation/controllers/premise_form_state.dart';
@@ -21,12 +22,15 @@ class PremiseFormMapper {
     List<PremiseLicense> licenses = const [],
     List<PremiseBusinessActivity> businessActivities = const [],
     List<PremiseAddress> addresses = const [],
+    PremiseGps gps = const PremiseGps(),
     String? visitNo,
     String? updatedAt,
     int? localDraftId,
     String? visitStatus,
     String? visitStatusDesc,
     String? areaCode,
+    String? stateCode,
+    String? postcode,
     String? businessTypeCode,
     String? businessTypeDesc,
     String? premiseTypeCode,
@@ -49,9 +53,14 @@ class PremiseFormMapper {
         building: _text(fields.building),
         street1: _text(fields.street1),
         street2: _text(fields.street2),
-        stateCode: lookupCodeFromDisplay(_text(fields.state)),
-        stateDescription: lookupDescFromDisplay(_text(fields.state)),
-        postcode: lookupCodeFromDisplay(_text(fields.postcode)) ?? _text(fields.postcode),
+        // Picker fields now display the option's DESCRIPTION only, so the code
+        // is no longer recoverable from the text — it's captured at selection
+        // time and passed in here. The parse is kept purely as a fallback for
+        // a draft resumed without re-picking (older rows may still hold a
+        // `code : desc` string).
+        stateCode: stateCode ?? lookupCodeFromDisplay(_text(fields.state)),
+        stateDescription: _text(fields.state),
+        postcode: postcode ?? lookupCodeFromDisplay(_text(fields.postcode)) ?? _text(fields.postcode),
         // [fields.area] always displays the area's full plain description
         // (e.g. `SEGAMBUT - DESA SERI HARTAMAS`), never a `code - desc` pair —
         // that's the value the backend's `area` field expects (it mirrors
@@ -85,6 +94,7 @@ class PremiseFormMapper {
       licenses: licenses,
       businessActivities: businessActivities,
       addresses: addresses,
+      gps: gps,
     );
   }
 

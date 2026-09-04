@@ -55,6 +55,8 @@
     <string>Photo library access is required to attach census photos.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>Location access is used to pinpoint your current position on the map.</string>
+    <key>NSMotionUsageDescription</key>
+    <string>Motion access lets the camera controls stay upright when you rotate the phone.</string>
     <key>UILaunchStoryboardName</key>
     <string>LaunchScreen</string>
     <key>UIMainStoryboardFile</key>

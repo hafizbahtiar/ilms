@@ -39,11 +39,12 @@ class PremiseAddressListing extends Equatable {
       parliament: parliament,
       postcode: postcode,
       state: state,
-      latitude: existing?.latitude ?? latitude,
-      longitude: existing?.longitude ?? longitude,
     );
   }
 
+  /// Reverse mapping is used only to seed the search sheet's "already
+  /// selected" set for id-based matching — coordinates aren't needed there,
+  /// [PremiseAddress] no longer carries them (see [PremiseGps]).
   factory PremiseAddressListing.fromDomain(PremiseAddress address) {
     return PremiseAddressListing(
       id: address.premiseAddressId ?? -1,
@@ -54,8 +55,6 @@ class PremiseAddressListing extends Equatable {
       parliament: address.parliament,
       postcode: address.postcode,
       state: address.state,
-      latitude: address.latitude,
-      longitude: address.longitude,
     );
   }
 

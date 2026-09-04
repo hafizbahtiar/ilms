@@ -5,6 +5,7 @@ import 'package:ilms/features/premise/presentation/sections/company_contact_sect
 import 'package:ilms/features/premise/presentation/sections/license_section.dart';
 import 'package:ilms/features/premise/presentation/sections/premise_address_section.dart';
 import 'package:ilms/features/premise/presentation/sections/premise_details_section.dart';
+import 'package:ilms/features/premise/presentation/sections/premise_gps_section.dart';
 import 'package:ilms/features/premise/presentation/sections/remarks_section.dart';
 
 class PremiseFormSectionDef {
@@ -43,6 +44,7 @@ const premiseFormSections = <PremiseFormSectionDef>[
     headerTitle: 'Premise Address',
     builder: _buildPremiseAddressSection,
   ),
+  PremiseFormSectionDef(id: 'gps', tabLabel: 'GPS', headerTitle: 'GPS Coordinate', builder: _buildGpsSection),
   PremiseFormSectionDef(id: 'remarks', tabLabel: 'Remarks', headerTitle: 'Remarks', builder: _buildRemarksSection),
   PremiseFormSectionDef(
     id: 'images',
@@ -68,6 +70,7 @@ const premiseFormSections = <PremiseFormSectionDef>[
 Widget _buildCompanyContactSection(BuildContext context) => const CompanyContactSection();
 Widget _buildPremiseDetailsSection(BuildContext context) => const PremiseDetailsSection();
 Widget _buildPremiseAddressSection(BuildContext context) => const PremiseAddressSection();
+Widget _buildGpsSection(BuildContext context) => const PremiseGpsSection();
 Widget _buildLicenseSection(BuildContext context) => const LicenseSection();
 Widget _buildBusinessActivitySection(BuildContext context) => const BusinessActivitySection();
 Widget _buildRemarksSection(BuildContext context) => const RemarksSection();

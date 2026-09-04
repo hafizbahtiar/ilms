@@ -5,6 +5,7 @@ import 'package:ilms/features/premise/domain/entities/premise_census_image.dart'
 import 'package:ilms/features/premise/domain/entities/premise_company_contact.dart';
 import 'package:ilms/features/premise/domain/entities/premise_details.dart';
 import 'package:ilms/features/premise/domain/entities/premise_detail_record.dart';
+import 'package:ilms/features/premise/domain/entities/premise_gps.dart';
 import 'package:ilms/features/premise/domain/entities/premise_image_upload_status.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license_activity.dart';
@@ -53,6 +54,8 @@ class PremiseDetailMapper {
       licenses: const [],
       businessActivities: _duplicateBusinessActivities(base.businessActivities),
       addresses: _duplicateAddresses(base.addresses),
+      // Duplicating a premise for a new visit — same physical location.
+      gps: base.gps,
     );
   }
 
@@ -110,6 +113,7 @@ class PremiseDetailMapper {
       licenses: includeLicenses ? _mapLicenses(rawLicenses) : const [],
       businessActivities: includeBusinessActivities ? _mapBusinessActivities(rawBusinessActivities) : const [],
       addresses: includeAddresses ? _mapAddresses(data['premise_addresses']) : const [],
+      gps: _mapGps(data['gps_details']),
     );
   }
 
@@ -129,8 +133,7 @@ class PremiseDetailMapper {
         .toList();
   }
 
-  /// Carries business activity data; keeps server [PremiseBusinessActivity.id]
-  /// for license linkage but drops [localId] (legacy parity).
+  /// Carries business activity data (legacy parity).
   static List<PremiseBusinessActivity> _duplicateBusinessActivities(List<PremiseBusinessActivity> source) {
     return source
         .map(
@@ -161,8 +164,6 @@ class PremiseDetailMapper {
             parliament: address.parliament,
             postcode: address.postcode,
             state: address.state,
-            latitude: normalizePremiseCoordinate(address.latitude),
-            longitude: normalizePremiseCoordinate(address.longitude),
           ),
         )
         .toList();
@@ -237,10 +238,19 @@ class PremiseDetailMapper {
         parliament: map['parliament']?.toString(),
         postcode: map['postcode']?.toString(),
         state: map['state']?.toString(),
-        latitude: map['latitude']?.toString(),
-        longitude: map['longitude']?.toString(),
       );
     }).toList();
+  }
+
+  /// `gps_details` — one coordinate for the whole premise record: a
+  /// `{latitude, longitude}` object, confirmed against the backend contract.
+  static PremiseGps _mapGps(dynamic rawGps) {
+    if (rawGps is! Map) return const PremiseGps();
+    final map = Map<String, dynamic>.from(rawGps);
+    return PremiseGps(
+      latitude: normalizePremiseCoordinate(map['latitude']?.toString()),
+      longitude: normalizePremiseCoordinate(map['longitude']?.toString()),
+    );
   }
 
   static Map<String, dynamic> _asMap(dynamic value) {
@@ -278,24 +288,18 @@ class PremiseDetailMapper {
     return parsed == null ? text : formatDdMmYyyy(parsed.toLocal());
   }
 
-  /// Combines a code/desc pair from `/api/premiseCensus/detail` into a single
-  /// display string. Deliberately does NOT go through [generalLookupLabel] —
-  /// that helper drops the code whenever there's no `apiDisplay` (falls back
-  /// to desc-only), which for this API (no `display` field) would show only
-  /// the description, e.g. `Office` instead of `OF : Office`, and it isn't in
-  /// a parseable `code - desc` format either — either way the code is not
-  /// recoverable later from the display text. Businesss/premise type codes
-  /// are additionally carried through untouched as
-  /// [PremiseDraftPayloadModel.businessTypeCode]/[premiseTypeCode], so this
-  /// combined string is used purely for display, never re-parsed for submit.
+  /// Prefill text for a code/desc pair from `/api/premiseCensus/detail`.
+  /// Shows the DESCRIPTION only, so a loaded record reads exactly like a
+  /// freshly picked one (see [generalLookupLabel]) — a resumed draft used to
+  /// show `OF : Office` where the picker shows `Office`. Nothing is lost: the
+  /// codes travel separately as [PremiseDraftPayloadModel.companyStateCode] /
+  /// [businessTypeCode] / [premiseTypeCode] and are what submit actually
+  /// sends, so this string is never re-parsed. Falls back to the code when
+  /// the API sends no description (e.g. `state`, which has no desc at all).
   static String _lookupDisplay(String code, String? desc) {
-    final trimmedCode = code.trim();
     final trimmedDesc = desc?.trim();
-    if (trimmedCode.isEmpty && (trimmedDesc == null || trimmedDesc.isEmpty)) return '';
-    if (trimmedCode.isNotEmpty && trimmedDesc != null && trimmedDesc.isNotEmpty) {
-      return '$trimmedCode : $trimmedDesc';
-    }
-    return trimmedDesc ?? trimmedCode;
+    if (trimmedDesc != null && trimmedDesc.isNotEmpty) return trimmedDesc;
+    return code.trim();
   }
 
   static String _postcodeDisplay(String code, String? desc) {

@@ -4,9 +4,14 @@ import 'package:ilms/shared/models/general_model.dart';
 
 void main() {
   group('lookup labels', () {
-    test('generalLookupLabel prefers api display when provided', () {
+    test('generalLookupLabel shows desc only, never the code prefix', () {
       const item = GeneralModel(code: 'O', desc: 'OTHER', apiDisplay: 'O : OTHER');
-      expect(generalLookupLabel(item), 'O : OTHER');
+      expect(generalLookupLabel(item), 'OTHER');
+    });
+
+    test('generalLookupLabel strips the code half of a display-only option', () {
+      const item = GeneralModel(code: 'O', apiDisplay: 'O : OTHER');
+      expect(generalLookupLabel(item), 'OTHER');
     });
 
     test('generalLookupLabel shows desc for display', () {

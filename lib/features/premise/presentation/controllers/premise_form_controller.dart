@@ -8,6 +8,7 @@ import 'package:ilms/features/premise/domain/entities/premise_address.dart';
 import 'package:ilms/features/premise/domain/entities/premise_business_activity.dart';
 import 'package:ilms/features/premise/domain/entities/premise_census_image.dart';
 import 'package:ilms/features/premise/domain/entities/premise_draft_summary.dart';
+import 'package:ilms/features/premise/domain/entities/premise_gps.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license_qr_data.dart';
 import 'package:ilms/features/premise/domain/entities/premise_remark.dart';
@@ -22,6 +23,7 @@ import 'package:ilms/shared/constants/app_image_limits.dart';
 import 'package:ilms/shared/formatters/app_date_format.dart';
 import 'package:ilms/shared/lookups/providers/general_lookup_providers.dart';
 import 'package:ilms/shared/models/general_model.dart';
+import 'package:latlong2/latlong.dart';
 
 /// Result of a successful [PremiseFormController.submit] — enough for the
 /// page to drive the post-submit photo upload sheet.
@@ -289,6 +291,17 @@ class PremiseFormController extends FamilyNotifier<PremiseFormState, PremiseForm
     state = state.copyWith(addresses: next);
   }
 
+  // ---- GPS section ----
+
+  void setCoordinate(LatLng? point) {
+    if (state.isReadOnly) return;
+    state = state.copyWith(
+      gps: point == null
+          ? const PremiseGps()
+          : PremiseGps(latitude: point.latitude.toString(), longitude: point.longitude.toString()),
+    );
+  }
+
   void addBusinessActivity(PremiseBusinessActivity activity) {
     if (state.isReadOnly) return;
     state = state.copyWith(businessActivities: [...state.businessActivities, activity]);
@@ -307,22 +320,6 @@ class PremiseFormController extends FamilyNotifier<PremiseFormState, PremiseForm
     if (index < 0 || index >= state.businessActivities.length) return;
     final next = [...state.businessActivities]..removeAt(index);
     state = state.copyWith(businessActivities: next);
-  }
-
-  /// Adds or updates (by [localId]) a business activity mirrored from a
-  /// license item's "Save to Business Activity" flag — re-saving the same
-  /// license item updates its existing mirror instead of duplicating it.
-  /// Returns the localId used (existing one if updated, freshly assigned if added).
-  int upsertMirroredBusinessActivity({required int? localId, required PremiseBusinessActivity activity}) {
-    final existingIndex = localId == null ? -1 : state.businessActivities.indexWhere((a) => a.localId == localId);
-    if (existingIndex != -1) {
-      updateBusinessActivityAt(existingIndex, activity.copyWith(localId: localId));
-      return localId!;
-    }
-
-    final newLocalId = state.businessActivities.fold<int>(0, (max, a) => (a.localId ?? 0) > max ? a.localId! : max) + 1;
-    addBusinessActivity(activity.copyWith(localId: newLocalId));
-    return newLocalId;
   }
 
   /// Business activity code auto-assigned to a premise marked vacant — see
@@ -353,7 +350,6 @@ class PremiseFormController extends FamilyNotifier<PremiseFormState, PremiseForm
     final businessTypes = await ref.read(generalBusinessTypesProvider.future);
     final vacantType = _lookupByCode(businessTypes, vacantBusinessActivityCode);
     final vacantActivity = PremiseBusinessActivity(
-      localId: 1,
       businessType: vacantBusinessActivityCode,
       businessTypeDesc: vacantType != null ? generalLookupLabel(vacantType) : vacantBusinessActivityCode,
     );
@@ -615,10 +611,13 @@ class PremiseFormController extends FamilyNotifier<PremiseFormState, PremiseForm
         licenses: state.licenses,
         businessActivities: state.businessActivities,
         addresses: state.addresses,
+        gps: state.gps,
         localDraftId: state.localDraftId,
         visitStatus: state.visitStatus,
         visitStatusDesc: state.visitStatusDesc,
         areaCode: state.companyAreaCode,
+        stateCode: state.companyStateCode,
+        postcode: state.companyPostcode,
         businessTypeCode: state.businessTypeCode,
         businessTypeDesc: state.businessTypeDesc,
         premiseTypeCode: state.premiseTypeCode,

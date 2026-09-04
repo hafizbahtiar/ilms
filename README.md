@@ -19,7 +19,7 @@ lib/
 | Module | Description | Docs |
 |--------|-------------|------|
 | `premise` | Premise census — search, create/edit, drafts, duplicate search | [`lib/features/premise/README.md`](lib/features/premise/README.md) |
-| `billboard` | Billboard census — search, create/edit, drafts | — |
+| `billboard` | Billboard census — search, create/edit, drafts | [`lib/features/billboard/README.md`](lib/features/billboard/README.md) |
 | `investigation` | Investigation cases — search, view/edit existing records | [`lib/features/investigation/README.md`](lib/features/investigation/README.md) |
 | `auth` | Login, session | — |
 

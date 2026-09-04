@@ -1,0 +1,22 @@
+PODS:
+  - Flutter (1.0.0)
+  - image_editor_common (1.0.0):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - image_editor_common (from `.symlinks/plugins/image_editor_common/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  image_editor_common:
+    :path: ".symlinks/plugins/image_editor_common/ios"
+
+SPEC CHECKSUMS:
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
+  image_editor_common: 3de87e7c4804f4ae24c8f8a998362b98c105cac1
+
+PODFILE CHECKSUM: 3ba3a73b1b12adcf321a227a745625fe0888cc82
+
+COCOAPODS: 1.16.2

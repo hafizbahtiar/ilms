@@ -92,7 +92,6 @@ class _PremiseBusinessActivitySheetBodyState extends ConsumerState<_PremiseBusin
 
     final activity = PremiseBusinessActivity(
       id: widget.initial?.id,
-      localId: widget.initial?.localId,
       businessType: businessType?.code,
       businessTypeDesc: businessType == null ? null : generalLookupLabel(businessType),
       status: status?.code,
@@ -146,7 +145,13 @@ class _PremiseBusinessActivitySheetBodyState extends ConsumerState<_PremiseBusin
             onTap: _pickStatus,
           ),
           const SizedBox(height: 12),
-          AppTextField(label: 'Description', controller: _descriptionController, maxLines: 3, uppercase: true),
+          AppTextField(
+            label: 'Description',
+            controller: _descriptionController,
+            maxLines: 3,
+            keyboardType: TextInputType.multiline,
+            uppercase: true,
+          ),
         ],
       ),
     );

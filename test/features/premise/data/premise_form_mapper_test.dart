@@ -57,6 +57,39 @@ void main() {
       fields.dispose();
     });
 
+    test('state/postcode codes come from the selection, never parsed from display text', () {
+      final fields = PremiseFormFields();
+      // Picker fields show the description only, so there is no code to parse
+      // out of the text — re-deriving it here would send "KUALA LUMPUR" as the
+      // state code and "Kuala Lumpur" as the postcode.
+      fields.state.text = 'Kuala Lumpur';
+      fields.postcode.text = 'Kuala Lumpur';
+
+      final form = PremiseFormMapper.fromPresentation(
+        fields: fields,
+        censusImages: const [],
+        stateCode: '14',
+        postcode: '50100',
+      );
+
+      expect(form.companyContact.stateCode, '14');
+      expect(form.companyContact.stateDescription, 'Kuala Lumpur');
+      expect(form.companyContact.postcode, '50100');
+
+      fields.dispose();
+    });
+
+    test('falls back to parsing a legacy "code : desc" draft when no code is passed', () {
+      final fields = PremiseFormFields();
+      fields.state.text = 'WP : Wilayah Persekutuan';
+
+      final form = PremiseFormMapper.fromPresentation(fields: fields, censusImages: const []);
+
+      expect(form.companyContact.stateCode, 'WP');
+
+      fields.dispose();
+    });
+
     test('sends the full area display text as areaDescription, never truncated', () {
       final fields = PremiseFormFields();
       // The area field shows the area's plain description, which may itself

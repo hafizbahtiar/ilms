@@ -44,5 +44,70 @@ void main() {
 
       expect(find.text('Open'), findsOneWidget);
     });
+
+    testWidgets('has no rotate button when onRotate is omitted', (tester) async {
+      final images = [AppImageItem(bytes: _testPng, id: '0')];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return Scaffold(
+                body: FilledButton(
+                  onPressed: () => showAppImageViewer(context, images: images),
+                  child: const Text('Open'),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byIcon(Icons.rotate_right_rounded), findsNothing);
+    });
+
+    testWidgets('rotate button calls onRotate for the current index and swaps in the result', (tester) async {
+      final images = [AppImageItem(bytes: _testPng, id: '0')];
+      final rotatedItem = AppImageItem(bytes: _testPng, id: 'rotated');
+      final calledIndexes = <int>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return Scaffold(
+                body: FilledButton(
+                  onPressed: () => showAppImageViewer(
+                    context,
+                    images: images,
+                    onRotate: (index) async {
+                      calledIndexes.add(index);
+                      return rotatedItem;
+                    },
+                  ),
+                  child: const Text('Open'),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byIcon(Icons.rotate_right_rounded), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.rotate_right_rounded));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(calledIndexes, [0]);
+    });
   });
 }

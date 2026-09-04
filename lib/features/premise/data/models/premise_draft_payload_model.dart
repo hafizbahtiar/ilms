@@ -1,6 +1,7 @@
 import 'package:ilms/features/premise/domain/entities/premise_address.dart';
 import 'package:ilms/features/premise/domain/entities/premise_business_activity.dart';
 import 'package:ilms/features/premise/domain/entities/premise_census_image.dart';
+import 'package:ilms/features/premise/domain/entities/premise_gps.dart';
 import 'package:ilms/features/premise/domain/entities/premise_image_upload_status.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license.dart';
 import 'package:ilms/features/premise/domain/entities/premise_license_activity.dart';
@@ -21,6 +22,7 @@ class PremiseDraftPayloadModel {
     this.licenses = const [],
     this.businessActivities = const [],
     this.addresses = const [],
+    this.gps = const PremiseGps(),
   });
 
   final String? companyStateCode;
@@ -40,6 +42,7 @@ class PremiseDraftPayloadModel {
   final List<PremiseLicense> licenses;
   final List<PremiseBusinessActivity> businessActivities;
   final List<PremiseAddress> addresses;
+  final PremiseGps gps;
 
   Map<String, dynamic> toJson() => {
     'companyStateCode': companyStateCode,
@@ -54,6 +57,8 @@ class PremiseDraftPayloadModel {
     'licenses': licenses.map(_licenseToJson).toList(),
     'businessActivities': businessActivities.map(_businessActivityToJson).toList(),
     'addresses': addresses.map(_addressToJson).toList(),
+    'latitude': gps.latitude,
+    'longitude': gps.longitude,
   };
 
   factory PremiseDraftPayloadModel.fromJson(Map<String, dynamic> json) {
@@ -90,6 +95,7 @@ class PremiseDraftPayloadModel {
       addresses: rawAddresses is List
           ? rawAddresses.whereType<Map>().map((item) => _addressFromJson(Map<String, dynamic>.from(item))).toList()
           : const [],
+      gps: PremiseGps(latitude: json['latitude'] as String?, longitude: json['longitude'] as String?),
     );
   }
 
@@ -185,8 +191,6 @@ class PremiseDraftPayloadModel {
     'statusDesc': activity.statusDesc,
     'description': activity.description,
     'amount': activity.amount,
-    'saveToBusiness': activity.saveToBusiness,
-    if (activity.businessActivityLocalId != null) 'businessActivityLocalId': activity.businessActivityLocalId,
   };
 
   static PremiseLicenseActivity _licenseActivityFromJson(Map<String, dynamic> json) {
@@ -198,16 +202,11 @@ class PremiseDraftPayloadModel {
       statusDesc: json['statusDesc'] as String?,
       description: json['description'] as String?,
       amount: json['amount'] as String?,
-      saveToBusiness: json['saveToBusiness'] == true,
-      businessActivityLocalId: json['businessActivityLocalId'] is int
-          ? json['businessActivityLocalId'] as int
-          : int.tryParse('${json['businessActivityLocalId']}'),
     );
   }
 
   static Map<String, dynamic> _businessActivityToJson(PremiseBusinessActivity activity) => {
     if (activity.id != null) 'id': activity.id,
-    if (activity.localId != null) 'localId': activity.localId,
     'businessType': activity.businessType,
     'businessTypeDesc': activity.businessTypeDesc,
     'status': activity.status,
@@ -218,7 +217,6 @@ class PremiseDraftPayloadModel {
   static PremiseBusinessActivity _businessActivityFromJson(Map<String, dynamic> json) {
     return PremiseBusinessActivity(
       id: json['id'] is int ? json['id'] as int : int.tryParse('${json['id']}'),
-      localId: json['localId'] is int ? json['localId'] as int : int.tryParse('${json['localId']}'),
       businessType: json['businessType'] as String?,
       businessTypeDesc: json['businessTypeDesc'] as String?,
       status: json['status'] as String?,
@@ -240,8 +238,6 @@ class PremiseDraftPayloadModel {
     'parliament': address.parliament,
     'postcode': address.postcode,
     'state': address.state,
-    'latitude': address.latitude,
-    'longitude': address.longitude,
   };
 
   static PremiseAddress _addressFromJson(Map<String, dynamic> json) {
@@ -262,8 +258,6 @@ class PremiseDraftPayloadModel {
       parliament: json['parliament'] as String?,
       postcode: json['postcode'] as String?,
       state: json['state'] as String?,
-      latitude: json['latitude'] as String?,
-      longitude: json['longitude'] as String?,
     );
   }
 }

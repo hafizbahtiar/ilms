@@ -10,6 +10,7 @@ import 'package:ilms/features/billboard/presentation/widgets/billboard_form_tab_
 import 'package:ilms/features/billboard/presentation/widgets/billboard_section_header.dart';
 import 'package:ilms/shared/ui/feedback/app_dialog.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
+import 'package:ilms/shared/ui/layout/app_unfocus_on_tap.dart';
 
 /// Single-scroll + sticky-tab-bar form, mirroring `PremiseFormPage`'s
 /// structure — including its offline-draft system (Save & Exit, resumable
@@ -374,36 +375,38 @@ class _BillboardFormPageState extends ConsumerState<BillboardFormPage> {
                 ),
             ],
           ),
-          body: SafeArea(
-            child: Column(
-              children: [
-                BillboardFormTabBar(
-                  activeIndex: _activeSectionIndex,
-                  onTabSelected: _jumpToSection,
-                  tabKeys: _tabKeys,
-                  tabScrollController: _tabScrollController,
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    physics: const ClampingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (var i = 0; i < billboardFormSections.length; i++) ...[
-                          if (i > 0) const SizedBox(height: 28),
-                          KeyedSubtree(
-                            key: _sectionKeys[i],
-                            child: BillboardSectionHeader(title: billboardFormSections[i].headerTitle),
-                          ),
-                          billboardFormSections[i].builder(context),
+          body: AppUnfocusOnTap(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  BillboardFormTabBar(
+                    activeIndex: _activeSectionIndex,
+                    onTabSelected: _jumpToSection,
+                    tabKeys: _tabKeys,
+                    tabScrollController: _tabScrollController,
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (var i = 0; i < billboardFormSections.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 28),
+                            KeyedSubtree(
+                              key: _sectionKeys[i],
+                              child: BillboardSectionHeader(title: billboardFormSections[i].headerTitle),
+                            ),
+                            billboardFormSections[i].builder(context),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           bottomNavigationBar: formState.isReadOnly

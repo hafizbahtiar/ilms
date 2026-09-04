@@ -43,5 +43,35 @@ void main() {
 
       expect(find.text('Required'), findsOneWidget);
     });
+
+    testWidgets('keyboardType defaults to text regardless of maxLines — callers opt into multiline explicitly', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: const Scaffold(
+            body: AppTextField(label: 'Address', maxLines: 2),
+          ),
+        ),
+      );
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.keyboardType, TextInputType.text);
+    });
+
+    testWidgets('multiline keyboardType, once requested, gives Return a newline action', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: const Scaffold(
+            body: AppTextField(label: 'Address', maxLines: 2, keyboardType: TextInputType.multiline),
+          ),
+        ),
+      );
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.keyboardType, TextInputType.multiline);
+    });
   });
 }

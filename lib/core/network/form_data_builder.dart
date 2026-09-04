@@ -37,6 +37,20 @@ class FormDataBuilder {
     } else if (value is Map<String, dynamic>) {
       await Future.wait(value.entries.map((entry) => _addValue(formData, '$key[${entry.key}]', entry.value)));
     } else if (value is List) {
+      if (value.isEmpty) {
+        // An empty list produces zero bracket-indexed entries, so the key
+        // would vanish from the request entirely — the backend then leaves
+        // existing rows (e.g. `license_information`, `business_activities`)
+        // untouched instead of deleting them. A plain string value for the
+        // key (e.g. "[]") doesn't fix this either — PHP still parses it as
+        // a scalar, and the backend's `foreach` over it throws. `key[]` with
+        // an empty value is the classic HTML-forms idiom for this: PHP
+        // parses it into a real (if not truly empty) array, satisfying
+        // `foreach`/`is_array`, with the blank placeholder row expected to
+        // be filtered out server-side.
+        _addField(formData, '$key[]', '');
+        return;
+      }
       await Future.wait(value.asMap().entries.map((entry) => _addValue(formData, '$key[${entry.key}]', entry.value)));
     } else {
       _addField(formData, key, value);

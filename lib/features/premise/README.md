@@ -11,7 +11,8 @@ This feature uses clean architecture (domain / data / presentation), Riverpod, G
 | Area | Status |
 |------|--------|
 | Home entry | `PremiseHomeSection` — View All, New Entry, Drafts, **Duplicate** |
-| Form UI | Tab bar + scroll-sync sections (7 tabs), explicit draft save |
+| Form UI | Tab bar + scroll-sync sections (8 tabs), explicit draft save |
+| **GPS** | Single top-level coordinate (`PremiseGpsSection`), like billboard — see below |
 | Local drafts | Drift `premise_draft_entries`, list page, duplicate/delete actions |
 | Duplicate search | `/premise/duplicate-search` — filter, paginated **API** search, open as draft |
 | Duplicate payload | Company/contact/details only — **no images, no remarks** |
@@ -29,6 +30,27 @@ This feature uses clean architecture (domain / data / presentation), Riverpod, G
 | Lookups | `ApiGeneralLookupDataSource` — cached in Drift (`lookup:*` keys) |
 
 **Auth required:** All premise API calls use `DioClient` with bearer token (login first).
+
+---
+
+## GPS coordinate
+
+One coordinate for the whole premise record — `PremiseGpsSection` (its own top-level form tab),
+domain entity `PremiseGps`, using the shared `AppMapField` widget. Submitted as a top-level
+`gps_details: {latitude, longitude}` key (`PremiseGpsRequest`), read back the same way from
+`/api/premiseCensus/detail`.
+
+**This replaces the old design**, where each entry in the (still-repeatable) `addresses` list
+carried its own `latitude`/`longitude`, picked via "Pick Location" on the address tile. A premise
+census can still have multiple addresses (unit/street/postal etc. per entry), but the physical
+location is now a single record-level field — matching billboard's `BillboardGpsSection` /
+`BillboardGps` convention closely, though the wire key names differ (billboard still uses
+`lat_census`/`long_census`, not yet confirmed). `PremiseAddress` no longer has `latitude`/
+`longitude` at all.
+
+**Backend contract:** `gps_details: {latitude, longitude}` is confirmed with the backend team;
+the previous per-address `latitude`/`longitude` fields on `premise_addresses[*]` are no longer
+sent.
 
 ---
 
@@ -65,6 +87,7 @@ lib/features/premise/
 │   │   ├── premise_address.dart
 │   │   ├── premise_address_filter.dart
 │   │   ├── premise_address_listing.dart
+│   │   ├── premise_gps.dart
 │   │   └── premise_license_qr_data.dart
 │   └── repositories/
 │       ├── premise_address_listing_repository.dart
@@ -107,13 +130,13 @@ lib/features/premise/
     │   ├── premise_form_sections.dart
     │   ├── license_section.dart
     │   ├── premise_address_section.dart
+    │   ├── premise_gps_section.dart
     │   ├── company_contact_section.dart
     │   ├── business_activity_section.dart
     │   ├── remarks_section.dart
     │   └── census_images_section.dart
     ├── utils/
-    │   ├── premise_license_file_no.dart
-    │   └── premise_address_location.dart
+    │   └── premise_license_file_no.dart
     └── providers/
         ├── premise_form_providers.dart
         ├── premise_address_listing_providers.dart
@@ -122,7 +145,7 @@ lib/features/premise/
 
 Shared network helpers used by premise API:
 
-- `lib/core/network/form_data_builder.dart` — nested FormData for create/update/photo
+- `lib/core/network/form_data_builder.dart` — nested FormData for the photo upload/delete endpoints only; `create`/`update` send plain JSON (no files travel on those requests, and Laravel needs a real empty array to detect "clear every row" — multipart bracket notation can't represent one)
 - `lib/core/network/api_response_helper.dart` — status/message parsing
 
 Shared scanner (license QR, sticker no.):
@@ -146,7 +169,8 @@ Principles carried forward from legacy:
 |-----|---------|---------------|
 | License | `license_section.dart` | Tile list; add/edit via `premise_license_sheet.dart` |
 | Business | `business_activity_section.dart` | Standalone business activities + per-license activities in license sheet |
-| Address | `premise_address_section.dart` | Catalog multi-select; tile actions: Pick Location, Set as Company Address, Delete |
+| Address | `premise_address_section.dart` | Catalog multi-select; tile actions: Set as Company Address, Delete |
+| GPS | `premise_gps_section.dart` | Single record-level coordinate — see GPS section above |
 | Remarks | `remarks_section.dart` | Remark codes + free text |
 | Images | `census_images_section.dart` | Min photo count enforced on submit |
 | Company | `company_contact_section.dart` | Company/contact fields; sticker scan |
@@ -169,13 +193,11 @@ Registry: `premise_form_sections.dart`
 
 | Action | Effect |
 |--------|--------|
-| Pick Location | Map picker → updates lat/lng on the address |
 | Set as Company Address | Copies unit/building/street/postcode/area into Company section via lookup resolution |
 | Delete | Removes address from form |
 
-**View mode:** tap tile → read-only map.
-
-Postcode comes from the listing API response (no manual floor/block fields).
+Postcode comes from the listing API response (no manual floor/block fields). Coordinates are no
+longer part of the address tile — see the GPS section above.
 
 ---
 
@@ -301,13 +323,13 @@ Mock implementations (`MockPremiseDataSource`, `MockPremiseDuplicateRemoteDataSo
 ## Tests
 
 - `test/features/premise/data/premise_draft_repository_impl_test.dart`
-- `test/features/premise/data/premise_draft_mapper_test.dart`
-- `test/features/premise/data/premise_detail_mapper_test.dart`
+- `test/features/premise/data/premise_draft_mapper_test.dart` — includes GPS encode/decode round-trip
+- `test/features/premise/data/premise_detail_mapper_test.dart` — includes `gps_details` parsing
 - `test/features/premise/data/premise_form_mapper_test.dart`
+- `test/features/premise/data/premise_submit_payload_model_test.dart` — includes `gps_details` shape
 - `test/features/premise/data/premise_repository_impl_test.dart`
 - `test/features/premise/data/mock_premise_duplicate_remote_data_source_test.dart`
 - `test/features/premise/presentation/premise_duplicate_controller_test.dart`
 - `test/features/premise/presentation/utils/premise_license_file_no_test.dart`
-- `test/features/premise/presentation/utils/premise_address_location_test.dart`
 
 Legacy has extensive premise tests under `ilms_flutter/test/premis/` — port critical cases when wiring edit sessions and full submit payloads.

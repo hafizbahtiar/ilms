@@ -1,9 +1,20 @@
+import 'dart:io';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ilms/shared/ui/media/camera/camera_gesture_overlay.dart';
 import 'package:ilms/shared/ui/media/camera/camera_scaffold.dart';
 import 'package:ilms/shared/ui/media/camera/camera_service.dart';
+
+// 1x1 transparent PNG, just enough for Image.file to decode without error.
+const _onePixelPng = <int>[
+  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, //
+  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+  0x89, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+  0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+  0x42, 0x60, 0x82,
+];
 
 class _FakeCameraService extends AppCameraService {
   double _zoom = 1.0;
@@ -74,6 +85,9 @@ Future<void> _pumpCamera(
   WidgetTester tester,
   _FakeCameraService service, {
   VoidCallback? onDone,
+  List<File> captures = const [],
+  ValueChanged<int>? onRemoveCapture,
+  ValueChanged<int>? onPreviewCapture,
 }) {
   tester.view.physicalSize = const Size(400, 800);
   tester.view.devicePixelRatio = 1;
@@ -92,6 +106,9 @@ Future<void> _pumpCamera(
         onSwitchCamera: () {},
         onCycleLens: () {},
         onDone: onDone,
+        captures: captures,
+        onRemoveCapture: onRemoveCapture,
+        onPreviewCapture: onPreviewCapture,
         previewChild: const ColoredBox(color: Colors.black),
       ),
     ),
@@ -190,5 +207,34 @@ void main() {
 
     expect(find.textContaining('Done'), findsOneWidget);
     expect(find.byIcon(Icons.flash_off_rounded), findsOneWidget);
+  });
+
+  group('capture review strip', () {
+    late File capture;
+
+    setUp(() {
+      capture = File('${Directory.systemTemp.path}/camera_scaffold_test_${DateTime.now().microsecondsSinceEpoch}.png')
+        ..writeAsBytesSync(_onePixelPng);
+    });
+
+    tearDown(() {
+      if (capture.existsSync()) capture.deleteSync();
+    });
+
+    testWidgets('tapping a thumbnail opens the preview for that index', (tester) async {
+      int? previewedIndex;
+      final service = _FakeCameraService();
+      await _pumpCamera(
+        tester,
+        service,
+        captures: [capture],
+        onPreviewCapture: (index) => previewedIndex = index,
+      );
+
+      await tester.tap(find.byType(Image));
+      await tester.pump();
+
+      expect(previewedIndex, 0);
+    });
   });
 }

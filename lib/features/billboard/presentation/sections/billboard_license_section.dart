@@ -12,6 +12,11 @@ class BillboardLicenseSection extends ConsumerWidget {
     final fields = ref.watch(billboardFormFieldsProvider(session));
     final readOnly = ref.watch(billboardFormControllerProvider(session).select((s) => s.isReadOnly));
 
-    return AppTextField(label: 'License File No.', controller: fields.licenseFileNo, readOnly: readOnly);
+    return AppTextField(
+      label: 'License File No.',
+      controller: fields.licenseFileNo,
+      readOnly: readOnly,
+      uppercase: true,
+    );
   }
 }

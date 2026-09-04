@@ -20,16 +20,9 @@ void main() {
           {'id': 9, 'business_type': 'A402', 'description': 'Retail'},
         ],
         'premise_addresses': [
-          {
-            'paid': 42,
-            'vpa_id': 99,
-            'unit_no': 'G-1',
-            'building': 'Plaza BB',
-            'street_name': 'Jalan BB',
-            'latitude': '0.000000',
-            'longitude': '0.000000',
-          },
+          {'paid': 42, 'vpa_id': 99, 'unit_no': 'G-1', 'building': 'Plaza BB', 'street_name': 'Jalan BB'},
         ],
+        'gps_details': {'latitude': '3.139012', 'longitude': '101.686901'},
         'images': [
           {'id': 7, 'type': 'FRONT', 'image_url': 'https://example.com/front.jpg'},
         ],
@@ -47,15 +40,17 @@ void main() {
 
       expect(payload.businessActivities, hasLength(1));
       expect(payload.businessActivities.first.id, 9);
-      expect(payload.businessActivities.first.localId, isNull);
       expect(payload.businessActivities.first.businessType, 'A402');
 
       expect(payload.addresses, hasLength(1));
       expect(payload.addresses.first.premiseAddressId, 42);
       expect(payload.addresses.first.visitPremiseAddressId, isNull);
       expect(payload.addresses.first.unitNo, 'G-1');
-      expect(payload.addresses.first.latitude, isNull);
-      expect(payload.addresses.first.longitude, isNull);
+
+      // GPS travels at the top level now (see PremiseGps), carried forward
+      // as-is into the duplicate since it's the same physical location.
+      expect(payload.gps.latitude, '3.139012');
+      expect(payload.gps.longitude, '101.686901');
     });
 
     test('fromApiDetail maps API detail payload into draft fields', () {
@@ -128,14 +123,17 @@ void main() {
         'premise_addresses': [
           {'paid': 10, 'vpa_id': 20, 'unit_no': '1-1', 'street_name': 'Main St'},
         ],
+        'gps_details': {'latitude': '3.139012', 'longitude': '101.686901'},
       });
 
       expect(payload.companyStateCode, '14');
       expect(payload.companyPostcode, '50000');
       expect(payload.fields['companyName'], 'ACME Sdn Bhd');
       expect(payload.fields['traderName'], 'ACME Trading');
-      expect(payload.fields['businessType'], 'A402 : Retail');
-      expect(payload.fields['premiseType'], '01 : Shoplot');
+      // Prefill text matches what the picker shows — desc only; the codes
+      // travel separately below.
+      expect(payload.fields['businessType'], 'Retail');
+      expect(payload.fields['premiseType'], 'Shoplot');
       expect(payload.businessTypeCode, 'A402');
       expect(payload.businessTypeDesc, 'Retail');
       expect(payload.premiseTypeCode, '01');
@@ -160,6 +158,18 @@ void main() {
       expect(payload.addresses, hasLength(1));
       expect(payload.addresses.first.premiseAddressId, 10);
       expect(payload.addresses.first.visitPremiseAddressId, 20);
+
+      expect(payload.gps.latitude, '3.139012');
+      expect(payload.gps.longitude, '101.686901');
+    });
+
+    test('fromApiDetail defaults gps to empty when gps_details is missing', () {
+      final payload = PremiseDetailMapper.fromApiDetail({
+        'company_details': {'company_name': 'ACME Sdn Bhd'},
+        'premise_details': {'trader_name': 'ACME Trading'},
+      });
+
+      expect(payload.gps.hasCoordinate, isFalse);
     });
   });
 }
