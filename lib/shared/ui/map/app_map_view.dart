@@ -1,67 +1,57 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ilms/shared/ui/map/app_map_limits.dart';
-import 'package:ilms/shared/ui/map/app_map_tile_layer.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' as geo;
 
-/// Responsive [FlutterMap] wrapper shared by previews and the location picker.
+/// Responsive [GoogleMap] wrapper shared by previews and the location picker.
 class AppMapView extends StatelessWidget {
   const AppMapView({
     super.key,
-    this.mapController,
     required this.center,
     this.zoom = AppMapLimits.defaultZoom,
     this.minZoom = AppMapLimits.minZoom,
     this.maxZoom = AppMapLimits.maxZoom,
-    this.interactionFlags = InteractiveFlag.none,
-    this.instantTiles = false,
-    this.highDensityTiles,
-    this.interactiveTiles = false,
-    this.layers = const [],
-    this.onMapReady,
+    this.interactionFlags = 0,
+    this.markers = const <Marker>{},
+    this.onMapCreated,
+    this.onCameraMove,
   });
 
-  final MapController? mapController;
-  final LatLng center;
+  final geo.LatLng center;
   final double zoom;
   final double minZoom;
   final double maxZoom;
   final int interactionFlags;
-  final bool instantTiles;
-  final bool? highDensityTiles;
-  final bool interactiveTiles;
-  final List<Widget> layers;
-  final VoidCallback? onMapReady;
+  final Set<Marker> markers;
+  final ValueChanged<GoogleMapController>? onMapCreated;
+  final ValueChanged<CameraPosition>? onCameraMove;
 
-  /// Full-screen picker — pan, zoom, and two-finger rotate enabled.
-  static const pickerFlags = InteractiveFlag.all;
+  static const pickerFlags = 1 | 2 | 4 | 8;
+  static const previewFlags = 0;
 
-  /// Static coordinate preview inside a form.
-  static const previewFlags = InteractiveFlag.none;
-
-  /// Static previews have no [mapController]; [FlutterMap] only reads
-  /// [MapOptions.initialCenter] on first mount, so tie the element key to the
-  /// coordinate when nothing else will drive camera moves.
-  Key? get _previewCenterKey => mapController == null ? ValueKey('${center.latitude},${center.longitude}') : null;
+  bool _hasFlag(int flag) => interactionFlags & flag != 0;
 
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
-      child: FlutterMap(
-        key: _previewCenterKey,
-        mapController: mapController,
-        options: MapOptions(
-          initialCenter: center,
-          initialZoom: AppMapLimits.clampZoom(zoom),
-          minZoom: minZoom,
-          maxZoom: maxZoom,
-          interactionOptions: InteractionOptions(flags: interactionFlags),
-          onMapReady: onMapReady,
+      child: GoogleMap(
+        key: ValueKey('${center.latitude},${center.longitude}'),
+        initialCameraPosition: CameraPosition(
+          target: LatLng(center.latitude, center.longitude),
+          zoom: AppMapLimits.clampZoom(zoom),
         ),
-        children: [
-          AppMapTileLayer(instant: instantTiles, highDensity: highDensityTiles, interactive: interactiveTiles),
-          ...layers,
-        ],
+        minMaxZoomPreference: MinMaxZoomPreference(minZoom, maxZoom),
+        markers: markers,
+        zoomGesturesEnabled: _hasFlag(1),
+        scrollGesturesEnabled: _hasFlag(2),
+        rotateGesturesEnabled: _hasFlag(4),
+        tiltGesturesEnabled: _hasFlag(8),
+        zoomControlsEnabled: false,
+        mapToolbarEnabled: false,
+        compassEnabled: false,
+        myLocationButtonEnabled: false,
+        onMapCreated: onMapCreated,
+        onCameraMove: onCameraMove,
       ),
     );
   }

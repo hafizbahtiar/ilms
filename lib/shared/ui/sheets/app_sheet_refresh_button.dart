@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
 
 /// Header refresh control for bottom sheets — rotates the refresh icon while
-/// [isRefreshing] is true so users can see the action is in progress.
+/// the refresh callback is running so users can see the action is in progress.
 class AppSheetRefreshIconButton extends StatefulWidget {
-  const AppSheetRefreshIconButton({
-    super.key,
-    required this.isRefreshing,
-    required this.onPressed,
-    this.tooltip = 'Refresh lookups',
-  });
+  const AppSheetRefreshIconButton({super.key, required this.onRefresh, this.tooltip = 'Refresh lookups'});
 
-  final bool isRefreshing;
-  final VoidCallback? onPressed;
+  final Future<void> Function() onRefresh;
   final String tooltip;
 
   @override
@@ -19,6 +13,8 @@ class AppSheetRefreshIconButton extends StatefulWidget {
 }
 
 class _AppSheetRefreshIconButtonState extends State<AppSheetRefreshIconButton> with SingleTickerProviderStateMixin {
+  var _isRefreshing = false;
+
   late final AnimationController _spinController = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 900),
@@ -30,27 +26,19 @@ class _AppSheetRefreshIconButtonState extends State<AppSheetRefreshIconButton> w
     super.dispose();
   }
 
-  @override
-  void didUpdateWidget(covariant AppSheetRefreshIconButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _syncSpinAnimation();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _syncSpinAnimation();
-  }
-
-  void _syncSpinAnimation() {
-    if (widget.isRefreshing) {
-      if (!_spinController.isAnimating) {
-        _spinController.repeat();
+  Future<void> _refresh() async {
+    if (_isRefreshing) return;
+    setState(() => _isRefreshing = true);
+    _spinController.repeat();
+    try {
+      await widget.onRefresh();
+    } finally {
+      if (mounted) {
+        setState(() => _isRefreshing = false);
+        _spinController
+          ..stop()
+          ..reset();
       }
-    } else {
-      _spinController
-        ..stop()
-        ..reset();
     }
   }
 
@@ -61,13 +49,10 @@ class _AppSheetRefreshIconButtonState extends State<AppSheetRefreshIconButton> w
     return IconButton(
       tooltip: widget.tooltip,
       visualDensity: VisualDensity.compact,
-      onPressed: widget.isRefreshing ? null : widget.onPressed,
+      onPressed: _isRefreshing ? null : _refresh,
       icon: RotationTransition(
         turns: _spinController,
-        child: Icon(
-          Icons.refresh_rounded,
-          color: widget.isRefreshing ? cs.primary : cs.onSurface.withValues(alpha: 0.72),
-        ),
+        child: Icon(Icons.refresh_rounded, color: _isRefreshing ? cs.primary : cs.onSurface.withValues(alpha: 0.72)),
       ),
     );
   }

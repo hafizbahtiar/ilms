@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as google;
 import 'package:ilms/shared/ui/map/app_current_location.dart';
 import 'package:ilms/shared/ui/map/app_location_picker_page.dart';
 import 'package:ilms/shared/ui/map/app_map_limits.dart';
@@ -57,7 +57,9 @@ class _AppMapFieldState extends State<AppMapField> {
   bool get _hasLocation => widget.location != null;
 
   bool get _showEmptyActions =>
-      !widget.readOnly && widget.onChanged != null && (widget.showPickOnMapAction || widget.showCurrentLocationAction);
+      !widget.readOnly &&
+      widget.onChanged != null &&
+      (widget.showPickOnMapAction || widget.showCurrentLocationAction);
 
   @override
   Widget build(BuildContext context) {
@@ -74,13 +76,18 @@ class _AppMapFieldState extends State<AppMapField> {
               text: widget.label,
               style: textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: widget.readOnly ? cs.onSurface.withValues(alpha: 0.6) : null,
+                color: widget.readOnly
+                    ? cs.onSurface.withValues(alpha: 0.6)
+                    : null,
               ),
               children: [
                 if (widget.required)
                   TextSpan(
                     text: ' *',
-                    style: TextStyle(color: cs.error, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      color: cs.error,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
               ],
             ),
@@ -110,7 +117,9 @@ class _AppMapFieldState extends State<AppMapField> {
             readOnly: widget.readOnly,
             previewHeight: widget.previewHeight,
             onTap: _openPicker,
-            onClear: widget.readOnly || widget.onChanged == null ? null : () => widget.onChanged!(null),
+            onClear: widget.readOnly || widget.onChanged == null
+                ? null
+                : () => widget.onChanged!(null),
           ),
       ],
     );
@@ -130,7 +139,11 @@ class _AppMapFieldState extends State<AppMapField> {
 
     if (widget.onChanged == null) return;
 
-    final picked = await AppLocationPickerPage.open(context, title: widget.pickerTitle, initialCenter: widget.location);
+    final picked = await AppLocationPickerPage.open(
+      context,
+      title: widget.pickerTitle,
+      initialCenter: widget.location,
+    );
     if (picked == null || !mounted) return;
 
     setState(() => _locationError = null);
@@ -148,7 +161,8 @@ class _AppMapFieldState extends State<AppMapField> {
     try {
       if (!await _ensureLocationPermission()) return;
 
-      final resolver = widget.currentLocationResolver ?? resolveAppCurrentLocation;
+      final resolver =
+          widget.currentLocationResolver ?? resolveAppCurrentLocation;
       final here = await resolver();
       if (!mounted) return;
       widget.onChanged!(here);
@@ -164,7 +178,8 @@ class _AppMapFieldState extends State<AppMapField> {
   }
 
   Future<bool> _ensureLocationPermission() async {
-    final resolver = widget.locationPermissionResolver ?? _resolveLocationPermission;
+    final resolver =
+        widget.locationPermissionResolver ?? _resolveLocationPermission;
     final status = await resolver();
     if (status.isGranted) return true;
     if (!mounted) return false;
@@ -177,7 +192,11 @@ class _AppMapFieldState extends State<AppMapField> {
           : 'Location permission is required to use your current location.',
       actions: [
         const AppDialogAction('Cancel', value: false),
-        AppDialogAction('Open Settings', value: true, style: AppDialogActionStyle.filled),
+        AppDialogAction(
+          'Open Settings',
+          value: true,
+          style: AppDialogActionStyle.filled,
+        ),
       ],
     );
 
@@ -249,20 +268,29 @@ class _EmptyMapState extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   onTap: isLocating ? null : onPickOnMap,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 12,
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           Icons.map_outlined,
                           size: 40,
-                          color: readOnly ? onSurfaceColor.withValues(alpha: 0.35) : primaryColor,
+                          color: readOnly
+                              ? onSurfaceColor.withValues(alpha: 0.35)
+                              : primaryColor,
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          readOnly ? 'No location marked.' : 'Tap here or use the buttons below',
+                          readOnly
+                              ? 'No location marked.'
+                              : 'Tap here or use the buttons below',
                           textAlign: TextAlign.center,
-                          style: textTheme.bodyMedium?.copyWith(color: onSurfaceColor.withValues(alpha: 0.65)),
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: onSurfaceColor.withValues(alpha: 0.65),
+                          ),
                         ),
                       ],
                     ),
@@ -281,7 +309,8 @@ class _EmptyMapState extends StatelessWidget {
                           label: const Text('Pick on Map'),
                         ),
                       ),
-                    if (showPickOnMapAction && showCurrentLocationAction) const SizedBox(width: 10),
+                    if (showPickOnMapAction && showCurrentLocationAction)
+                      const SizedBox(width: 10),
                     if (showCurrentLocationAction)
                       Expanded(
                         child: FilledButton.icon(
@@ -292,7 +321,9 @@ class _EmptyMapState extends StatelessWidget {
                                   height: 16,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Theme.of(context).colorScheme.onPrimary,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimary,
                                   ),
                                 )
                               : const Icon(Icons.my_location_rounded, size: 18),
@@ -307,7 +338,10 @@ class _EmptyMapState extends StatelessWidget {
                 Text(
                   errorMessage!,
                   textAlign: TextAlign.center,
-                  style: textTheme.bodySmall?.copyWith(color: errorColor, fontWeight: FontWeight.w600),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: errorColor,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ],
@@ -337,7 +371,8 @@ class _MapPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final coordinateText = '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}';
+    final coordinateText =
+        '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}';
 
     return Material(
       color: cs.surfaceContainerHighest,
@@ -354,21 +389,18 @@ class _MapPreview extends StatelessWidget {
                 center: location,
                 zoom: AppMapLimits.previewZoom,
                 interactionFlags: AppMapView.previewFlags,
-                instantTiles: true,
-                highDensityTiles: false,
-                layers: [
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: location,
-                        width: 40,
-                        height: 40,
-                        alignment: Alignment.topCenter,
-                        child: Icon(Icons.location_on_rounded, size: 36, color: cs.primary),
-                      ),
-                    ],
+                markers: {
+                  google.Marker(
+                    markerId: const google.MarkerId('location-preview'),
+                    position: google.LatLng(
+                      location.latitude,
+                      location.longitude,
+                    ),
+                    icon: google.BitmapDescriptor.defaultMarkerWithHue(
+                      google.BitmapDescriptor.hueAzure,
+                    ),
                   ),
-                ],
+                },
               ),
               Positioned(
                 left: 0,
@@ -379,32 +411,50 @@ class _MapPreview extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black.withValues(alpha: 0.72)],
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.72),
+                      ],
                     ),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(14, 24, 14, 12),
                     child: Row(
                       children: [
-                        Icon(Icons.location_on_outlined, size: 16, color: cs.onPrimary),
+                        Icon(
+                          Icons.location_on_outlined,
+                          size: 16,
+                          color: cs.onPrimary,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             coordinateText,
-                            style: textTheme.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                            style: textTheme.labelLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                         if (!readOnly)
                           Text(
                             'Edit',
-                            style: textTheme.labelLarge?.copyWith(color: cs.secondary, fontWeight: FontWeight.w700),
+                            style: textTheme.labelLarge?.copyWith(
+                              color: cs.secondary,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                       ],
                     ),
                   ),
                 ),
               ),
-              if (onClear != null) Positioned(top: 8, right: 8, child: _ClearButton(onTap: onClear!)),
+              if (onClear != null)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: _ClearButton(onTap: onClear!),
+                ),
             ],
           ),
         ),
@@ -425,7 +475,10 @@ class _ClearButton extends StatelessWidget {
       child: Container(
         width: 28,
         height: 28,
-        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55), shape: BoxShape.circle),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.55),
+          shape: BoxShape.circle,
+        ),
         child: const Icon(Icons.close, size: 16, color: Colors.white),
       ),
     );

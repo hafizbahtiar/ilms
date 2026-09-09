@@ -6,6 +6,7 @@ import 'package:ilms/shared/models/general_model.dart';
 import 'package:ilms/shared/ui/feedback/app_snackbar.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
 import 'package:ilms/shared/ui/sheets/app_option_picker_sheet.dart';
+import 'package:ilms/shared/ui/sheets/app_sheet_refresh_button.dart';
 
 Future<bool?> showPremiseAddressSearchFilterSheet(BuildContext context, WidgetRef ref) {
   final snapshot = ref.read(premiseAddressSearchControllerProvider.notifier).snapshotFilter();
@@ -17,16 +18,7 @@ Future<bool?> showPremiseAddressSearchFilterSheet(BuildContext context, WidgetRe
     preset: AppBottomSheetPreset.scrollable,
     isDismissible: false,
     itemCount: 4,
-    trailing: IconButton(
-      tooltip: 'Refresh lookups',
-      onPressed: () async {
-        await refreshAllGeneralLookups(ref);
-        if (context.mounted) {
-          AppSnackbar.success(context, 'Lookup data refreshed.');
-        }
-      },
-      icon: const Icon(Icons.refresh_rounded),
-    ),
+    trailing: _PremiseAddressSearchFilterRefreshTrailing(),
     bottomBar: AppBottomSheetActionBar(
       onSecondary: () => ref.read(premiseAddressSearchControllerProvider.notifier).resetFilter(),
       onPrimary: () => Navigator.of(context).pop(true),
@@ -42,6 +34,22 @@ Future<bool?> showPremiseAddressSearchFilterSheet(BuildContext context, WidgetRe
     }
     return applied;
   });
+}
+
+class _PremiseAddressSearchFilterRefreshTrailing extends ConsumerWidget {
+  const _PremiseAddressSearchFilterRefreshTrailing();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AppSheetRefreshIconButton(
+      onRefresh: () async {
+        await refreshAllGeneralLookups(ref);
+        if (context.mounted) {
+          AppSnackbar.success(context, 'Lookup data refreshed.');
+        }
+      },
+    );
+  }
 }
 
 class _PremiseAddressSearchFilterBody extends ConsumerWidget {

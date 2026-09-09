@@ -9,6 +9,7 @@ import 'package:ilms/shared/ui/forms/app_text_field.dart';
 import 'package:ilms/shared/ui/lists/app_list_view.dart';
 import 'package:ilms/shared/ui/sheets/app_bottom_sheet.dart';
 import 'package:ilms/shared/ui/sheets/app_option_picker_sheet.dart';
+import 'package:ilms/shared/ui/sheets/app_sheet_refresh_button.dart';
 
 Future<bool?> showPremiseSearchFilterSheet(BuildContext context, WidgetRef ref, PremiseListTab tab) {
   final snapshot = ref.read(premiseSearchControllerProvider(tab).notifier).snapshotFilter();
@@ -20,14 +21,7 @@ Future<bool?> showPremiseSearchFilterSheet(BuildContext context, WidgetRef ref, 
     preset: AppBottomSheetPreset.scrollable,
     isDismissible: false,
     enableDrag: true,
-    trailing: IconButton(
-      tooltip: 'Refresh lookups',
-      onPressed: () async {
-        await refreshAllGeneralLookups(ref);
-        if (context.mounted) AppSnackbar.success(context, 'Lookup data refreshed.');
-      },
-      icon: const Icon(Icons.refresh_rounded),
-    ),
+    trailing: _PremiseSearchFilterRefreshTrailing(),
     bottomBar: AppBottomSheetActionBar(
       onSecondary: () => ref.read(premiseSearchControllerProvider(tab).notifier).resetFilter(),
       onPrimary: () => Navigator.of(context).pop(true),
@@ -43,6 +37,20 @@ Future<bool?> showPremiseSearchFilterSheet(BuildContext context, WidgetRef ref, 
     }
     return applied;
   });
+}
+
+class _PremiseSearchFilterRefreshTrailing extends ConsumerWidget {
+  const _PremiseSearchFilterRefreshTrailing();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AppSheetRefreshIconButton(
+      onRefresh: () async {
+        await refreshAllGeneralLookups(ref);
+        if (context.mounted) AppSnackbar.success(context, 'Lookup data refreshed.');
+      },
+    );
+  }
 }
 
 class _PremiseSearchFilterBody extends ConsumerStatefulWidget {

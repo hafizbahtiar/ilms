@@ -41,32 +41,19 @@ Future<bool?> showPremiseDuplicateFilterSheet(BuildContext context, WidgetRef re
   });
 }
 
-class _PremiseDuplicateFilterRefreshTrailing extends ConsumerStatefulWidget {
+class _PremiseDuplicateFilterRefreshTrailing extends ConsumerWidget {
   const _PremiseDuplicateFilterRefreshTrailing();
 
   @override
-  ConsumerState<_PremiseDuplicateFilterRefreshTrailing> createState() => _PremiseDuplicateFilterRefreshTrailingState();
-}
-
-class _PremiseDuplicateFilterRefreshTrailingState extends ConsumerState<_PremiseDuplicateFilterRefreshTrailing> {
-  var _isRefreshing = false;
-
-  Future<void> _refresh() async {
-    if (_isRefreshing) return;
-    setState(() => _isRefreshing = true);
-    try {
-      await Future.wait([refreshAllGeneralLookups(ref), Future<void>.delayed(const Duration(milliseconds: 600))]);
-      if (mounted) {
-        AppSnackbar.success(context, 'Lookup data refreshed.');
-      }
-    } finally {
-      if (mounted) setState(() => _isRefreshing = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AppSheetRefreshIconButton(isRefreshing: _isRefreshing, onPressed: _refresh);
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AppSheetRefreshIconButton(
+      onRefresh: () async {
+        await Future.wait([refreshAllGeneralLookups(ref), Future<void>.delayed(const Duration(milliseconds: 600))]);
+        if (context.mounted) {
+          AppSnackbar.success(context, 'Lookup data refreshed.');
+        }
+      },
+    );
   }
 }
 

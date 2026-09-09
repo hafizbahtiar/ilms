@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as google;
 import 'package:ilms/shared/ui/map/app_current_location.dart';
 import 'package:ilms/shared/ui/map/app_map_limits.dart';
 import 'package:ilms/shared/ui/map/app_map_rotation_reset_button.dart';
@@ -47,10 +47,13 @@ class AppLocationPickerPage extends StatefulWidget {
 }
 
 class _AppLocationPickerPageState extends State<AppLocationPickerPage> {
-  final _mapController = MapController();
+  google.GoogleMapController? _mapController;
   LatLng? _markedLocation;
+  late LatLng _cameraCenter;
   var _isLocating = false;
   var _mapReady = false;
+  var _isRotated = false;
+  var _cameraZoom = AppMapLimits.defaultZoom;
   var _needsSilentLocate = false;
   LatLng? _pendingMoveCenter;
   double? _pendingMoveZoom;
@@ -59,6 +62,7 @@ class _AppLocationPickerPageState extends State<AppLocationPickerPage> {
   @override
   void initState() {
     super.initState();
+    _cameraCenter = widget.initialCenter ?? AppLocationPickerPage.fallbackCenter;
     if (widget.viewOnly && widget.initialCenter != null) {
       _markedLocation = widget.initialCenter;
     } else if (!widget.viewOnly && widget.initialCenter == null) {
@@ -66,7 +70,8 @@ class _AppLocationPickerPageState extends State<AppLocationPickerPage> {
     }
   }
 
-  void _onMapReady() {
+  void _onMapCreated(google.GoogleMapController controller) {
+    _mapController = controller;
     _mapReady = true;
     _flushPendingMove();
     if (_needsSilentLocate) {
@@ -86,19 +91,38 @@ class _AppLocationPickerPageState extends State<AppLocationPickerPage> {
   }
 
   bool _moveMap(LatLng center, double zoom) {
-    try {
-      return _mapController.move(center, AppMapLimits.clampZoom(zoom));
-    } on Exception {
+    final controller = _mapController;
+    if (controller == null) {
       _pendingMoveCenter = center;
       _pendingMoveZoom = zoom;
       return false;
     }
+    _cameraCenter = center;
+    controller.animateCamera(
+      google.CameraUpdate.newCameraPosition(
+        google.CameraPosition(
+          target: google.LatLng(center.latitude, center.longitude),
+          zoom: AppMapLimits.clampZoom(zoom),
+        ),
+      ),
+    );
+    return true;
   }
 
   @override
   void dispose() {
-    _mapController.dispose();
     super.dispose();
+  }
+
+  void _onCameraMove(google.CameraPosition position) {
+    _cameraCenter = LatLng(position.target.latitude, position.target.longitude);
+    _cameraZoom = position.zoom;
+    final rotated = position.bearing.abs() > 0.5;
+    if (rotated != _isRotated && mounted) {
+      setState(() {
+        _isRotated = rotated;
+      });
+    }
   }
 
   Future<void> _locateMe({bool silent = false}) async {
@@ -114,18 +138,16 @@ class _AppLocationPickerPageState extends State<AppLocationPickerPage> {
     } on AppLocationFailure catch (error) {
       if (!silent && mounted) setState(() => _locationError = error.message);
     } catch (_) {
-      if (!silent && mounted) setState(() => _locationError = 'Unable to get your current location.');
+      if (!silent && mounted) {
+        setState(() => _locationError = 'Unable to get your current location.');
+      }
     } finally {
       if (mounted) setState(() => _isLocating = false);
     }
   }
 
   void _markLocation() {
-    try {
-      setState(() => _markedLocation = _mapController.camera.center);
-    } on Exception {
-      // Map not ready — ignore.
-    }
+    setState(() => _markedLocation = _cameraCenter);
   }
 
   void _proceed() {
@@ -144,41 +166,43 @@ class _AppLocationPickerPageState extends State<AppLocationPickerPage> {
         child: Stack(
           children: [
             AppMapView(
-              mapController: _mapController,
               center: widget.initialCenter ?? _markedLocation ?? AppLocationPickerPage.fallbackCenter,
               zoom: AppMapLimits.defaultZoom,
               interactionFlags: widget.viewOnly ? AppMapView.previewFlags : AppMapView.pickerFlags,
-              interactiveTiles: !widget.viewOnly,
-              onMapReady: _onMapReady,
-              layers: [
-                // MarkerLayer/Marker call MapCamera.of(context) internally to
-                // position themselves against the map's viewport — it MUST
-                // live inside FlutterMap's own children, not as a sibling in
-                // the outer Stack, or that lookup fails.
+              onMapCreated: _onMapCreated,
+              onCameraMove: _onCameraMove,
+              markers: {
                 if (_markedLocation != null)
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: _markedLocation!,
-                        width: 44,
-                        height: 44,
-                        alignment: Alignment.topCenter,
-                        child: Icon(Icons.location_on_rounded, size: 40, color: cs.primary),
-                      ),
-                    ],
+                  google.Marker(
+                    markerId: const google.MarkerId('marked-location'),
+                    position: google.LatLng(_markedLocation!.latitude, _markedLocation!.longitude),
+                    icon: google.BitmapDescriptor.defaultMarkerWithHue(google.BitmapDescriptor.hueAzure),
                   ),
-              ],
+              },
             ),
             // Reticle — always centered on screen, guides where "Mark
             // Location" will drop its pin as the user pans underneath it.
             IgnorePointer(
               child: Center(child: Icon(Icons.add_rounded, size: 28, color: cs.error.withValues(alpha: 0.85))),
             ),
-            if (!widget.viewOnly && _mapReady)
+            if (!widget.viewOnly && _mapReady && _mapController != null)
               Positioned(
                 top: 12,
                 right: 12,
-                child: AppMapRotationResetButton(mapController: _mapController),
+                child: AppMapRotationResetButton(
+                  isRotated: _isRotated,
+                  onReset: () {
+                    _mapController?.animateCamera(
+                      google.CameraUpdate.newCameraPosition(
+                        google.CameraPosition(
+                          target: google.LatLng(_cameraCenter.latitude, _cameraCenter.longitude),
+                          zoom: _cameraZoom,
+                          bearing: 0,
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             if (_locationError != null)
               Positioned(
