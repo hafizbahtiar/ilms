@@ -168,6 +168,15 @@ Future<void> _scanStickerNo(BuildContext context, TextEditingController controll
     context,
     title: 'Scan Sticker No.',
     subtitle: 'Align the sticker QR/barcode within the frame',
+    validator: (value) {
+      if (value.length > 50) {
+        return 'Sticker number is too long (max 50 characters).';
+      }
+      if (RegExp(r'[<>&"/]').hasMatch(value) || value.contains("'")) {
+        return 'Sticker number contains invalid characters.';
+      }
+      return null;
+    },
   );
   if (code == null || !context.mounted) return;
   controller.text = code;

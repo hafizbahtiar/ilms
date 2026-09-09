@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ilms/shared/ui/forms/app_map_field.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 Future<void> _pumpField(WidgetTester tester, Widget field) {
   return tester.pumpWidget(
@@ -47,6 +48,50 @@ void main() {
 
       expect(find.text('3.120000, 101.680000'), findsOneWidget);
       expect(find.byType(FlutterMap), findsOneWidget);
+    });
+
+    testWidgets('shows permission dialog and skips location when permission is denied', (tester) async {
+      var resolverCalled = false;
+      await _pumpField(
+        tester,
+        AppMapField(
+          onChanged: (_) {},
+          locationPermissionResolver: () async => PermissionStatus.denied,
+          currentLocationResolver: () async {
+            resolverCalled = true;
+            return const LatLng(3.12, 101.68);
+          },
+        ),
+      );
+
+      await tester.tap(find.text('Current Location'));
+      await tester.pump();
+
+      expect(find.text('Location Permission Required'), findsOneWidget);
+      expect(find.text('Location permission is required to use your current location.'), findsOneWidget);
+      expect(resolverCalled, isFalse);
+    });
+
+    testWidgets('opens settings from permanently denied permission dialog', (tester) async {
+      var settingsOpened = false;
+      await _pumpField(
+        tester,
+        AppMapField(
+          onChanged: (_) {},
+          locationPermissionResolver: () async => PermissionStatus.permanentlyDenied,
+          openAppSettings: () async {
+            settingsOpened = true;
+            return true;
+          },
+        ),
+      );
+
+      await tester.tap(find.text('Current Location'));
+      await tester.pump();
+      await tester.tap(find.text('Open Settings'));
+      await tester.pumpAndSettle();
+
+      expect(settingsOpened, isTrue);
     });
 
     testWidgets('shows coordinate preview when location is set', (tester) async {
@@ -152,6 +197,7 @@ class _LocationHarnessState extends State<_LocationHarness> {
       location: _location,
       onChanged: (picked) => setState(() => _location = picked),
       currentLocationResolver: () async => const LatLng(3.12, 101.68),
+      locationPermissionResolver: () async => PermissionStatus.granted,
     );
   }
 }

@@ -47,6 +47,9 @@ class ApiGeneralLookupDataSource implements GeneralLookupDataSource {
   }
 
   @override
+  Future<List<GeneralModel>> fetchFloors() => _search('/api/searchFloor', const {});
+
+  @override
   Future<List<GeneralModel>> fetchBusinessTypes() => _fetch('/api/listBusinessType');
 
   @override

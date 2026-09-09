@@ -114,14 +114,14 @@ class _BillboardFaceDialogBodyState extends ConsumerState<_BillboardFaceDialogBo
         children: [
           const SizedBox(height: 10),
           AppTextField(
-            label: 'Width (mm)',
+            label: 'Width (feet)',
             controller: _widthController,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           ),
           const SizedBox(height: 12),
           AppTextField(
-            label: 'Height (mm)',
+            label: 'Height (feet)',
             controller: _heightController,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],

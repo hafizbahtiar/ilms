@@ -54,6 +54,7 @@ class AppListView extends StatelessWidget {
     this.isLoadingMore = false,
     this.shrinkWrap = false,
     this.physics,
+    this.gridItemExtent,
   });
 
   final AppListState state;
@@ -73,6 +74,19 @@ class AppListView extends StatelessWidget {
   final bool shrinkWrap;
   final ScrollPhysics? physics;
 
+  /// Fixed row height for grid cells at wide widths (>= [_gridBreakpoint]).
+  ///
+  /// When null (default), the list never switches to a grid — it stays a
+  /// single, width-capped column even on tablets/landscape, since tile
+  /// content of varying height (optional subtitle/leading/trailing) cannot
+  /// be safely fit into a fixed grid cell without knowing its extent.
+  final double? gridItemExtent;
+
+  static const double _wideBreakpoint = 600;
+  static const double _gridBreakpoint = 700;
+  static const double _singleColumnMaxWidth = 640;
+  static const double _gridMaxWidth = 1100;
+
   @override
   Widget build(BuildContext context) {
     final resolvedPhysics = physics ?? (shrinkWrap ? const NeverScrollableScrollPhysics() : null);
@@ -81,7 +95,9 @@ class AppListView extends StatelessWidget {
       AppListState.loading => _AppListLoading(message: loadingMessage),
       AppListState.error => _AppListError(message: errorMessage, onRetry: onRetry),
       AppListState.empty => _AppListEmpty(config: empty),
-      AppListState.content => _buildList(resolvedPhysics),
+      AppListState.content => LayoutBuilder(
+        builder: (context, constraints) => _buildList(resolvedPhysics, constraints.maxWidth),
+      ),
     };
 
     if (header != null || footer != null) {
@@ -102,24 +118,47 @@ class AppListView extends StatelessWidget {
     return SafeArea(child: body);
   }
 
-  Widget _buildList(ScrollPhysics? resolvedPhysics) {
+  Widget _buildList(ScrollPhysics? resolvedPhysics, double availableWidth) {
     if (itemCount == 0 && !isLoadingMore) {
       return _AppListEmpty(config: empty);
     }
 
-    return ListView.separated(
+    final useGrid = gridItemExtent != null && availableWidth >= _gridBreakpoint;
+    final maxContentWidth = availableWidth < _wideBreakpoint
+        ? double.infinity
+        : (useGrid ? _gridMaxWidth : _singleColumnMaxWidth);
+
+    final scrollView = CustomScrollView(
       controller: controller,
-      padding: padding,
       shrinkWrap: shrinkWrap,
       physics: resolvedPhysics,
-      itemCount: itemCount + (isLoadingMore ? 1 : 0),
-      separatorBuilder: (_, _) => SizedBox(height: separatorHeight),
-      itemBuilder: (context, index) {
-        if (isLoadingMore && index == itemCount) {
-          return const _AppListLoadingMore();
-        }
-        return itemBuilder(context, index);
-      },
+      slivers: [
+        SliverPadding(
+          padding: padding,
+          sliver: useGrid
+              ? SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: separatorHeight,
+                    crossAxisSpacing: separatorHeight,
+                    mainAxisExtent: gridItemExtent,
+                  ),
+                  delegate: SliverChildBuilderDelegate(itemBuilder, childCount: itemCount),
+                )
+              : SliverList.separated(
+                  itemCount: itemCount,
+                  separatorBuilder: (_, _) => SizedBox(height: separatorHeight),
+                  itemBuilder: itemBuilder,
+                ),
+        ),
+        if (isLoadingMore) const SliverToBoxAdapter(child: _AppListLoadingMore()),
+      ],
+    );
+
+    if (maxContentWidth.isInfinite) return scrollView;
+
+    return Center(
+      child: ConstrainedBox(constraints: BoxConstraints(maxWidth: maxContentWidth), child: scrollView),
     );
   }
 }

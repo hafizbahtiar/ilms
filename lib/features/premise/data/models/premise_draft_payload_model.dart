@@ -212,6 +212,7 @@ class PremiseDraftPayloadModel {
     'status': activity.status,
     'statusDesc': activity.statusDesc,
     'description': activity.description,
+    'floors': activity.floors,
   };
 
   static PremiseBusinessActivity _businessActivityFromJson(Map<String, dynamic> json) {
@@ -222,6 +223,7 @@ class PremiseDraftPayloadModel {
       status: json['status'] as String?,
       statusDesc: json['statusDesc'] as String?,
       description: json['description'] as String?,
+      floors: (json['floors'] as List?)?.map((item) => item.toString()).toList() ?? const [],
     );
   }
 

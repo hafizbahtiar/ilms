@@ -30,6 +30,8 @@ abstract final class GeneralLookupCacheKeys {
   static String units({String? buildingCode, String? streetCode}) =>
       '${prefix}units:v2:${buildingCode ?? ''}:${streetCode ?? ''}';
 
+  static String floors() => '${prefix}floors';
+
   static String businessTypes() => '${prefix}businessTypes';
 
   static String premiseTypes() => '${prefix}premiseTypes';

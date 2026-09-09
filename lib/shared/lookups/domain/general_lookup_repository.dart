@@ -18,6 +18,8 @@ abstract class GeneralLookupRepository {
 
   Future<List<GeneralModel>> getUnits({String? buildingCode, String? streetCode});
 
+  Future<List<GeneralModel>> getFloors();
+
   Future<List<GeneralModel>> getBusinessTypes();
 
   Future<List<GeneralModel>> getPremiseTypes();

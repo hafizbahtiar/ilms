@@ -211,14 +211,11 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
     final code = await AppBarcodeScannerPage.open(
       context,
       title: 'Scan License QR',
-      subtitle: 'Scan with camera or choose a photo from your gallery',
+      subtitle: 'Align the QR code within the frame',
+      allowGallery: true,
+      validator: (value) => value.length > 2048 ? 'QR code value is too long.' : null,
     );
     if (code == null || !mounted) return;
-
-    if (code.length > 2048) {
-      AppSnackbar.error(context, 'QR code value is too long.');
-      return;
-    }
 
     dev.log('License QR scanned link: $code', name: 'PremiseLicenseQr');
 
@@ -236,9 +233,13 @@ class _PremiseLicenseSheetBodyState extends ConsumerState<_PremiseLicenseSheetBo
       _applyQrData(data);
       ref.read(premiseFormControllerProvider(widget.session).notifier).applyCompanyFromLicenseQr(data);
     } on ApiResponseException catch (e) {
-      if (mounted) AppSnackbar.error(context, e.message);
+      if (mounted) {
+        AppSnackbar.error(context, e.message);
+      }
     } catch (_) {
-      if (mounted) AppSnackbar.error(context, 'Failed to fetch license data from QR code.');
+      if (mounted) {
+        AppSnackbar.error(context, 'Failed to fetch license data from QR code.');
+      }
     } finally {
       if (mounted) setState(() => _isScanningQr = false);
     }

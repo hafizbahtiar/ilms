@@ -17,10 +17,24 @@ class PremiseSearchRecordTile extends StatelessWidget {
   final bool hasUnsavedEdit;
   final VoidCallback? onTap;
 
+  /// Fixed total height of this tile, regardless of record content — lets
+  /// callers use it as [AppListView.gridItemExtent] for a 2-column grid.
+  static const double fixedExtent = 225;
+
+  static const double _visitNoRowHeight = 18;
+  static const double _chipsRowHeight = 28;
+  static const double _infoRowHeight = 30;
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final chips = [
+      if (hasUnsavedEdit) const _UnsavedChip(),
+      if (record.visitStatus != null) _MetaChip(label: 'Status', value: record.visitStatus!),
+      if (record.phase != null) _MetaChip(label: 'Phase', value: record.phase!),
+    ];
+    final address = _cleanAddress(record.address);
 
     return Material(
       color: cs.surfaceContainerHigh,
@@ -49,33 +63,53 @@ class PremiseSearchRecordTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                   ),
-                  if (record.visitNo.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      record.visitNo,
-                      style: textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.55)),
-                    ),
-                  ],
+                  SizedBox(
+                    height: _visitNoRowHeight,
+                    child: record.visitNo.isEmpty
+                        ? null
+                        : Text(
+                            record.visitNo,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.55)),
+                          ),
+                  ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      if (hasUnsavedEdit) const _UnsavedChip(),
-                      if (record.visitStatus != null) _MetaChip(label: 'Status', value: record.visitStatus!),
-                      if (record.phase != null) _MetaChip(label: 'Phase', value: record.phase!),
-                    ],
+                  SizedBox(
+                    height: _chipsRowHeight,
+                    child: chips.isEmpty
+                        ? null
+                        : SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                for (final chip in chips) ...[chip, const SizedBox(width: 2)],
+                              ],
+                            ),
+                          ),
                   ),
                 ],
               ),
             ),
             Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.35)),
-            if (record.createdBy != null)
-              _InfoRow(icon: Icons.person_outline, label: record.createdBy!, color: accentColor),
-            if (record.visitDate != null)
-              _InfoRow(icon: Icons.calendar_month_outlined, label: record.visitDate!, color: accentColor),
-            if (_cleanAddress(record.address) case final address?)
-              _InfoRow(icon: Icons.location_on_outlined, label: address, color: accentColor),
+            SizedBox(
+              height: _infoRowHeight,
+              child: record.createdBy == null
+                  ? null
+                  : _InfoRow(icon: Icons.person_outline, label: record.createdBy!, color: accentColor),
+            ),
+            SizedBox(
+              height: _infoRowHeight,
+              child: record.visitDate == null
+                  ? null
+                  : _InfoRow(icon: Icons.calendar_month_outlined, label: record.visitDate!, color: accentColor),
+            ),
+            SizedBox(
+              height: _infoRowHeight,
+              child: address == null
+                  ? null
+                  : _InfoRow(icon: Icons.location_on_outlined, label: address, color: accentColor),
+            ),
           ],
         ),
       ),
@@ -143,12 +177,14 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         children: [
           Icon(icon, size: 18, color: color),
           const SizedBox(width: 10),
-          Expanded(child: Text(label, style: Theme.of(context).textTheme.bodySmall)),
+          Expanded(
+            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
+          ),
         ],
       ),
     );

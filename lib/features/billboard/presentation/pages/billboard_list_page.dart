@@ -85,6 +85,7 @@ class _BillboardListPageState extends ConsumerState<BillboardListPage> {
         state: searchState.listState,
         itemCount: searchState.items.length,
         isLoadingMore: searchState.isLoadingMore,
+        gridItemExtent: BillboardTile.tileHeight,
         onRefresh: () => ref.read(billboardListControllerProvider.notifier).search(isRefresh: true),
         onRetry: () => ref.read(billboardListControllerProvider.notifier).search(),
         errorMessage: searchState.errorMessage,

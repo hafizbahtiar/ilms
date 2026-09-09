@@ -90,6 +90,13 @@ class _BusinessActivityTile extends StatelessWidget {
                         style: textTheme.bodySmall?.copyWith(color: cs.primary, fontWeight: FontWeight.w600),
                       ),
                     ],
+                    if (activity.floors.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Floor: ${activity.floors.join(', ')}',
+                        style: textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.72)),
+                      ),
+                    ],
                     if (description != null && description.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(

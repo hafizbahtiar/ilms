@@ -7,17 +7,19 @@ void main() {
   group('PremiseDetailMapper', () {
     test('fromApiDetailForDuplicate omits census images and clears visit-only fields', () {
       final payload = PremiseDetailMapper.fromApiDetailForDuplicate({
-        'company_details': {
-          'company_name': 'ACME Sdn Bhd',
-          'sticker_no': 'ST-001',
-          'census_date': '2024-01-01',
-        },
+        'company_details': {'company_name': 'ACME Sdn Bhd', 'sticker_no': 'ST-001', 'census_date': '2024-01-01'},
+        'contact_person': {'name': 'Ali', 'phone': '0123456789', 'email': 'ali@example.com', 'position': 'Manager'},
         'premise_details': {'trader_name': 'ACME Trading'},
         'remarks': [
           {'id': 1, 'remark': 'Old remark', 'code': 'R01'},
         ],
         'business_activities': [
-          {'id': 9, 'business_type': 'A402', 'description': 'Retail'},
+          {
+            'id': 9,
+            'business_type': 'A402',
+            'description': 'Retail',
+            'floors': ['G', '1'],
+          },
         ],
         'premise_addresses': [
           {'paid': 42, 'vpa_id': 99, 'unit_no': 'G-1', 'building': 'Plaza BB', 'street_name': 'Jalan BB'},
@@ -31,6 +33,10 @@ void main() {
       expect(payload.fields['companyName'], 'ACME Sdn Bhd');
       expect(payload.fields['stickerNo'], isEmpty);
       expect(payload.fields['censusDate'], formatDdMmYyyy(DateTime.now()));
+      expect(payload.fields['contactPersonName'], isEmpty);
+      expect(payload.fields['contactPersonPhone'], isEmpty);
+      expect(payload.fields['contactPersonEmail'], isEmpty);
+      expect(payload.fields['contactPersonPosition'], isEmpty);
       expect(payload.censusImages, isEmpty);
       expect(payload.licenses, isEmpty);
 
@@ -41,6 +47,7 @@ void main() {
       expect(payload.businessActivities, hasLength(1));
       expect(payload.businessActivities.first.id, 9);
       expect(payload.businessActivities.first.businessType, 'A402');
+      expect(payload.businessActivities.first.floors, ['G', '1']);
 
       expect(payload.addresses, hasLength(1));
       expect(payload.addresses.first.premiseAddressId, 42);

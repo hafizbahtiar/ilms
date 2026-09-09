@@ -127,6 +127,11 @@ final generalUnitsProvider = FutureProvider.family<List<GeneralModel>, GeneralUn
       .getUnits(buildingCode: filter.buildingCode, streetCode: filter.streetCode);
 });
 
+final generalFloorsProvider = FutureProvider<List<GeneralModel>>((ref) {
+  ref.keepAlive();
+  return ref.read(generalLookupRepositoryProvider).getFloors();
+});
+
 final generalBusinessTypesProvider = FutureProvider<List<GeneralModel>>((ref) {
   ref.keepAlive();
   return ref.read(generalLookupRepositoryProvider).getBusinessTypes();

@@ -125,7 +125,10 @@ void main() {
   group('gps_details', () {
     test('create payload sends one top-level coordinate, like billboard', () {
       final payload = PremiseSubmitPayloadModel.fromDomain(
-        formWith(const [], gps: const PremiseGps(latitude: '3.139012', longitude: '101.686901')),
+        formWith(
+          const [],
+          gps: const PremiseGps(latitude: '3.139012', longitude: '101.686901'),
+        ),
       ).toCreateJson();
 
       final gps = payload['gps_details'] as Map<String, dynamic>;
@@ -166,6 +169,7 @@ void main() {
       status: 'E5',
       statusDesc: 'E5 : Active',
       description: 'DESC',
+      floors: ['G', '1'],
     );
 
     test('create drops the display-only desc columns', () {
@@ -173,7 +177,8 @@ void main() {
           .toCreateJson();
       final entry = (payload['business_activities'] as List).first as Map<String, dynamic>;
 
-      expect(entry.keys.toSet(), {'business_type', 'status', 'description'});
+      expect(entry.keys.toSet(), {'business_type', 'status', 'description', 'floors'});
+      expect(entry['floors'], ['G', '1']);
     });
 
     test('update keeps id and the desc columns', () {
@@ -185,6 +190,7 @@ void main() {
       expect(entry['id'], 9);
       expect(entry['business_type_desc'], 'A105 : JMB');
       expect(entry['status_desc'], 'E5 : Active');
+      expect(entry['floors'], ['G', '1']);
     });
   });
 }

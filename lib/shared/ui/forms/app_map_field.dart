@@ -5,6 +5,8 @@ import 'package:ilms/shared/ui/map/app_location_picker_page.dart';
 import 'package:ilms/shared/ui/map/app_map_limits.dart';
 import 'package:ilms/shared/ui/map/app_map_view.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:ilms/shared/ui/feedback/app_dialog.dart';
 
 /// Reusable map coordinate field for forms — empty tap-to-pick state and a
 /// static map preview once a location is set (same role as [AppImageField]).
@@ -21,6 +23,8 @@ class AppMapField extends StatefulWidget {
     this.showCurrentLocationAction = true,
     this.onChanged,
     this.currentLocationResolver,
+    this.locationPermissionResolver,
+    this.openAppSettings,
   });
 
   final LatLng? location;
@@ -35,6 +39,12 @@ class AppMapField extends StatefulWidget {
 
   /// Injectable for tests — defaults to [resolveAppCurrentLocation].
   final Future<LatLng> Function()? currentLocationResolver;
+
+  /// Injectable for tests — defaults to the location permission flow.
+  final Future<PermissionStatus> Function()? locationPermissionResolver;
+
+  /// Injectable for tests — defaults to [permission_handler]'s settings opener.
+  final Future<bool> Function()? openAppSettings;
 
   @override
   State<AppMapField> createState() => _AppMapFieldState();
@@ -136,6 +146,8 @@ class _AppMapFieldState extends State<AppMapField> {
     });
 
     try {
+      if (!await _ensureLocationPermission()) return;
+
       final resolver = widget.currentLocationResolver ?? resolveAppCurrentLocation;
       final here = await resolver();
       if (!mounted) return;
@@ -150,6 +162,39 @@ class _AppMapFieldState extends State<AppMapField> {
       if (mounted) setState(() => _isLocating = false);
     }
   }
+
+  Future<bool> _ensureLocationPermission() async {
+    final resolver = widget.locationPermissionResolver ?? _resolveLocationPermission;
+    final status = await resolver();
+    if (status.isGranted) return true;
+    if (!mounted) return false;
+
+    final shouldOpenSettings = await showAppDialog<bool>(
+      context: context,
+      title: 'Location Permission Required',
+      message: status.isPermanentlyDenied
+          ? 'Location permission is disabled for this app. Enable it in Settings to use your current location.'
+          : 'Location permission is required to use your current location.',
+      actions: [
+        const AppDialogAction('Cancel', value: false),
+        AppDialogAction('Open Settings', value: true, style: AppDialogActionStyle.filled),
+      ],
+    );
+
+    if (shouldOpenSettings == true) {
+      final openSettings = widget.openAppSettings ?? openAppSettings;
+      await openSettings();
+    }
+    return false;
+  }
+}
+
+Future<PermissionStatus> _resolveLocationPermission() async {
+  var status = await Permission.locationWhenInUse.status;
+  if (!status.isGranted && !status.isPermanentlyDenied) {
+    status = await Permission.locationWhenInUse.request();
+  }
+  return status;
 }
 
 class _EmptyMapState extends StatelessWidget {

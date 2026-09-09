@@ -5,7 +5,7 @@ import 'package:ilms/features/premise/presentation/controllers/premise_form_stat
 import 'package:ilms/features/premise/presentation/utils/premise_form_focus.dart';
 import 'package:ilms/features/premise/presentation/providers/premise_form_providers.dart';
 import 'package:ilms/features/premise/presentation/providers/premise_providers.dart';
-import 'package:ilms/shared/lookups/lookup_labels.dart';
+import 'package:ilms/shared/lookups/providers/general_lookup_providers.dart';
 import 'package:ilms/shared/models/general_model.dart';
 import 'package:ilms/shared/ui/feedback/app_dialog.dart';
 import 'package:ilms/shared/ui/lists/app_list_view.dart';
@@ -29,7 +29,7 @@ Future<void> showPremiseBusinessActivitySheet(
   return showAppBottomSheet<void>(
     context: context,
     title: isEdit ? 'Edit Business Activity' : 'Add Business Activity',
-    preset: AppBottomSheetPreset.compact,
+    preset: AppBottomSheetPreset.scrollable,
     bottomBar: AppBottomSheetActionBar(
       onPrimary: () => bodyKey.currentState?.save(),
       onSecondary: isEdit ? () => bodyKey.currentState?.delete() : null,
@@ -38,17 +38,29 @@ Future<void> showPremiseBusinessActivitySheet(
       showSecondary: isEdit,
       secondaryDestructive: true,
     ),
-    builder: (context, _) =>
-        _PremiseBusinessActivitySheetBody(key: bodyKey, session: session, index: index, initial: initial),
+    builder: (context, scrollController) => _PremiseBusinessActivitySheetBody(
+      key: bodyKey,
+      session: session,
+      index: index,
+      initial: initial,
+      scrollController: scrollController,
+    ),
   ).unfocusPremiseFormOnComplete(context);
 }
 
 class _PremiseBusinessActivitySheetBody extends ConsumerStatefulWidget {
-  const _PremiseBusinessActivitySheetBody({super.key, required this.session, this.index, this.initial});
+  const _PremiseBusinessActivitySheetBody({
+    super.key,
+    required this.session,
+    this.index,
+    this.initial,
+    this.scrollController,
+  });
 
   final PremiseFormSession session;
   final int? index;
   final PremiseBusinessActivity? initial;
+  final ScrollController? scrollController;
 
   bool get isEdit => initial != null;
 
@@ -61,8 +73,10 @@ class _PremiseBusinessActivitySheetBodyState extends ConsumerState<_PremiseBusin
   late final TextEditingController _businessTypeController;
   late final TextEditingController _statusController;
   late final TextEditingController _descriptionController;
+  late final TextEditingController _floorsController;
   GeneralModel? _selectedBusinessType;
   GeneralModel? _selectedStatus;
+  late List<String> _selectedFloors;
 
   @override
   void initState() {
@@ -72,10 +86,12 @@ class _PremiseBusinessActivitySheetBodyState extends ConsumerState<_PremiseBusin
         ? null
         : GeneralModel(code: initial.businessType, apiDisplay: initial.businessTypeDesc);
     _selectedStatus = initial == null ? null : GeneralModel(code: initial.status, apiDisplay: initial.statusDesc);
+    _selectedFloors = List.of(initial?.floors ?? const []);
 
     _businessTypeController = TextEditingController(text: initial?.businessTypeDesc ?? '');
     _statusController = TextEditingController(text: initial?.statusDesc ?? '');
     _descriptionController = TextEditingController(text: initial?.description ?? '');
+    _floorsController = TextEditingController(text: _selectedFloors.join(', '));
   }
 
   @override
@@ -83,6 +99,7 @@ class _PremiseBusinessActivitySheetBodyState extends ConsumerState<_PremiseBusin
     _businessTypeController.dispose();
     _statusController.dispose();
     _descriptionController.dispose();
+    _floorsController.dispose();
     super.dispose();
   }
 
@@ -97,6 +114,7 @@ class _PremiseBusinessActivitySheetBodyState extends ConsumerState<_PremiseBusin
       status: status?.code,
       statusDesc: status == null ? null : generalLookupLabel(status),
       description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+      floors: _selectedFloors,
     );
 
     final controller = ref.read(premiseFormControllerProvider(widget.session).notifier);
@@ -126,9 +144,8 @@ class _PremiseBusinessActivitySheetBodyState extends ConsumerState<_PremiseBusin
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: ListView(
+        controller: widget.scrollController,
         children: [
           const SizedBox(height: 10),
           AppPickerField<GeneralModel>(
@@ -151,6 +168,13 @@ class _PremiseBusinessActivitySheetBodyState extends ConsumerState<_PremiseBusin
             maxLines: 3,
             keyboardType: TextInputType.multiline,
             uppercase: true,
+          ),
+          const SizedBox(height: 12),
+          AppPickerField(
+            label: 'Floor',
+            controller: _floorsController,
+            sheetSubtitle: 'Select one or more floors',
+            onTap: _pickFloors,
           ),
         ],
       ),
@@ -195,6 +219,28 @@ class _PremiseBusinessActivitySheetBodyState extends ConsumerState<_PremiseBusin
     setState(() {
       _selectedStatus = picked;
       _statusController.text = generalLookupLabel(picked);
+    });
+  }
+
+  Future<void> _pickFloors() async {
+    final picked = await showAppAsyncMultiOptionPicker<GeneralModel>(
+      context: context,
+      title: 'Floor',
+      subtitle: 'Select one or more floors',
+      loadOptions: () => ref.read(generalFloorsProvider.future),
+      isInitiallySelected: (item) => _selectedFloors.contains(item.code ?? generalLookupLabel(item)),
+      label: generalLookupLabel,
+      searchable: true,
+      empty: const AppListEmptyConfig(
+        icon: Icons.layers_outlined,
+        title: 'No floors found',
+        subtitle: 'Floor lookup data may still be loading on the server. Try again later.',
+      ),
+    );
+    if (picked == null) return;
+    setState(() {
+      _selectedFloors = picked.map((item) => item.code ?? generalLookupLabel(item)).toList();
+      _floorsController.text = picked.map(generalLookupLabel).join(', ');
     });
   }
 }

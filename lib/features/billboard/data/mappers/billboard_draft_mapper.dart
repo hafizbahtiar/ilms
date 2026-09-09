@@ -65,6 +65,7 @@ class BillboardDraftMapper {
 
     return BillboardDraftPayloadModel(
       fields: map,
+      phaseCode: state.details.phaseCode,
       isLedBoard: state.details.isLedBoard,
       isLight: state.details.isLight,
       isPotential: state.details.isPotential,
@@ -116,6 +117,7 @@ class BillboardDraftMapper {
     updateState(
       currentState.copyWith(
         details: currentState.details.copyWith(
+          phaseCode: payload.phaseCode,
           isLedBoard: payload.isLedBoard,
           isLight: payload.isLight,
           isPotential: payload.isPotential,

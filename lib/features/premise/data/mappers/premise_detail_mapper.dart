@@ -24,9 +24,10 @@ class PremiseDetailMapper {
     return _fromApiDetail(data, includeImages: true);
   }
 
-  /// Duplicate flow — carry company/contact/details, premise addresses,
+  /// Duplicate flow — carry company/details, premise addresses,
   /// business activities, and remarks. Omits census photos and licenses.
-  /// Sticker no is cleared and census date defaults to today (legacy parity).
+  /// Contact person and sticker no are cleared; census date defaults to today
+  /// (legacy parity).
   static PremiseDraftPayloadModel fromApiDetailForDuplicate(Map<String, dynamic> data) {
     final base = _fromApiDetail(
       data,
@@ -40,6 +41,10 @@ class PremiseDetailMapper {
     final fields = Map<String, String>.from(base.fields)
       ..['stickerNo'] = ''
       ..['censusDate'] = formatDdMmYyyy(DateTime.now());
+    fields['contactPersonName'] = '';
+    fields['contactPersonPhone'] = '';
+    fields['contactPersonEmail'] = '';
+    fields['contactPersonPosition'] = '';
 
     return PremiseDraftPayloadModel(
       companyStateCode: base.companyStateCode,
@@ -144,6 +149,7 @@ class PremiseDetailMapper {
             status: activity.status,
             statusDesc: activity.statusDesc,
             description: activity.description,
+            floors: activity.floors,
           ),
         )
         .toList();
@@ -387,7 +393,13 @@ class PremiseDetailMapper {
         status: map['status']?.toString(),
         statusDesc: map['status_desc']?.toString(),
         description: map['description']?.toString(),
+        floors: _stringList(map['floors']),
       );
     }).toList();
+  }
+
+  static List<String> _stringList(dynamic value) {
+    if (value is! List) return const [];
+    return value.map((item) => item.toString()).where((item) => item.isNotEmpty).toList();
   }
 }

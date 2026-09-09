@@ -8,6 +8,7 @@ class PremiseBusinessActivity extends Equatable {
     this.status,
     this.statusDesc,
     this.description,
+    this.floors = const [],
   });
 
   final int? id;
@@ -16,6 +17,7 @@ class PremiseBusinessActivity extends Equatable {
   final String? status;
   final String? statusDesc;
   final String? description;
+  final List<String> floors;
 
   PremiseBusinessActivity copyWith({
     int? id,
@@ -24,6 +26,7 @@ class PremiseBusinessActivity extends Equatable {
     String? status,
     String? statusDesc,
     String? description,
+    List<String>? floors,
   }) {
     return PremiseBusinessActivity(
       id: id ?? this.id,
@@ -32,9 +35,10 @@ class PremiseBusinessActivity extends Equatable {
       status: status ?? this.status,
       statusDesc: statusDesc ?? this.statusDesc,
       description: description ?? this.description,
+      floors: floors ?? this.floors,
     );
   }
 
   @override
-  List<Object?> get props => [id, businessType, businessTypeDesc, status, statusDesc, description];
+  List<Object?> get props => [id, businessType, businessTypeDesc, status, statusDesc, description, floors];
 }

@@ -18,7 +18,7 @@ This feature uses clean architecture (domain / data / presentation), Riverpod, G
 | Duplicate payload | Company/contact/details only — **no images, no remarks** |
 | **Premise address** | Listing picker via `/api/listPremiseAddress` — multi-select, advance filter, unit search, postcode from API |
 | **License section** | Add/edit sheet — legacy file-no mask, QR scan, business activities per license |
-| **License QR** | Scan (camera or gallery) → `/api/premiseCensus/licenseQrLink` → auto-fill license + company fields |
+| **License QR** | Scan with camera or gallery → `/api/premiseCensus/licenseQrLink` → auto-fill license + company fields |
 | **Company prefill** | QR → company name + register no; address tile → **Set as Company Address** |
 | Company & contact | Full fields + sticker barcode scan (`AppBarcodeScannerPage`) |
 | Business activity | Add/edit sheet with lookup-driven fields |
@@ -151,6 +151,7 @@ Shared network helpers used by premise API:
 Shared scanner (license QR, sticker no.):
 
 - `lib/shared/ui/media/scanner/app_barcode_scanner_page.dart` — camera scan + optional gallery decode (`allowGallery`, default `true`)
+- **Gallery** — system photo picker for License QR; callers can disable it with `allowGallery: false`
 
 Principles carried forward from legacy:
 
@@ -232,7 +233,6 @@ Dev logging: `[PremiseLicenseQr]` in `api_premise_license_qr_remote_data_source.
 ### Barcode scanner permissions
 
 - **Camera** — requested by `MobileScanner`; denied state shows retry + Open Settings
-- **Gallery** — system photo picker via `image_picker` (optional via `allowGallery: false`)
 
 ---
 
@@ -284,7 +284,7 @@ Mock implementations (`MockPremiseDataSource`, `MockPremiseDuplicateRemoteDataSo
 | `lib/features/premise/presentation/providers/premise_form_providers.dart` | Form controller — `applyCompanyFromLicenseQr`, `applyCompanyAddressFromPremise`, `setAddresses` |
 | `lib/features/premise/presentation/controllers/premise_address_search_controller.dart` | Paginated address listing search state |
 | `lib/features/premise/presentation/utils/premise_license_file_no.dart` | Legacy file-no prefix, mask, validation, submit format |
-| `lib/shared/ui/media/scanner/app_barcode_scanner_page.dart` | Shared QR/barcode scanner (camera + gallery) |
+| `lib/shared/ui/media/scanner/app_barcode_scanner_page.dart` | Shared QR/barcode scanner (camera + optional gallery) |
 | `lib/app/router/app_router.dart` | Premise routes |
 | `lib/core/local/database/app_database.dart` | Drift DB incl. `premise_draft_entries` |
 | `lib/shared/lookups/` | Shared lookup repository + API data source |
@@ -307,7 +307,7 @@ Mock implementations (`MockPremiseDataSource`, `MockPremiseDuplicateRemoteDataSo
 8. **Premise address** — listing API, search sheet, advance filter, multi-select, map pick, Set as Company Address
 9. **License section** — file-no mask, QR scan + API lookup, business activities in sheet
 10. **License QR → company prefill** — holder name + registration no.
-11. **Barcode scanner** — gallery decode option (`allowGallery`, default `true`)
+11. **Barcode scanner** — legacy-style camera QR/barcode scanner with optional gallery decode
 12. Business activity, remarks, census images, company/contact sections wired
 
 ### Next

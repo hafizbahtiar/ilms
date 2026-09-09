@@ -50,6 +50,9 @@ class MockGeneralLookupDataSource implements GeneralLookupDataSource {
   }
 
   @override
+  Future<List<GeneralModel>> fetchFloors() async => const [];
+
+  @override
   Future<List<GeneralModel>> fetchBusinessTypes() async => GeneralLookupCatalog.businessTypes;
 
   @override

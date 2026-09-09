@@ -61,6 +61,11 @@ class GeneralLookupRepositoryImpl implements GeneralLookupRepository {
   }
 
   @override
+  Future<List<GeneralModel>> getFloors() {
+    return _readOrFetch(GeneralLookupCacheKeys.floors(), _dataSource.fetchFloors);
+  }
+
+  @override
   Future<List<GeneralModel>> getBusinessActivityStatuses() {
     return _readOrFetch(GeneralLookupCacheKeys.businessActivityStatuses(), _dataSource.fetchBusinessActivityStatuses);
   }

@@ -223,6 +223,7 @@ class _PremiseListTabBody extends ConsumerWidget {
       state: searchState.listState,
       itemCount: searchState.items.length,
       isLoadingMore: searchState.isLoadingMore,
+      gridItemExtent: PremiseSearchRecordTile.fixedExtent,
       onRefresh: () => ref.read(premiseSearchControllerProvider(tab).notifier).search(isRefresh: true),
       onRetry: () => ref.read(premiseSearchControllerProvider(tab).notifier).search(),
       errorMessage: searchState.errorMessage,

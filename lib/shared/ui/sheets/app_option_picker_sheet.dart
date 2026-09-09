@@ -200,12 +200,151 @@ Future<List<T>?> showAppMultiOptionPicker<T>({
   );
 }
 
+/// Opens a multi-select picker immediately, showing loading, empty, or error
+/// states while [loadOptions] resolves.
+Future<List<T>?> showAppAsyncMultiOptionPicker<T>({
+  required BuildContext context,
+  required String title,
+  required Future<List<T>> Function() loadOptions,
+  required String Function(T option) label,
+  List<T> initialSelected = const [],
+  bool Function(T option)? isInitiallySelected,
+  String? subtitle,
+  AppBottomSheetPreset preset = AppBottomSheetPreset.scrollable,
+  AppListEmptyConfig? empty,
+  String? loadingMessage,
+  bool searchable = false,
+  String applyLabel = 'Apply',
+  String clearLabel = 'Clear',
+}) {
+  final selected = ValueNotifier<List<T>>(List.of(initialSelected));
+  final result = showAppBottomSheet<List<T>>(
+    context: context,
+    title: title,
+    subtitle: subtitle,
+    preset: preset,
+    bottomBar: ValueListenableBuilder<List<T>>(
+      valueListenable: selected,
+      builder: (context, value, _) {
+        return AppBottomSheetActionBar(
+          primaryLabel: applyLabel,
+          secondaryLabel: clearLabel,
+          secondaryEnabled: value.isNotEmpty,
+          onPrimary: () => Navigator.of(context).pop(value),
+          onSecondary: () => selected.value = const [],
+        );
+      },
+    ),
+    builder: (context, scrollController) => _AsyncMultiOptionPickerBody<T>(
+      loadOptions: loadOptions,
+      label: label,
+      selected: selected,
+      isInitiallySelected: isInitiallySelected,
+      scrollController: scrollController,
+      empty: empty ?? _defaultEmptyConfig(title),
+      loadingMessage: loadingMessage ?? 'Loading options…',
+      searchable: searchable,
+    ),
+  );
+  result.whenComplete(selected.dispose);
+  return result;
+}
+
 AppListEmptyConfig _defaultEmptyConfig(String title) {
   return AppListEmptyConfig(
     icon: Icons.search_off_outlined,
     title: 'No $title found',
     subtitle: 'Nothing matches the current selection. Try a different value above.',
   );
+}
+
+class _AsyncMultiOptionPickerBody<T> extends StatefulWidget {
+  const _AsyncMultiOptionPickerBody({
+    required this.loadOptions,
+    required this.label,
+    required this.selected,
+    this.isInitiallySelected,
+    required this.empty,
+    required this.loadingMessage,
+    this.scrollController,
+    this.searchable = false,
+  });
+
+  final Future<List<T>> Function() loadOptions;
+  final String Function(T option) label;
+  final ValueNotifier<List<T>> selected;
+  final bool Function(T option)? isInitiallySelected;
+  final ScrollController? scrollController;
+  final AppListEmptyConfig empty;
+  final String loadingMessage;
+  final bool searchable;
+
+  @override
+  State<_AsyncMultiOptionPickerBody<T>> createState() => _AsyncMultiOptionPickerBodyState<T>();
+}
+
+class _AsyncMultiOptionPickerBodyState<T> extends State<_AsyncMultiOptionPickerBody<T>> {
+  AppListState _state = AppListState.loading;
+  List<T> _options = const [];
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _state = AppListState.loading;
+      _errorMessage = null;
+    });
+
+    try {
+      final options = await widget.loadOptions();
+      if (!mounted) return;
+      setState(() {
+        _options = options;
+        _state = options.isEmpty ? AppListState.empty : AppListState.content;
+      });
+      if (widget.selected.value.isEmpty && widget.isInitiallySelected != null) {
+        widget.selected.value = options.where(widget.isInitiallySelected!).toList();
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _state = AppListState.error;
+        _errorMessage = error.toString();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_state == AppListState.content) {
+      return _MultiOptionPickerList<T>(
+        options: _options,
+        label: widget.label,
+        selected: widget.selected,
+        scrollController: widget.scrollController,
+        searchable: widget.searchable,
+      );
+    }
+
+    return AppListView(
+      state: _state,
+      itemCount: 0,
+      itemBuilder: (_, _) => const SizedBox.shrink(),
+      controller: widget.scrollController,
+      padding: const EdgeInsets.fromLTRB(0, 10, 0, 8),
+      loadingMessage: widget.loadingMessage,
+      empty: widget.empty,
+      errorMessage: _errorMessage,
+      onRetry: _load,
+      shrinkWrap: true,
+      physics: widget.scrollController == null ? const NeverScrollableScrollPhysics() : null,
+    );
+  }
 }
 
 class _AsyncOptionPickerBody<T> extends StatefulWidget {

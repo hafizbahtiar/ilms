@@ -3,6 +3,7 @@
 class BillboardDraftPayloadModel {
   const BillboardDraftPayloadModel({
     this.fields = const {},
+    this.phaseCode,
     this.isLedBoard = false,
     this.isLight = false,
     this.isPotential = false,
@@ -17,6 +18,7 @@ class BillboardDraftPayloadModel {
   });
 
   final Map<String, String> fields;
+  final String? phaseCode;
   final bool isLedBoard;
   final bool isLight;
   final bool isPotential;
@@ -31,6 +33,7 @@ class BillboardDraftPayloadModel {
 
   Map<String, dynamic> toJson() => {
     'fields': fields,
+    'phaseCode': phaseCode,
     'isLedBoard': isLedBoard,
     'isLight': isLight,
     'isPotential': isPotential,
@@ -52,6 +55,7 @@ class BillboardDraftPayloadModel {
 
     return BillboardDraftPayloadModel(
       fields: rawFields is Map ? rawFields.map((key, value) => MapEntry('$key', '$value')) : const {},
+      phaseCode: json['phaseCode'] as String?,
       isLedBoard: json['isLedBoard'] == true,
       isLight: json['isLight'] == true,
       isPotential: json['isPotential'] == true,

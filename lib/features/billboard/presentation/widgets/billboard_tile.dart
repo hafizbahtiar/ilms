@@ -20,7 +20,7 @@ class BillboardTile extends StatelessWidget {
   /// `billboardEditSessionBillboardNosProvider`.
   final bool hasUnsavedEdit;
 
-  static const _tileHeight = 180.0;
+  static const tileHeight = 180.0;
   static const _defaultBannerAsset = 'assets/no_banner.jpeg';
 
   @override
@@ -38,7 +38,7 @@ class BillboardTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: SizedBox(
-          height: _tileHeight,
+          height: tileHeight,
           width: double.infinity,
           child: Stack(
             fit: StackFit.expand,

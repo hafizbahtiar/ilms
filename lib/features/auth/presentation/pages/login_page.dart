@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ilms/app/theme/theme_mode_controller.dart';
+import 'package:ilms/core/config/app_config.dart';
 import 'package:ilms/core/config/app_flavor.dart';
 import 'package:ilms/shared/ui/app_version_label.dart';
 import 'package:ilms/features/auth/presentation/providers/auth_providers.dart';
@@ -30,6 +31,23 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // Dev-only convenience: double-tapping the "ILMS" title fills the
+  // TESTUSERNAME/TESTPASSWORD from .env.dev so devs can skip typing
+  // credentials on every hot restart. Gated to the dev flavor so it can
+  // never fire in stg/prod builds.
+  void _onDevAutofill() {
+    if (AppFlavor.fromName(flavors.appFlavor) != AppFlavor.dev) return;
+
+    final username = AppConfig.instance.get('TESTUSERNAME');
+    final password = AppConfig.instance.get('TESTPASSWORD');
+    if (username.isEmpty && password.isEmpty) return;
+
+    setState(() {
+      _usernameController.text = username;
+      _passwordController.text = password;
+    });
   }
 
   void _onLogin() {
@@ -93,13 +111,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 18),
-                      Text(
-                        'ILMS',
-                        textAlign: TextAlign.center,
-                        style: textTheme.headlineMedium?.copyWith(
-                          color: cs.primary,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.2,
+                      GestureDetector(
+                        
+                        onDoubleTap: _onDevAutofill,
+                        child: Text(
+                          'ILMS',
+                          textAlign: TextAlign.center,
+                          style: textTheme.headlineMedium?.copyWith(
+                            color: cs.primary,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 6),

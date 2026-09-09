@@ -92,6 +92,7 @@ class _AppBottomSheetShell extends StatelessWidget {
   final bool useSafeArea;
 
   static const _topRadius = BorderRadius.vertical(top: Radius.circular(20));
+  static const _maxWidth = 560.0;
   static const _compactMaxHeightFactor = 0.5;
   static const _scrollableInitialSize = 0.55;
   static const _scrollableMinSize = 0.35;
@@ -101,13 +102,19 @@ class _AppBottomSheetShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.viewInsetsOf(context);
+    final content = switch (preset) {
+      AppBottomSheetPreset.compact => _buildCompact(context),
+      AppBottomSheetPreset.scrollable => _buildScrollable(context),
+      AppBottomSheetPreset.auto => _buildCompact(context),
+    };
+    // On tablet/landscape, cap width and center the sheet instead of
+    // letting it stretch edge-to-edge — same fix as AppListView's grid mode.
     final sheet = Padding(
       padding: EdgeInsets.only(bottom: viewInsets.bottom),
-      child: switch (preset) {
-        AppBottomSheetPreset.compact => _buildCompact(context),
-        AppBottomSheetPreset.scrollable => _buildScrollable(context),
-        AppBottomSheetPreset.auto => _buildCompact(context),
-      },
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: _maxWidth), child: content),
+      ),
     );
 
     if (!useSafeArea) return sheet;

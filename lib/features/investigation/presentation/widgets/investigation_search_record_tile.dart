@@ -8,10 +8,24 @@ class InvestigationSearchRecordTile extends StatelessWidget {
   final Color accentColor;
   final VoidCallback? onTap;
 
+  /// Fixed total height of this tile, regardless of record content — lets
+  /// callers use it as [AppListView.gridItemExtent] for a 2-column grid.
+  static const double fixedExtent = 148;
+
+  static const double _infoRowHeight = 24;
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    // Investigation records rarely populate all 4 fields — pair them onto
+    // 2 lines instead of reserving a slot per field, so the card stays
+    // compact instead of showing mostly-empty rows.
+    final businessLine = [_clean(record.companyName), _clean(record.businessType)].nonNulls.join(' • ');
+    final officerLine = [
+      _clean(record.investigationOfficer),
+      _clean(record.investigationStartDate),
+    ].nonNulls.join(' • ');
 
     return Material(
       color: cs.surface,
@@ -43,14 +57,18 @@ class InvestigationSearchRecordTile extends StatelessWidget {
                 style: textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.55)),
               ),
               const Divider(height: 20),
-              if (_clean(record.companyName) case final company?)
-                _InfoRow(icon: Icons.apartment_outlined, label: company, color: accentColor),
-              if (_clean(record.businessType) case final businessType?)
-                _InfoRow(icon: Icons.storefront_outlined, label: businessType, color: accentColor),
-              if (_clean(record.investigationOfficer) case final officer?)
-                _InfoRow(icon: Icons.badge_outlined, label: officer, color: accentColor),
-              if (_clean(record.investigationStartDate) case final date?)
-                _InfoRow(icon: Icons.event_outlined, label: date, color: accentColor),
+              SizedBox(
+                height: _infoRowHeight,
+                child: businessLine.isEmpty
+                    ? null
+                    : _InfoRow(icon: Icons.apartment_outlined, label: businessLine, color: accentColor),
+              ),
+              SizedBox(
+                height: _infoRowHeight,
+                child: officerLine.isEmpty
+                    ? null
+                    : _InfoRow(icon: Icons.badge_outlined, label: officerLine, color: accentColor),
+              ),
             ],
           ),
         ),
@@ -98,7 +116,14 @@ class _InfoRow extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: color),
           const SizedBox(width: 10),
-          Expanded(child: Text(label, style: Theme.of(context).textTheme.bodySmall)),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
         ],
       ),
     );

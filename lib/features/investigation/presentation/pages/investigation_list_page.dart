@@ -83,6 +83,7 @@ class _InvestigationListPageState extends ConsumerState<InvestigationListPage> {
         state: listState.listState,
         itemCount: listState.items.length,
         isLoadingMore: listState.isLoadingMore,
+        gridItemExtent: InvestigationSearchRecordTile.fixedExtent,
         onRefresh: () => ref.read(investigationListControllerProvider(widget.mode).notifier).search(isRefresh: true),
         onRetry: () => ref.read(investigationListControllerProvider(widget.mode).notifier).search(),
         errorMessage: listState.errorMessage,

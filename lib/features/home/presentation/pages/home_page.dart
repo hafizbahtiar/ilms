@@ -106,6 +106,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
               indicatorWeight: 3,
               labelColor: cs.onPrimary,
               unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
+              dividerColor: Colors.transparent,
               tabs: const [
                 Tab(text: 'Dashboard'),
                 Tab(text: 'Profile'),
@@ -134,18 +135,21 @@ class _DashboardTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final visibleModules = homeModulesForPermissions(user.permissions);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (visibleModules.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            const PremiseHomeSection(),
-            const BillboardHomeSection(),
-            const InvestigationHomeSection(),
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (visibleModules.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const PremiseHomeSection(),
+              const BillboardHomeSection(),
+              const InvestigationHomeSection(),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

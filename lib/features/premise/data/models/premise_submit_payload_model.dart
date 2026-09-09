@@ -316,6 +316,7 @@ class PremiseBusinessActivityRequest {
     this.status,
     this.statusDesc,
     this.description,
+    this.floors = const [],
   });
 
   final int? id;
@@ -324,6 +325,7 @@ class PremiseBusinessActivityRequest {
   final String? status;
   final String? statusDesc;
   final String? description;
+  final List<String> floors;
 
   factory PremiseBusinessActivityRequest.fromDomain(PremiseBusinessActivity activity) => PremiseBusinessActivityRequest(
     id: activity.id,
@@ -332,11 +334,17 @@ class PremiseBusinessActivityRequest {
     status: activity.status,
     statusDesc: activity.statusDesc,
     description: activity.description,
+    floors: activity.floors,
   );
 
   /// Create parity with legacy `BusinessActivity.toJson()` — the `*_desc`
   /// fields are display-only lookups that `/create` has no column for.
-  Map<String, dynamic> toCreateJson() => {'business_type': businessType, 'status': status, 'description': description};
+  Map<String, dynamic> toCreateJson() => {
+    'business_type': businessType,
+    'status': status,
+    'description': description,
+    'floors': floors,
+  };
 
   /// Update parity with legacy `BusinessActivity.toJsonUpdate()`.
   Map<String, dynamic> toUpdateJson() => {
@@ -346,6 +354,7 @@ class PremiseBusinessActivityRequest {
     'status': status,
     'status_desc': statusDesc,
     'description': description,
+    'floors': floors,
   };
 }
 
